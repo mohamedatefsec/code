@@ -1,0 +1,480 @@
+// Code AI - Phase 1 schema
+// يحتوي فقط على الجداول المطلوبة لـ Phase 1: المصادقة، الأدوار، المجموعات، الإعدادات.
+// باقي الجداول (المحتوى، بنك الأسئلة، الاختبارات، الحضور...) تُضاف في مراحلها الخاصة.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  student
+}
+
+enum UserStatus {
+  active
+  disabled
+}
+
+/// جدول موحّد للمصادقة فقط (كلمة المرور، الدور، الحالة).
+/// البيانات الوصفية لكل دور موجودة في جدول ملف شخصي منفصل (student_profiles / admin_profiles).
+model User {
+  id              String    @id @default(cuid())
+  role            Role
+  /// بريد الأدمن أو كود الطالب - قيمة تسجيل الدخول الموحّدة
+  loginIdentifier String    @unique @map("login_identifier")
+  passwordHash    String    @map("password_hash")
+  status          UserStatus @default(active)
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  studentProfile StudentProfile?
+  adminProfile   AdminProfile?
+
+  @@map("users")
+}
+
+model StudentProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+  fullName    String   @map("full_name")
+  studentCode String   @unique @map("student_code")
+  phone       String?
+  grade       String?
+  groupId     String?  @map("group_id")
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id])
+  quizTargets QuizTarget[]
+  quizAttempts QuizAttempt[]
+  attendanceRecords AttendanceRecord[]
+  notificationReads NotificationRead[]
+  studentBadges StudentBadge[]
+
+  @@index([groupId])
+  @@map("student_profiles")
+}
+
+model AdminProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique @map("user_id")
+  fullName  String  @map("full_name")
+  avatarUrl String? @map("avatar_url")
+  bio       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  grade       String?
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  students StudentProfile[]
+  quizTargets QuizTarget[]
+  attendanceSessions AttendanceSession[]
+
+  @@map("groups")
+}
+
+enum ContentStatus {
+  draft
+  published
+}
+
+/// وسائط الدرس: فيديو مضمّن (يوتيوب/فيميو)، PDF، صور، روابط تعليمية
+enum LessonMediaType {
+  video
+  pdf
+  image
+  link
+}
+
+/// المواد الدراسية الثابتة (البرمجة / الذكاء الاصطناعي) - تُزرع مبدئيًا عبر seed.ts
+model Subject {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+  order Int    @default(0)
+
+  units Unit[]
+  questions Question[]
+  quizzes Quiz[]
+
+  @@map("subjects")
+}
+
+model Unit {
+  id          String        @id @default(cuid())
+  subjectId   String        @map("subject_id")
+  title       String
+  description String?
+  order       Int           @default(0)
+  status      ContentStatus @default(draft)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  subject Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+  questions Question[]
+  quizzes Quiz[]
+
+  @@index([subjectId])
+  @@map("units")
+}
+
+model Lesson {
+  id          String        @id @default(cuid())
+  unitId      String        @map("unit_id")
+  title       String
+  description String?
+  /// محتوى نصي بسيط (يُعرض للطالب كفقرات) - بدون محرر Rich Text لتجنّب التعقيد غير الضروري
+  content     String?
+  order       Int           @default(0)
+  status      ContentStatus @default(draft)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  unit  Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  media LessonMedia[]
+  questions Question[]
+  quizzes Quiz[]
+
+  @@index([unitId, status])
+  @@map("lessons")
+}
+
+model LessonMedia {
+  id       String          @id @default(cuid())
+  lessonId String          @map("lesson_id")
+  type     LessonMediaType
+  url      String
+  title    String?
+  order    Int             @default(0)
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+  @@map("lesson_media")
+}
+
+enum QuestionType {
+  mcq
+  true_false
+  multiple_answer
+  ordering
+  code_output
+  essay
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+model Question {
+  id           String        @id @default(cuid())
+  subjectId    String        @map("subject_id")
+  unitId       String?       @map("unit_id")
+  lessonId     String?       @map("lesson_id")
+  type         QuestionType
+  text         String
+  /// كود يُعرض مع سؤال "توقع الناتج" (code_output)
+  codeSnippet  String?       @map("code_snippet")
+  difficulty   Difficulty    @default(medium)
+  points       Int           @default(1)
+  explanation  String?
+  status       ContentStatus @default(draft)
+  createdBy    String        @map("created_by")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  unit    Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  lesson  Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  options QuestionOption[]
+  quizQuestions QuizQuestion[]
+  attemptAnswers QuizAttemptAnswer[]
+
+  @@index([subjectId, status])
+  @@index([unitId])
+  @@index([lessonId])
+  @@map("questions")
+}
+
+/// اختيارات السؤال - تُستخدم لكل الأنواع:
+/// - mcq / true_false / multiple_answer: isCorrect يحدد الإجابة/الإجابات الصحيحة
+/// - ordering: order يمثّل الترتيب الصحيح المطلوب من الطالب
+/// - code_output: خيار واحد فقط isCorrect=true يمثّل الناتج المتوقع
+model QuestionOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+enum QuizStatus {
+  draft
+  published
+  closed
+}
+
+enum QuizTargetType {
+  group
+  student
+}
+
+enum AttemptStatus {
+  in_progress
+  submitted
+}
+
+model Quiz {
+  id              String     @id @default(cuid())
+  subjectId       String     @map("subject_id")
+  unitId          String?    @map("unit_id")
+  lessonId        String?    @map("lesson_id")
+  title           String
+  durationMinutes Int        @map("duration_minutes")
+  startAt         DateTime?  @map("start_at")
+  endAt           DateTime?  @map("end_at")
+  maxAttempts     Int        @default(1) @map("max_attempts")
+  status          QuizStatus @default(draft)
+  createdBy       String     @map("created_by")
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  unit    Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  lesson  Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  questions QuizQuestion[]
+  targets   QuizTarget[]
+  attempts  QuizAttempt[]
+
+  @@index([subjectId, status])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String @id @default(cuid())
+  quizId         String @map("quiz_id")
+  questionId     String @map("question_id")
+  order          Int    @default(0)
+  /// درجة مخصّصة لهذا السؤال داخل هذا الاختبار تحديدًا، بديلاً عن درجة السؤال الافتراضية في البنك
+  pointsOverride Int?   @map("points_override")
+
+  quiz     Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, questionId])
+  @@map("quiz_questions")
+}
+
+/// تحديد من يُسمح له بدخول الاختبار. عدم وجود أي صف = متاح لكل الطلاب النشطين.
+model QuizTarget {
+  id         String         @id @default(cuid())
+  quizId     String         @map("quiz_id")
+  targetType QuizTargetType @map("target_type")
+  groupId    String?        @map("group_id")
+  studentId  String?        @map("student_id")
+
+  quiz    Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  group   Group?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student StudentProfile? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("quiz_targets")
+}
+
+model QuizAttempt {
+  id               String        @id @default(cuid())
+  quizId           String        @map("quiz_id")
+  studentId        String        @map("student_id")
+  attemptNumber    Int           @map("attempt_number")
+  startedAt        DateTime      @default(now()) @map("started_at")
+  submittedAt      DateTime?     @map("submitted_at")
+  score            Int?
+  maxScore         Int?          @map("max_score")
+  percentage       Float?
+  status           AttemptStatus @default(in_progress)
+  timeSpentSeconds Int?          @map("time_spent_seconds")
+  /// true لو فيها إجابة سؤال مقالي واحد على الأقل لسه ما اتصححش يدويًا -
+  /// الدرجة والنسبة تبقى غير نهائية (جزئية من الأسئلة المُصحَّحة تلقائيًا فقط)
+  needsManualGrading Boolean @default(false) @map("needs_manual_grading")
+
+  quiz    Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers QuizAttemptAnswer[]
+
+  @@unique([quizId, studentId, attemptNumber])
+  @@index([studentId])
+  @@map("quiz_attempts")
+}
+
+model QuizAttemptAnswer {
+  id                 String   @id @default(cuid())
+  attemptId          String   @map("attempt_id")
+  questionId         String   @map("question_id")
+  /// إجابة الأسئلة القائمة على خيارات (mcq/true_false/multiple_answer/ordering)
+  selectedOptionIds  Json?    @map("selected_option_ids")
+  /// إجابة نصية حرة لسؤال "توقع ناتج الكود" أو للسؤال المقالي
+  textAnswer         String?  @map("text_answer")
+  /// null = لسه ما اتصححش (أسئلة مقالية بانتظار المدرّس)
+  isCorrect          Boolean? @map("is_correct")
+  pointsEarned       Int      @default(0) @map("points_earned")
+
+  attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("quiz_attempt_answers")
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+}
+
+/// حصة حضور واحدة لمجموعة في تاريخ معيّن (المسار: مجموعة → تاريخ → حصة)
+model AttendanceSession {
+  id           String   @id @default(cuid())
+  groupId      String   @map("group_id")
+  sessionDate  DateTime @map("session_date") @db.Date
+  sessionLabel String?  @map("session_label")
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  group   Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  records AttendanceRecord[]
+
+  @@unique([groupId, sessionDate, sessionLabel])
+  @@index([groupId])
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id        String           @id @default(cuid())
+  sessionId String           @map("session_id")
+  studentId String           @map("student_id")
+  status    AttendanceStatus
+  notes     String?
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@map("attendance_records")
+}
+
+enum NotificationTargetType {
+  all
+  group
+  student
+}
+
+model Notification {
+  id             String                 @id @default(cuid())
+  title          String
+  body           String
+  targetType     NotificationTargetType @map("target_type")
+  targetGroupId  String?                @map("target_group_id")
+  targetStudentId String?               @map("target_student_id")
+  createdBy      String                 @map("created_by")
+  createdAt      DateTime               @default(now()) @map("created_at")
+
+  reads NotificationRead[]
+
+  @@index([targetGroupId])
+  @@index([targetStudentId])
+  @@map("notifications")
+}
+
+model NotificationRead {
+  id             String   @id @default(cuid())
+  notificationId String   @map("notification_id")
+  studentId      String   @map("student_id")
+  readAt         DateTime @default(now()) @map("read_at")
+
+  notification Notification   @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, studentId])
+  @@map("notification_reads")
+}
+
+/// معايير منح الشارات - تُقيَّم بمنطق بسيط في الكود (بدون محرك قواعد معقد)
+enum BadgeCriteria {
+  first_quiz
+  five_quizzes_streak
+  perfect_score
+  excellent_attendance
+  first_lesson
+}
+
+model Badge {
+  id          String        @id @default(cuid())
+  name        String
+  icon        String
+  description String
+  criteriaKey BadgeCriteria @unique @map("criteria_key")
+
+  studentBadges StudentBadge[]
+
+  @@map("badges")
+}
+
+model StudentBadge {
+  id         String   @id @default(cuid())
+  studentId  String   @map("student_id")
+  badgeId    String   @map("badge_id")
+  awardedAt  DateTime @default(now()) @map("awarded_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badge   Badge          @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, badgeId])
+  @@map("student_badges")
+}
+
+/// صف واحد فقط (Singleton) - هوية المنصة القابلة للتعديل من لوحة الأدمن دون تعديل الكود.
+model Settings {
+  id              String   @id @default(cuid())
+  platformName    String   @default("Code AI") @map("platform_name")
+  logoUrl         String?  @map("logo_url")
+  faviconUrl      String?  @map("favicon_url")
+  teacherName     String?  @map("teacher_name")
+  teacherPhotoUrl String?  @map("teacher_photo_url")
+  description     String?
+  primaryColor    String   @default("#4f46e5") @map("primary_color")
+  secondaryColor  String   @default("#0d9488") @map("secondary_color")
+  welcomeMessage  String?  @map("welcome_message")
+  contactInfo     Json?    @map("contact_info")
+  socialLinks     Json?    @map("social_links")
+  footerText      String?  @map("footer_text")
+  /// العنوان الكبير في الصفحة الرئيسية العامة (قبل تسجيل الدخول)
+  heroHeadline    String?  @map("hero_headline")
+  /// حتى 3 عبارات قصيرة تظهر كـ Badges تحت مقدمة الصفحة الرئيسية
+  heroBadges      Json?    @map("hero_badges")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
