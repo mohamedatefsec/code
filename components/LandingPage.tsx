@@ -183,6 +183,79 @@ export default async function LandingPage() {
         )}
       </section>
 
+      {/* ===== لمحة: البرمجة + الذكاء الاصطناعي في الصفوف الحقيقية ===== */}
+      <section className="max-w-6xl mx-auto px-6 py-16 w-full overflow-hidden">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div className="animate-fade-in-up order-2 md:order-1 text-center md:text-start">
+            <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 text-accent px-4 py-1.5 text-sm font-semibold">
+              ⚡ مدعوم بالذكاء الاصطناعي
+            </span>
+            <h2 className="mt-4 text-3xl font-bold text-ink">مولّد أسئلة ذكي لكل درس</h2>
+            <p className="mt-4 text-lg text-ink-soft leading-8 max-w-lg mx-auto md:mx-0">
+              معلّمك بيكتب الموضوع، والذكاء الاصطناعي بيقترح أسئلة متنوعة جاهزة للمراجعة —
+              نفس الأدوات اللي هتتعلم تبنيها إنت بنفسك في مسار الذكاء الاصطناعي.
+            </p>
+            <ul className="mt-6 space-y-3 text-base text-ink-soft max-w-lg mx-auto md:mx-0">
+              <li className="flex items-center gap-2.5 justify-center md:justify-start">
+                <span className="text-accent">✓</span> اختيار من متعدد، صح وخطأ، ترتيب، وأسئلة برمجية
+              </li>
+              <li className="flex items-center gap-2.5 justify-center md:justify-start">
+                <span className="text-accent">✓</span> مستويات صعوبة متدرّجة حسب كل درس
+              </li>
+              <li className="flex items-center gap-2.5 justify-center md:justify-start">
+                <span className="text-accent">✓</span> مراجعة وتعديل بشرية قبل النشر دايمًا
+              </li>
+            </ul>
+          </div>
+
+          {/* نافذة كود تفاعلية الشكل */}
+          <div className="order-1 md:order-2 flex justify-center animate-scale-in">
+            <div className="relative">
+              <div className="absolute -top-5 -end-5 w-14 h-14 rounded-2xl bg-primary/20 animate-float-slow" />
+              <div
+                className="absolute -bottom-5 -start-5 w-16 h-16 rounded-full bg-accent/20 animate-float-slow"
+                style={{ animationDelay: "1s" }}
+              />
+              <div
+                className="relative w-80 sm:w-96 rounded-2xl overflow-hidden shadow-elevated card-hover"
+                style={{ backgroundColor: "var(--color-sidebar)", border: "1px solid var(--color-sidebar-border)" }}
+              >
+                <div
+                  className="flex items-center gap-2 px-4 py-3 border-b"
+                  style={{ borderColor: "var(--color-sidebar-border)" }}
+                >
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff5f56" }} />
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ffbd2e" }} />
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: "#27c93f" }} />
+                  <span className="ms-2 text-xs font-mono" style={{ color: "var(--color-sidebar-text)" }}>
+                    ai_generator.py
+                  </span>
+                </div>
+                <pre
+                  dir="ltr"
+                  className="px-5 py-5 text-sm leading-7 font-mono overflow-x-auto text-start"
+                  style={{ color: "var(--color-sidebar-text)" }}
+                >
+                  <code>
+                    <span style={{ color: "#818cf8" }}>def</span>{" "}
+                    <span style={{ color: "#2dd4bf" }}>generate_quiz</span>
+                    {"(topic, level):\n"}
+                    {"    # يولّد أسئلة متنوعة جاهزة للمراجعة\n"}
+                    {"    questions = ai.create(\n"}
+                    {"        topic=topic,\n"}
+                    {"        difficulty=level,\n        status="}
+                    <span style={{ color: "#2dd4bf" }}>&quot;draft&quot;</span>
+                    {"\n    )\n    "}
+                    <span style={{ color: "#818cf8" }}>return</span>
+                    {" questions"}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== المسارات ===== */}
       {visibleSubjects.length > 0 && (
         <section id="subjects" className="max-w-6xl mx-auto px-6 py-16 w-full">
