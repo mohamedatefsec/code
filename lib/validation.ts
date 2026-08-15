@@ -123,6 +123,13 @@ export const settingsUpdateSchema = z.object({
   heroBadges: z.array(z.string().max(60)).max(3).nullable().optional(),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "أدخل كلمة المرور الحالية"),
+  newPassword: z
+    .string()
+    .min(8, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل"),
+});
+
 // ===== بنك الأسئلة =====
 
 const questionOptionInputSchema = z.object({

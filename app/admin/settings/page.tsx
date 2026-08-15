@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 type ContactInfo = { email?: string; phone?: string };
 type SocialLinks = { facebook?: string; instagram?: string; youtube?: string; whatsapp?: string };
@@ -272,6 +273,8 @@ export default function AdminSettingsPage() {
           {saving ? "جارٍ الحفظ..." : "حفظ التغييرات"}
         </button>
       </form>
+
+      <ChangePasswordForm />
     </div>
   );
 }
