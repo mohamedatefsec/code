@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
+// نستخدم Google Gemini بدل Anthropic API هنا تحديدًا لأن Gemini يوفّر مستوى
+// مجاني دائم (بدون بطاقة بنكية) بحد يومي كافٍ لاستخدام معلّم واحد. باقي
+// المنصة لا علاقة له بهذا الاختيار.
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
 const generatedOptionSchema = z.object({
   text: z.string().min(1),
@@ -44,10 +47,10 @@ export async function generateQuestions(params: {
   types: string[];
   difficulty: "easy" | "medium" | "hard" | "mixed";
 }): Promise<GeneratedQuestion[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new AIGenerationError(
-      "لم يتم إعداد ANTHROPIC_API_KEY في ملف .env - أضف مفتاح Anthropic API أولًا."
+      "لم يتم إعداد GEMINI_API_KEY في ملف .env - أضف مفتاح Google Gemini API المجاني أولًا."
     );
   }
 
@@ -56,33 +59,34 @@ export async function generateQuestions(params: {
 مستوى الصعوبة: ${params.difficulty === "mixed" ? "متنوع بين سهل ومتوسط وصعب" : params.difficulty}.
 وزّع الأسئلة على الأنواع المطلوبة بالتساوي قدر الإمكان.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 4096,
+        },
+      }),
+    }
+  );
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "");
     throw new AIGenerationError(
-      `فشل الاتصال بخدمة الذكاء الاصطناعي (HTTP ${res.status}). تأكد من صحة ANTHROPIC_API_KEY. ${errBody.slice(0, 200)}`
+      `فشل الاتصال بخدمة الذكاء الاصطناعي (HTTP ${res.status}). تأكد من صحة GEMINI_API_KEY. ${errBody.slice(0, 200)}`
     );
   }
 
   const data = await res.json();
-  const rawText: string = (data.content ?? [])
-    .filter((b: { type: string }) => b.type === "text")
-    .map((b: { text: string }) => b.text)
-    .join("\n");
+  const rawText: string =
+    data?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text ?? "")
+      .join("\n") ?? "";
 
   const cleaned = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
 
