@@ -40,13 +40,11 @@ export async function POST(req: NextRequest) {
 
   // "فتح حصة" عملية آمنة للتكرار: لو الحصة موجودة بالفعل لنفس المجموعة/التاريخ/الاسم
   // نرجّعها بدل ما نعمل واحدة مكررة (بيسمح للأدمن يرجع يعدّل حصة قديمة بسهولة).
-  const existing = await db.attendanceSession.findUnique({
+  const existing = await db.attendanceSession.findFirst({
     where: {
-      groupId_sessionDate_sessionLabel: {
-        groupId,
-        sessionDate: new Date(sessionDate),
-        sessionLabel: normalizedLabel,
-      },
+      groupId,
+      sessionDate: new Date(sessionDate),
+      sessionLabel: normalizedLabel,
     },
   });
   if (existing) {

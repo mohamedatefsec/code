@@ -55,7 +55,11 @@ export async function POST(
     const points = qq.pointsOverride ?? qq.question.points;
     maxScore += points;
 
-    const submitted = answersByQuestionId.get(qq.questionId) ?? {};
+    const submitted = answersByQuestionId.get(qq.questionId) ?? {
+      questionId: qq.questionId,
+      selectedOptionIds: undefined,
+      textAnswer: undefined,
+    };
     const { isCorrect, pointsEarned } = gradeAnswer(
       {
         type: qq.question.type,

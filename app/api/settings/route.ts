@@ -33,7 +33,9 @@ export async function PATCH(req: NextRequest) {
   const current = await getOrCreateSettings();
   const updated = await db.settings.update({
     where: { id: current.id },
-    data: parsed.data,
+    // parsed.data مُتحقق منه بالفعل عبر zod أعلاه؛ الـ cast هنا فقط لتفادي
+    // تعارض Prisma الصارم مع حقول Json الاختيارية (null بدل Prisma.JsonNull).
+    data: parsed.data as Parameters<typeof db.settings.update>[0]["data"],
   });
 
   return NextResponse.json({ settings: updated });
