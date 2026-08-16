@@ -36,7 +36,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
         const loadingTask = pdfjsLib.getDocument({
-          url,
+          url: `/api/pdf-proxy?url=${encodeURIComponent(url)}`,
           // نتجنب طلبات Range (تحتاج إعداد CORS دقيق على السيرفر المُستضيف)
           // ونحمّل الملف كاملًا دفعة واحدة، وهو مناسب لحجم ملفات الدروس.
           disableRange: true,
