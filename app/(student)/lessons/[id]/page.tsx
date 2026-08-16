@@ -114,15 +114,16 @@ export default async function StudentLessonDetailPage({
               <div key={m.id}>
                 {m.title && <p className="text-sm font-medium text-ink mb-2">📄 {m.title}</p>}
                 {/*
-                  عرض الملف داخل الصفحة (iframe) بدل فتحه كرابط مباشر يخفي شريط أدوات
-                  المتصفح - بما فيه زر التحميل - في المتصفحات المبنية على Chromium
-                  (Chrome وEdge) عبر #toolbar=0. هذا يقلل ظهور خيار التحميل فقط، وليس
-                  حجبًا حقيقيًا؛ أي شخص يقدر يأخذ لقطة شاشة أو يستخدم أدوات المطوّر
-                  للوصول للملف الأصلي، فلا يوجد أسلوب يمنع التحميل بشكل مضمون 100%.
+                  نستخدم Google Docs Viewer لعرض الملف بدل تحميل رابط الـ PDF
+                  مباشرة داخل الإطار: بعض المتصفحات (خصوصًا Chrome على
+                  أندرويد) لا تعرض ملفات PDF داخل iframe وتبدأ تحميلها تلقائيًا
+                  بدل عرضها. Google Docs Viewer يعرض الملف كصفحة، فيعمل بثبات
+                  على كل الأجهزة تقريبًا بدون أي تحميل تلقائي. الملف عمومًا
+                  عام الوصول (public) بالفعل، فلا مشكلة في مروره عبر الخدمة.
                 */}
                 <div className="rounded-xl overflow-hidden border border-border shadow-elevated bg-canvas" style={{ height: "70vh" }}>
                   <iframe
-                    src={`${m.url}#toolbar=0&navpanes=0`}
+                    src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(m.url)}`}
                     title={m.title ?? lesson.title}
                     className="w-full h-full"
                   />
