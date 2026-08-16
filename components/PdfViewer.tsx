@@ -11,6 +11,7 @@ import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
  * ممكنًا عبر لقطة شاشة أو أدوات المطوّر)، لكنه أقصى تحكم ممكن تقنيًا.
  */
 export function PdfViewer({ url, title }: { url: string; title?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
@@ -18,7 +19,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
 
   const [numPages, setNumPages] = useState(0);
   const [pageNum, setPageNum] = useState(1);
-  const [scale, setScale] = useState(1.1);
+  const [scale, setScale] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
     setError(null);
     setNumPages(0);
     setPageNum(1);
+    setScale(null);
 
     (async () => {
       try {
@@ -47,6 +49,15 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
         if (cancelled) return;
         pdfDocRef.current = pdf;
         setNumPages(pdf.numPages);
+
+        // نحسب مستوى تكبير أولي يملأ عرض الحاوية بدل مستوى ثابت صغير، حتى
+        // يظهر النص واضحًا للقراءة من أول لحظة بدل الاعتماد على تكبير يدوي.
+        const firstPage = await pdf.getPage(1);
+        if (cancelled) return;
+        const unscaledWidth = firstPage.getViewport({ scale: 1 }).width;
+        const containerWidth = containerRef.current?.clientWidth ?? 800;
+        const fitScale = Math.max(0.5, Math.min(2.5, (containerWidth - 32) / unscaledWidth));
+        setScale(fitScale);
         setLoading(false);
       } catch {
         if (!cancelled) {
@@ -67,7 +78,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
   // رسم الصفحة الحالية كل ما يتغيّر رقم الصفحة أو مستوى التكبير
   useEffect(() => {
     const pdf = pdfDocRef.current;
-    if (!pdf || !canvasRef.current) return;
+    if (!pdf || !canvasRef.current || scale === null) return;
 
     let cancelled = false;
 
@@ -81,11 +92,18 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       const context = canvas.getContext("2d");
       if (!context) return;
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // رسم بدقة الشاشة الفعلية (devicePixelRatio) مع إبقاء الحجم الظاهر
+      // على الصفحة كما هو، حتى يظهر النص حادًا وواضحًا على الشاشات عالية
+      // الكثافة (Retina) بدل صورة ضبابية مكبَّرة.
+      const outputScale = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
       renderTaskRef.current?.cancel();
-      const task = page.render({ canvasContext: context, viewport, canvas });
+      const task = page.render({ canvasContext: context, viewport, canvas, transform });
       renderTaskRef.current = task;
       try {
         await task.promise;
@@ -126,7 +144,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           <div className="w-px h-5 bg-border mx-1" />
           <button
             type="button"
-            onClick={() => setScale((s) => Math.max(0.5, +(s - 0.15).toFixed(2)))}
+            onClick={() => setScale((s) => Math.max(0.5, +((s ?? 1) - 0.15).toFixed(2)))}
             disabled={loading}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
@@ -134,7 +152,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           </button>
           <button
             type="button"
-            onClick={() => setScale((s) => Math.min(2.5, +(s + 0.15).toFixed(2)))}
+            onClick={() => setScale((s) => Math.min(2.5, +((s ?? 1) + 0.15).toFixed(2)))}
             disabled={loading}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
@@ -144,13 +162,14 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       </div>
 
       <div
+        ref={containerRef}
         className="overflow-auto flex justify-center p-4"
         style={{ height: "70vh" }}
         onContextMenu={(e) => e.preventDefault()}
       >
         {loading && <p className="text-sm text-ink-soft self-center">جارٍ تحميل الملف...</p>}
         {error && <p className="text-sm text-danger self-center">{error}</p>}
-        {!loading && !error && <canvas ref={canvasRef} className="shadow-elevated" />}
+        {!loading && !error && <canvas ref={canvasRef} className="shadow-elevated h-fit" />}
       </div>
     </div>
   );
