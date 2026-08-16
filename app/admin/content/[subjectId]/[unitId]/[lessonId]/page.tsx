@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent, ChangeEvent, use } from "react";
 import Link from "next/link";
+import { upload } from "@vercel/blob/client";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
 type Lesson = {
@@ -103,16 +104,16 @@ export default function AdminLessonEditPage({
     if (!file) return;
     setMediaError(null);
     setUploadingPdf(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch("/api/upload/document", { method: "POST", body: formData });
-    setUploadingPdf(false);
-    if (res.ok) {
-      const data = await res.json();
-      setMediaUrl(data.url);
-    } else {
-      const data = await res.json().catch(() => null);
-      setMediaError(data?.error ?? "تعذّر رفع الملف.");
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload/document",
+      });
+      setMediaUrl(blob.url);
+    } catch (err) {
+      setMediaError(err instanceof Error ? err.message : "تعذّر رفع الملف.");
+    } finally {
+      setUploadingPdf(false);
     }
   }
 
