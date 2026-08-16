@@ -106,10 +106,36 @@ export default async function StudentLessonDetailPage({
         </div>
       )}
 
-      {(lesson.media.filter((m) => m.type === "pdf" || m.type === "link").length > 0) && (
+      {lesson.media.filter((m) => m.type === "pdf").length > 0 && (
+        <div className="space-y-4">
+          {lesson.media
+            .filter((m) => m.type === "pdf")
+            .map((m) => (
+              <div key={m.id}>
+                {m.title && <p className="text-sm font-medium text-ink mb-2">📄 {m.title}</p>}
+                {/*
+                  عرض الملف داخل الصفحة (iframe) بدل فتحه كرابط مباشر يخفي شريط أدوات
+                  المتصفح - بما فيه زر التحميل - في المتصفحات المبنية على Chromium
+                  (Chrome وEdge) عبر #toolbar=0. هذا يقلل ظهور خيار التحميل فقط، وليس
+                  حجبًا حقيقيًا؛ أي شخص يقدر يأخذ لقطة شاشة أو يستخدم أدوات المطوّر
+                  للوصول للملف الأصلي، فلا يوجد أسلوب يمنع التحميل بشكل مضمون 100%.
+                */}
+                <div className="rounded-xl overflow-hidden border border-border shadow-elevated bg-canvas" style={{ height: "70vh" }}>
+                  <iframe
+                    src={`${m.url}#toolbar=0&navpanes=0`}
+                    title={m.title ?? lesson.title}
+                    className="w-full h-full"
+                  />
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {lesson.media.filter((m) => m.type === "link").length > 0 && (
         <div className="rounded-xl border border-border bg-surface p-4 space-y-2 shadow-elevated">
           {lesson.media
-            .filter((m) => m.type === "pdf" || m.type === "link")
+            .filter((m) => m.type === "link")
             .map((m) => (
               <a
                 key={m.id}
@@ -118,7 +144,7 @@ export default async function StudentLessonDetailPage({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-primary hover:underline text-sm"
               >
-                {m.type === "pdf" ? "📄" : "🔗"} {m.title ?? (m.type === "pdf" ? "فتح ملف PDF" : "رابط تعليمي")}
+                🔗 {m.title ?? "رابط تعليمي"}
               </a>
             ))}
         </div>
