@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { toEmbedUrl } from "@/lib/media";
+import { PdfViewer } from "@/components/PdfViewer";
 import { requireActiveUser } from "@/lib/auth";
 import { awardBadge } from "@/lib/badges";
 
@@ -111,24 +112,7 @@ export default async function StudentLessonDetailPage({
           {lesson.media
             .filter((m) => m.type === "pdf")
             .map((m) => (
-              <div key={m.id}>
-                {m.title && <p className="text-sm font-medium text-ink mb-2">📄 {m.title}</p>}
-                {/*
-                  نستخدم Google Docs Viewer لعرض الملف بدل تحميل رابط الـ PDF
-                  مباشرة داخل الإطار: بعض المتصفحات (خصوصًا Chrome على
-                  أندرويد) لا تعرض ملفات PDF داخل iframe وتبدأ تحميلها تلقائيًا
-                  بدل عرضها. Google Docs Viewer يعرض الملف كصفحة، فيعمل بثبات
-                  على كل الأجهزة تقريبًا بدون أي تحميل تلقائي. الملف عمومًا
-                  عام الوصول (public) بالفعل، فلا مشكلة في مروره عبر الخدمة.
-                */}
-                <div className="rounded-xl overflow-hidden border border-border shadow-elevated bg-canvas" style={{ height: "70vh" }}>
-                  <iframe
-                    src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(m.url)}`}
-                    title={m.title ?? lesson.title}
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
+              <PdfViewer key={m.id} url={m.url} title={m.title ?? lesson.title} />
             ))}
         </div>
       )}
