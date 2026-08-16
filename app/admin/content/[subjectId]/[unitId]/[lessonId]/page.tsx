@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent, use } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent, use } from "react";
 import Link from "next/link";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
@@ -35,6 +35,7 @@ export default function AdminLessonEditPage({
   const [mediaTitle, setMediaTitle] = useState("");
   const [addingMedia, setAddingMedia] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   function reload() {
     fetch(`/api/lessons/${lessonId}`)
@@ -94,6 +95,25 @@ export default function AdminLessonEditPage({
   async function handleDeleteMedia(mediaId: string) {
     const res = await fetch(`/api/lessons/${lessonId}/media/${mediaId}`, { method: "DELETE" });
     if (res.ok) reload();
+  }
+
+  async function handlePdfFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setMediaError(null);
+    setUploadingPdf(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload/document", { method: "POST", body: formData });
+    setUploadingPdf(false);
+    if (res.ok) {
+      const data = await res.json();
+      setMediaUrl(data.url);
+    } else {
+      const data = await res.json().catch(() => null);
+      setMediaError(data?.error ?? "تعذّر رفع الملف.");
+    }
   }
 
   if (!lesson) {
@@ -200,7 +220,9 @@ export default function AdminLessonEditPage({
             </select>
           </div>
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-medium text-ink-soft mb-1.5">الرابط</label>
+            <label className="block text-xs font-medium text-ink-soft mb-1.5">
+              {mediaType === "pdf" ? "الرابط (أو ارفع ملف →)" : "الرابط"}
+            </label>
             <input
               value={mediaUrl}
               onChange={(e) => setMediaUrl(e.target.value)}
@@ -208,6 +230,24 @@ export default function AdminLessonEditPage({
               className="w-full rounded-lg border border-border px-3 py-2 text-sm transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
             />
           </div>
+          {mediaType === "pdf" && (
+            <div>
+              <label className="block text-xs font-medium text-ink-soft mb-1.5">ارفع ملف PDF</label>
+              <label
+                className={`flex items-center justify-center rounded-lg border border-dashed border-border px-3 py-2 text-sm cursor-pointer hover:bg-canvas transition-colors ${
+                  uploadingPdf ? "opacity-60 pointer-events-none" : ""
+                }`}
+              >
+                {uploadingPdf ? "جارٍ الرفع..." : "📄 اختر ملف"}
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handlePdfFileSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
           <div className="w-40">
             <label className="block text-xs font-medium text-ink-soft mb-1.5">عنوان (اختياري)</label>
             <input
