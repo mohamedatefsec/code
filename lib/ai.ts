@@ -3,7 +3,7 @@ import { z } from "zod";
 // نستخدم Google Gemini بدل Anthropic API هنا تحديدًا لأن Gemini يوفّر مستوى
 // مجاني دائم (بدون بطاقة بنكية) بحد يومي كافٍ لاستخدام معلّم واحد. باقي
 // المنصة لا علاقة له بهذا الاختيار.
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+// موديل Gemini الأساسي والبدائل مُعرّفان أدناه ضمن FALLBACK_MODELS.
 
 const generatedOptionSchema = z.object({
   text: z.string().min(1),
@@ -39,7 +39,80 @@ const SYSTEM_PROMPT = `أنت مساعد لإنشاء أسئلة تعليمية 
 أعِد الإجابة **فقط** بصيغة JSON صالحة مطابقة تمامًا لهذا الشكل، بدون أي نص إضافي أو Markdown code fences:
 {"questions": [{"type": "...", "text": "...", "codeSnippet": null, "difficulty": "...", "points": 1, "explanation": "...", "options": [{"text": "...", "isCorrect": true}]}]}`;
 
+// ترتيب تجربة الموديلات: لو الأول مزدحم أو غير متاح، نجرب اللي بعده تلقائيًا.
+// المستخدم يقدر يتحكم في الموديل الأساسي عبر متغير البيئة GEMINI_MODEL،
+// وباقي القائمة بتضل fallback ثابت بغض النظر عن الإعداد.
+const FALLBACK_MODELS = Array.from(
+  new Set([
+    process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+  ])
+);
+
 export class AIGenerationError extends Error {}
+
+async function callGeminiOnce(model: string, apiKey: string, systemPrompt: string, userPrompt: string) {
+  return fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 4096,
+        },
+      }),
+    }
+  );
+}
+
+async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string) {
+  const attemptsPerModel = 2;
+  let lastErr: { status: number; body: string } | null = null;
+
+  for (const model of FALLBACK_MODELS) {
+    for (let attempt = 1; attempt <= attemptsPerModel; attempt++) {
+      const res = await callGeminiOnce(model, apiKey, systemPrompt, userPrompt);
+      if (res.ok) return res;
+
+      const errBody = await res.text().catch(() => "");
+      lastErr = { status: res.status, body: errBody };
+
+      // مفتاح غلط: فشل نهائي فورًا، مفيش داعي نجرب موديلات تانية
+      if (res.status === 401 || res.status === 403) {
+        throw new AIGenerationError(
+          "فشل الاتصال بخدمة الذكاء الاصطناعي: مفتاح GEMINI_API_KEY غير صحيح أو غير مفعّل."
+        );
+      }
+
+      const isRetryable = res.status === 503 || res.status === 429;
+      if (!isRetryable) break; // خطأ غير متعلق بالازدحام، جرب الموديل التالي فورًا من غير انتظار
+
+      if (attempt < attemptsPerModel) {
+        await new Promise((r) => setTimeout(r, attempt * 1200));
+      }
+    }
+    // انتقل للموديل التالي في القائمة
+  }
+
+  if (lastErr?.status === 429) {
+    throw new AIGenerationError(
+      "تم تجاوز الحد المسموح به من الطلبات لخدمة Gemini المجانية على كل الموديلات المتاحة. انتظر دقيقة وحاول مرة أخرى."
+    );
+  }
+  if (lastErr?.status === 503) {
+    throw new AIGenerationError(
+      "خدمة Gemini مزدحمة حاليًا من جوجل نفسها على كل الموديلات البديلة (وليست مشكلة في مفتاحك). برجاء المحاولة بعد دقائق قليلة."
+    );
+  }
+  throw new AIGenerationError(
+    `فشل الاتصال بخدمة الذكاء الاصطناعي (HTTP ${lastErr?.status}). ${lastErr?.body.slice(0, 200) ?? ""}`
+  );
+}
 
 export async function generateQuestions(params: {
   topic: string;
@@ -59,28 +132,7 @@ export async function generateQuestions(params: {
 مستوى الصعوبة: ${params.difficulty === "mixed" ? "متنوع بين سهل ومتوسط وصعب" : params.difficulty}.
 وزّع الأسئلة على الأنواع المطلوبة بالتساوي قدر الإمكان.`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          maxOutputTokens: 4096,
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    throw new AIGenerationError(
-      `فشل الاتصال بخدمة الذكاء الاصطناعي (HTTP ${res.status}). تأكد من صحة GEMINI_API_KEY. ${errBody.slice(0, 200)}`
-    );
-  }
+  const res = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt);
 
   const data = await res.json();
   const rawText: string =
