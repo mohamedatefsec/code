@@ -8,7 +8,6 @@ type Subject = { id: string; name: string; slug: string; order: number; _count: 
 export default function AdminContentPage() {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -31,12 +30,11 @@ export default function AdminContentPage() {
     const res = await fetch("/api/subjects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug }),
+      body: JSON.stringify({ name }),
     });
     setCreating(false);
     if (res.ok) {
       setName("");
-      setSlug("");
       reload();
     } else {
       const data = await res.json().catch(() => null);
@@ -69,15 +67,6 @@ export default function AdminContentPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="مثال: البرمجة"
             className="w-full rounded-lg border border-border px-3 py-2 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
-          />
-        </div>
-        <div className="w-48">
-          <label className="block text-sm font-medium text-ink mb-1.5">الرابط (slug)</label>
-          <input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="programming"
-            className="w-full rounded-lg border border-border px-3 py-2 font-mono text-sm transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
           />
         </div>
         <button

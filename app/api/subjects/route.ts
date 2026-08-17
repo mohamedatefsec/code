@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdminSession, getCurrentSession } from "@/lib/auth";
 import { subjectCreateSchema } from "@/lib/validation";
+import { generateUniqueSubjectSlug } from "@/lib/slug";
 import { Prisma } from "@prisma/client";
 
 export async function GET() {
@@ -34,11 +35,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const subject = await db.subject.create({ data: parsed.data });
+    const slug = await generateUniqueSubjectSlug(parsed.data.name);
+    const subject = await db.subject.create({ data: { ...parsed.data, slug } });
     return NextResponse.json({ subject }, { status: 201 });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      return NextResponse.json({ error: "رابط المادة (slug) مستخدم بالفعل." }, { status: 409 });
+      return NextResponse.json({ error: "حدث تعارض أثناء إنشاء المادة، حاول مرة أخرى." }, { status: 409 });
     }
     throw err;
   }
