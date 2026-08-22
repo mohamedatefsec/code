@@ -5,23 +5,28 @@ import { z } from "zod";
 // المنصة لا علاقة له بهذا الاختيار.
 // موديل Gemini الأساسي والبدائل مُعرّفان أدناه ضمن FALLBACK_MODELS.
 
+// preprocess بسيط بيقبل الاختلافات الشكلية البسيطة اللي الموديل ممكن يرجّعها
+// (مسافات زيادة أو حروف كبيرة/صغيرة) بدل ما يفشل التحقق كله.
+const normalizeEnumInput = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : v);
+
+const typeEnum = z.enum(["mcq", "true_false", "multiple_answer", "ordering", "code_output", "essay"]);
+const difficultyEnum = z.enum(["easy", "medium", "hard"]);
+
 const generatedOptionSchema = z.object({
   text: z.string().min(1),
-  isCorrect: z.boolean(),
+  isCorrect: z.coerce.boolean(),
 });
 
 const generatedQuestionSchema = z.object({
-  type: z.enum(["mcq", "true_false", "multiple_answer", "ordering", "code_output", "essay"]),
+  type: z.preprocess(normalizeEnumInput, typeEnum),
   text: z.string().min(1),
   codeSnippet: z.string().nullable().optional(),
-  difficulty: z.enum(["easy", "medium", "hard"]),
-  points: z.number().int().min(1).max(10),
+  difficulty: z.preprocess(normalizeEnumInput, difficultyEnum),
+  points: z.coerce.number().int().min(1).max(10),
   explanation: z.string().nullable().optional(),
-  options: z.array(generatedOptionSchema).max(8),
-});
-
-const generatedResponseSchema = z.object({
-  questions: z.array(generatedQuestionSchema),
+  // بعض الموديلات بتسيب options فاضي تمامًا (undefined) بدل [] لأسئلة essay
+  // رغم تعليمات الـ prompt، فبنعتبرها [] افتراضيًا بدل ما نرفض السؤال كله.
+  options: z.array(generatedOptionSchema).max(8).optional().default([]),
 });
 
 export type GeneratedQuestion = z.infer<typeof generatedQuestionSchema>;
@@ -154,10 +159,29 @@ export async function generateQuestions(params: {
   const res = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt);
 
   const data = await res.json();
+
+  // لو Gemini رفض الرد لأسباب سلامة المحتوى أو انتهى بسبب حد التوكنز، مفيش
+  // "candidates" أصلًا أو مفيهاش نص - نديله رسالة واضحة بدل "شكل غير متوقع".
+  const finishReason: string | undefined = data?.candidates?.[0]?.finishReason;
+  const blockReason: string | undefined = data?.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new AIGenerationError(
+      `تم رفض الطلب من فلاتر السلامة في Gemini (${blockReason}). جرّب تُعدّل صياغة الموضوع.`
+    );
+  }
+
   const rawText: string =
     data?.candidates?.[0]?.content?.parts
       ?.map((p: { text?: string }) => p.text ?? "")
       .join("\n") ?? "";
+
+  if (!rawText.trim()) {
+    throw new AIGenerationError(
+      finishReason === "MAX_TOKENS"
+        ? "رد النموذج اتقطع لأنه وصل لحد التوكنز المسموح به. قلّل عدد الأسئلة المطلوبة وحاول تاني."
+        : "رد فارغ من خدمة الذكاء الاصطناعي، حاول مرة أخرى."
+    );
+  }
 
   const cleaned = rawText.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
 
@@ -165,13 +189,31 @@ export async function generateQuestions(params: {
   try {
     parsedJson = JSON.parse(cleaned);
   } catch {
+    console.error("[ai] JSON.parse failed. Raw model output:", cleaned.slice(0, 2000));
     throw new AIGenerationError("رد الذكاء الاصطناعي لم يكن بصيغة JSON صالحة، حاول مرة أخرى.");
   }
 
-  const parsed = generatedResponseSchema.safeParse(parsedJson);
-  if (!parsed.success) {
+  const questionsArray = (parsedJson as { questions?: unknown })?.questions;
+  if (!Array.isArray(questionsArray)) {
+    console.error("[ai] Response has no 'questions' array. Raw model output:", cleaned.slice(0, 2000));
     throw new AIGenerationError("شكل بيانات الأسئلة الناتجة غير متوقع، حاول مرة أخرى.");
   }
 
-  return parsed.data.questions;
+  // نتحقق من كل سؤال على حدة بدل ما نرفض الدفعة كلها لسبب سؤال واحد غلط
+  // الشكل - نفس فلسفة الفلترة الهادئة المطبّقة أصلًا بعدها لقواعد العمل.
+  const validQuestions: GeneratedQuestion[] = [];
+  for (const item of questionsArray) {
+    const result = generatedQuestionSchema.safeParse(item);
+    if (result.success) {
+      validQuestions.push(result.data);
+    } else {
+      console.error("[ai] Skipped one malformed question:", result.error.flatten(), item);
+    }
+  }
+
+  if (validQuestions.length === 0) {
+    throw new AIGenerationError("شكل بيانات الأسئلة الناتجة غير متوقع، حاول مرة أخرى.");
+  }
+
+  return validQuestions;
 }
