@@ -71,34 +71,78 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function callGeminiOnce(model: string, apiKey: string, systemPrompt: string, userPrompt: string) {
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          maxOutputTokens: 4096,
-        },
-      }),
-    }
-  );
+// مهلة إجمالية صارمة لكل محاولات إعادة الاتصال مجتمعة. لازم تفضل أقل بأمان
+// من maxDuration بتاع الـ route (45 ثانية) عشان نضمن إن الكود يرجّع رسالة
+// خطأ واضحة بنفسه *قبل* ما Vercel يقفل الطلب بالقوة برد 504 فاضي (اللي
+// بيظهر للمستخدم كـ "تعذّر توليد الأسئلة" من غير أي تفاصيل).
+const TOTAL_BUDGET_MS = 35000;
+// أقصى وقت للمحاولة الواحدة، عشان لو Google نفسها معلّقة (مش بترجع 503
+// بسرعة) الكود ميستنّاش عليها للأبد ويضيّع الميزانية كلها في محاولة واحدة.
+const PER_CALL_TIMEOUT_MS = 9000;
+
+async function callGeminiOnce(
+  model: string,
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 4096,
+          },
+        }),
+      }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string) {
-  // 3 محاولات لكل موديل مع exponential backoff + jitter، بدل محاولتين بفاصل
-  // ثابت. ده بيدي فرصة أكبر لازدحام Google اللحظي (503) إنه يزول قبل ما
-  // نستسلم وننتقل للموديل التالي.
-  const attemptsPerModel = 3;
-  let lastErr: { status: number; body: string } | null = null;
+  const attemptsPerModel = 2;
+  const startedAt = Date.now();
+  const remainingBudget = () => TOTAL_BUDGET_MS - (Date.now() - startedAt);
 
-  for (const model of FALLBACK_MODELS) {
+  let lastErr: { status: number; body: string } | null = null;
+  let timedOut = false;
+
+  outer: for (const model of FALLBACK_MODELS) {
     for (let attempt = 1; attempt <= attemptsPerModel; attempt++) {
-      const res = await callGeminiOnce(model, apiKey, systemPrompt, userPrompt);
+      const budget = remainingBudget();
+      if (budget < 1500) {
+        // مفيش وقت كافٍ لمحاولة تانية بمعنى الكلمة - نوقف هنا ونرجّع خطأ
+        // واضح دلوقتي بدل ما نسيب Vercel يقطع الاتصال من غير أي رد.
+        timedOut = true;
+        break outer;
+      }
+
+      let res: Response;
+      try {
+        res = await callGeminiOnce(model, apiKey, systemPrompt, userPrompt, Math.min(PER_CALL_TIMEOUT_MS, budget));
+      } catch (e) {
+        // فشل الشبكة أو انتهت مهلة المحاولة نفسها (AbortError) - نعتبره
+        // قابل لإعادة المحاولة ونكمل للموديل/المحاولة التالية.
+        lastErr = { status: 0, body: e instanceof Error ? e.message : String(e) };
+        if (remainingBudget() < 1000) {
+          timedOut = true;
+          break outer;
+        }
+        continue;
+      }
+
       if (res.ok) return res;
 
       const errBody = await res.text().catch(() => "");
@@ -114,15 +158,22 @@ async function callGemini(apiKey: string, systemPrompt: string, userPrompt: stri
       const isRetryable = res.status === 503 || res.status === 429;
       if (!isRetryable) break; // خطأ غير متعلق بالازدحام (زي 404 لموديل شُطب)، جرب الموديل التالي فورًا من غير انتظار
 
-      if (attempt < attemptsPerModel) {
-        const backoff = 800 * 2 ** (attempt - 1); // 800ms, 1600ms, ...
-        const jitter = Math.random() * 400;
-        await sleep(backoff + jitter);
+      if (attempt < attemptsPerModel && remainingBudget() > 1500) {
+        const backoff = 500 * 2 ** (attempt - 1); // 500ms, 1000ms
+        const jitter = Math.random() * 300;
+        await sleep(Math.min(backoff + jitter, remainingBudget() - 500));
       }
     }
     // انتقل للموديل التالي في القائمة
   }
 
+  console.error("[ai] All Gemini attempts failed.", { timedOut, lastErr, elapsedMs: Date.now() - startedAt });
+
+  if (timedOut) {
+    throw new AIGenerationError(
+      "خدمة Gemini بطيئة جدًا في الرد حاليًا على كل الموديلات المتاحة (انتهت مهلة المحاولة الداخلية). برجاء المحاولة بعد دقيقة."
+    );
+  }
   if (lastErr?.status === 429) {
     throw new AIGenerationError(
       "تم تجاوز الحد المسموح به من الطلبات لخدمة Gemini المجانية على كل الموديلات المتاحة. انتظر دقيقة وحاول مرة أخرى."
@@ -137,6 +188,7 @@ async function callGemini(apiKey: string, systemPrompt: string, userPrompt: stri
     `فشل الاتصال بخدمة الذكاء الاصطناعي (HTTP ${lastErr?.status}). ${lastErr?.body.slice(0, 200) ?? ""}`
   );
 }
+
 
 export async function generateQuestions(params: {
   topic: string;
