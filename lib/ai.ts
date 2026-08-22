@@ -5,9 +5,33 @@ import { z } from "zod";
 // المنصة لا علاقة له بهذا الاختيار.
 // موديل Gemini الأساسي والبدائل مُعرّفان أدناه ضمن FALLBACK_MODELS.
 
-// preprocess بسيط بيقبل الاختلافات الشكلية البسيطة اللي الموديل ممكن يرجّعها
-// (مسافات زيادة أو حروف كبيرة/صغيرة) بدل ما يفشل التحقق كله.
-const normalizeEnumInput = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : v);
+// preprocess بيقبل اختلافات شكلية بسيطة (مسافات زيادة، حروف كبيرة/صغيرة)
+// وكمان بيترجم تلقائيًا لو الموديل رجّع القيمة بالعربي غلط بدل الإنجليزي
+// (زي "سهل" بدل "easy") - ده حصل فعليًا وده أهم سبب لفشل التحقق.
+const ARABIC_VALUE_MAP: Record<string, string> = {
+  // difficulty
+  "سهل": "easy",
+  "سهله": "easy",
+  "سهلة": "easy",
+  "متوسط": "medium",
+  "متوسطة": "medium",
+  "صعب": "hard",
+  "صعبة": "hard",
+  // type (احتياطي، لو حصل نفس الخطأ مع نوع السؤال)
+  "اختيار من متعدد": "mcq",
+  "صح او خطأ": "true_false",
+  "صح / خطأ": "true_false",
+  "اختيارات متعددة صحيحة": "multiple_answer",
+  "ترتيب عناصر": "ordering",
+  "توقع ناتج الكود": "code_output",
+  "سؤال مقالي": "essay",
+};
+
+const normalizeEnumInput = (v: unknown) => {
+  if (typeof v !== "string") return v;
+  const trimmed = v.trim().toLowerCase();
+  return ARABIC_VALUE_MAP[trimmed] ?? ARABIC_VALUE_MAP[v.trim()] ?? trimmed;
+};
 
 const typeEnum = z.enum(["mcq", "true_false", "multiple_answer", "ordering", "code_output", "essay"]);
 const difficultyEnum = z.enum(["easy", "medium", "hard"]);
@@ -33,6 +57,14 @@ export type GeneratedQuestion = z.infer<typeof generatedQuestionSchema>;
 
 const SYSTEM_PROMPT = `أنت مساعد لإنشاء أسئلة تعليمية لمادة البرمجة أو الذكاء الاصطناعي لطلاب المرحلة الثانوية باللغة العربية.
 
+⚠️ قاعدة حرجة جدًا وأهم من أي حاجة تانية: قيمتا الحقلين "type" و"difficulty" في كل سؤال
+لازم تكونا **بالإنجليزي بالحروف الصغيرة فقط**، بالظبط زي القوائم المسموحة تحت،
+حتى لو باقي السؤال (النص والشرح والاختيارات) بالعربي بالكامل. ممنوع منعًا
+باتًا ترجمة قيم الحقلين دول للعربي (مثال: لو الموضوع "سهل"، اكتب difficulty
+= "easy" مش "سهل"). لو خالفت القاعدة دي هيُرفض السؤال بالكامل.
+القيم المسموحة لـ type بالظبط: mcq, true_false, multiple_answer, ordering, code_output, essay
+القيم المسموحة لـ difficulty بالظبط: easy, medium, hard
+
 القواعد الإلزامية لكل نوع سؤال (لازم تُتَّبع بالظبط):
 - mcq: بالظبط خيار واحد isCorrect=true، والباقي false. 3-5 خيارات.
 - true_false: بالظبط خياران ["صح", "خطأ"]، وواحد منهم isCorrect=true فقط.
@@ -42,7 +74,7 @@ const SYSTEM_PROMPT = `أنت مساعد لإنشاء أسئلة تعليمية 
 - essay: مصفوفة options فاضية تمامًا []. سؤال مقالي مفتوح يحتاج تفكير وشرح من الطالب، سيُصحَّح يدويًا.
 
 أعِد الإجابة **فقط** بصيغة JSON صالحة مطابقة تمامًا لهذا الشكل، بدون أي نص إضافي أو Markdown code fences:
-{"questions": [{"type": "...", "text": "...", "codeSnippet": null, "difficulty": "...", "points": 1, "explanation": "...", "options": [{"text": "...", "isCorrect": true}]}]}`;
+{"questions": [{"type": "mcq", "text": "...", "codeSnippet": null, "difficulty": "easy", "points": 1, "explanation": "...", "options": [{"text": "...", "isCorrect": true}]}]}`;
 
 // ترتيب تجربة الموديلات: لو الأول مزدحم أو غير متاح، نجرب اللي بعده تلقائيًا.
 // المستخدم يقدر يتحكم في الموديل الأساسي عبر متغير البيئة GEMINI_MODEL،
@@ -204,9 +236,14 @@ export async function generateQuestions(params: {
   }
 
   const userPrompt = `أنشئ ${params.count} سؤال عن: "${params.topic}".
-أنواع الأسئلة المطلوبة: ${params.types.join(", ")}.
-مستوى الصعوبة: ${params.difficulty === "mixed" ? "متنوع بين سهل ومتوسط وصعب" : params.difficulty}.
-وزّع الأسئلة على الأنواع المطلوبة بالتساوي قدر الإمكان.`;
+أنواع الأسئلة المطلوبة (حقل type بالإنجليزي فقط): ${params.types.join(", ")}.
+مستوى الصعوبة (حقل difficulty بالإنجليزي فقط - easy/medium/hard): ${
+    params.difficulty === "mixed"
+      ? "نوّع بين الثلاث قيم easy و medium و hard على الأسئلة"
+      : params.difficulty
+  }.
+وزّع الأسئلة على الأنواع المطلوبة بالتساوي قدر الإمكان.
+تذكير: نص السؤال والشرح بالعربي، لكن قيم type و difficulty في JSON لازم تفضل بالإنجليزي دايمًا.`;
 
   const res = await callGemini(apiKey, SYSTEM_PROMPT, userPrompt);
 
