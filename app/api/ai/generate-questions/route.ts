@@ -3,6 +3,11 @@ import { requireAdminSession } from "@/lib/auth";
 import { aiGenerateQuestionsSchema, validateQuestionBusinessRules } from "@/lib/validation";
 import { generateQuestions, AIGenerationError } from "@/lib/ai";
 
+// توليد الأسئلة بيجرّب كذا موديل مجاني من Gemini مع إعادة محاولة عند
+// الازدحام (503)، وده ممكن ياخد وقت أطول من المهلة الافتراضية على Vercel
+// (10 ثوانٍ). نمدّها هنا صراحةً عشان الطلب ميتقطعش قبل ما يخلّص كل المحاولات.
+export const maxDuration = 45;
+
 export async function POST(req: NextRequest) {
   if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "غير مصرّح." }, { status: 403 });

@@ -42,15 +42,29 @@ const SYSTEM_PROMPT = `أنت مساعد لإنشاء أسئلة تعليمية 
 // ترتيب تجربة الموديلات: لو الأول مزدحم أو غير متاح، نجرب اللي بعده تلقائيًا.
 // المستخدم يقدر يتحكم في الموديل الأساسي عبر متغير البيئة GEMINI_MODEL،
 // وباقي القائمة بتضل fallback ثابت بغض النظر عن الإعداد.
+//
+// ملحوظة مهمة (أغسطس 2026): "gemini-2.0-flash" تم إيقافه نهائيًا من جوجل
+// في 1 يونيو 2026 (بيرجع 404 دايمًا)، فمُتشال من القائمة. اتحطّت بدل منه
+// موديلات "flash-lite" الحالية اللي بتكون غالبًا أقل ازدحامًا من flash
+// العادي، وبالتالي بتقلل احتمال ظهور خطأ 503 (High demand) بشكل كبير.
+// كل الموديلات دي لسه على المستوى المجاني تمامًا بدون أي بطاقة بنكية.
 const FALLBACK_MODELS = Array.from(
-  new Set([
-    process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-  ])
+  new Set(
+    [
+      process.env.GEMINI_MODEL,
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-flash-lite-latest", // اسم مستعار (alias) دائم من جوجل لأحدث إصدار Flash-Lite (حاليًا Gemini 3.1 Flash-Lite)
+      "gemini-flash-latest", // اسم مستعار دائم لأحدث إصدار Flash (حاليًا Gemini 3.5 Flash)
+    ].filter((m): m is string => Boolean(m))
+  )
 );
 
 export class AIGenerationError extends Error {}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function callGeminiOnce(model: string, apiKey: string, systemPrompt: string, userPrompt: string) {
   return fetch(
@@ -71,7 +85,10 @@ async function callGeminiOnce(model: string, apiKey: string, systemPrompt: strin
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string) {
-  const attemptsPerModel = 2;
+  // 3 محاولات لكل موديل مع exponential backoff + jitter، بدل محاولتين بفاصل
+  // ثابت. ده بيدي فرصة أكبر لازدحام Google اللحظي (503) إنه يزول قبل ما
+  // نستسلم وننتقل للموديل التالي.
+  const attemptsPerModel = 3;
   let lastErr: { status: number; body: string } | null = null;
 
   for (const model of FALLBACK_MODELS) {
@@ -90,10 +107,12 @@ async function callGemini(apiKey: string, systemPrompt: string, userPrompt: stri
       }
 
       const isRetryable = res.status === 503 || res.status === 429;
-      if (!isRetryable) break; // خطأ غير متعلق بالازدحام، جرب الموديل التالي فورًا من غير انتظار
+      if (!isRetryable) break; // خطأ غير متعلق بالازدحام (زي 404 لموديل شُطب)، جرب الموديل التالي فورًا من غير انتظار
 
       if (attempt < attemptsPerModel) {
-        await new Promise((r) => setTimeout(r, attempt * 1200));
+        const backoff = 800 * 2 ** (attempt - 1); // 800ms, 1600ms, ...
+        const jitter = Math.random() * 400;
+        await sleep(backoff + jitter);
       }
     }
     // انتقل للموديل التالي في القائمة
