@@ -15,6 +15,9 @@ type Question = {
   _count: { options: number };
 };
 
+type Subject = { id: string; name: string };
+type Unit = { id: string; title: string };
+
 const TYPE_LABELS: Record<string, string> = {
   mcq: "اختيار من متعدد",
   true_false: "صح/خطأ",
@@ -32,19 +35,46 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 
 export default function QuestionBankPage() {
   const [questions, setQuestions] = useState<Question[] | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [search, setSearch] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [unitId, setUnitId] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const load = useCallback(async () => {
+  const buildParams = useCallback(() => {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
+    if (subjectId) params.set("subjectId", subjectId);
+    if (unitId) params.set("unitId", unitId);
     if (typeFilter) params.set("type", typeFilter);
     if (statusFilter) params.set("status", statusFilter);
-    const res = await fetch(`/api/questions?${params.toString()}`);
+    return params;
+  }, [search, subjectId, unitId, typeFilter, statusFilter]);
+
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/questions?${buildParams().toString()}`);
     const data = await res.json();
     setQuestions(data.questions);
-  }, [search, typeFilter, statusFilter]);
+  }, [buildParams]);
+
+  useEffect(() => {
+    fetch("/api/subjects")
+      .then((r) => r.json())
+      .then((d) => setSubjects(d.subjects));
+  }, []);
+
+  useEffect(() => {
+    setUnitId("");
+    if (!subjectId) {
+      setUnits([]);
+      return;
+    }
+    fetch(`/api/units?subjectId=${subjectId}`)
+      .then((r) => r.json())
+      .then((d) => setUnits(d.units));
+  }, [subjectId]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -64,12 +94,20 @@ export default function QuestionBankPage() {
           <h1 className="text-xl font-bold text-ink">بنك الأسئلة</h1>
           <p className="text-sm text-ink-soft mt-1">إدارة أسئلة كل المواد والوحدات.</p>
         </div>
-        <Link
-          href="/admin/question-bank/new"
-          className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
-        >
-          + إضافة سؤال
-        </Link>
+        <div className="flex items-center gap-3">
+          <a
+            href={`/api/questions/export?${buildParams().toString()}`}
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas transition-all active:scale-[0.98]"
+          >
+            ⬇️ تحميل Excel
+          </a>
+          <Link
+            href="/admin/question-bank/new"
+            className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
+          >
+            + إضافة سؤال
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -79,6 +117,31 @@ export default function QuestionBankPage() {
           placeholder="بحث في نص السؤال..."
           className="flex-1 min-w-[200px] rounded-lg border border-border px-3 py-2 text-sm"
         />
+        <select
+          value={subjectId}
+          onChange={(e) => setSubjectId(e.target.value)}
+          className="rounded-lg border border-border px-3 py-2 text-sm"
+        >
+          <option value="">كل المواد</option>
+          {subjects.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={unitId}
+          onChange={(e) => setUnitId(e.target.value)}
+          disabled={!subjectId}
+          className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
+        >
+          <option value="">كل الوحدات</option>
+          {units.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.title}
+            </option>
+          ))}
+        </select>
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}

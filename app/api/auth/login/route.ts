@@ -67,12 +67,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const token = await createSessionToken({ userId: user.id, role: user.role });
+  // لجلسات الطلاب فقط: sessionId عشوائي جديد بيتخزّن كـ "الجلسة النشطة
+  // الحالية" للحساب - أي جهاز قديم عنده sessionId مختلف هيتعامل معاه
+  // getCurrentSession() كجلسة لاغية تلقائيًا (منع الدخول من أكثر من جهاز
+  // بنفس حساب الطالب في نفس الوقت). الأدمن مش متأثر بالقيد ده.
+  const sessionId = user.role === "student" ? crypto.randomUUID() : undefined;
+
+  const token = await createSessionToken({ userId: user.id, role: user.role, sessionId });
   await setSessionCookie(token);
 
   await db.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: {
+      lastLoginAt: new Date(),
+      ...(sessionId ? { currentSessionId: sessionId } : {}),
+    },
   });
 
   return NextResponse.json({

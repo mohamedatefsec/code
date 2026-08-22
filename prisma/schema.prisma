@@ -31,6 +31,11 @@ model User {
   passwordHash    String    @map("password_hash")
   status          UserStatus @default(active)
   lastLoginAt     DateTime? @map("last_login_at")
+  /// معرّف الجلسة النشطة الحالية للطلاب فقط - تسجيل دخول جديد من جهاز آخر
+  /// يغيّر هذه القيمة، فتصبح جلسة أي جهاز قديم غير صالحة تلقائيًا (منع
+  /// مشاركة نفس حساب الطالب على أكثر من جهاز في نفس الوقت). غير مُستخدم
+  /// للأدمن، فيسمح لهم بالدخول من عدة أجهزة كالمعتاد.
+  currentSessionId String? @map("current_session_id")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

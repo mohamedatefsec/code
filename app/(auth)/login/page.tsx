@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -20,10 +20,25 @@ const CODE_LINES = [
 ];
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionEnded = searchParams.get("reason") === "session-ended";
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    sessionEnded
+      ? "تم إنهاء الجلسة هنا - إما لأن الحساب اتسجّل دخوله من جهاز آخر، أو انتهت صلاحية الجلسة. سجّل دخولك تاني."
+      : null
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
