@@ -21,6 +21,7 @@ type Settings = {
   platformName: string;
   teacherName: string | null;
   teacherPhotoUrl: string | null;
+  teacherPhotoUrl2: string | null;
   description: string | null;
   primaryColor: string;
   secondaryColor: string;
@@ -74,6 +75,7 @@ export default function AdminSettingsPage() {
         platformName: settings.platformName,
         teacherName: settings.teacherName,
         teacherPhotoUrl: settings.teacherPhotoUrl || null,
+        teacherPhotoUrl2: settings.teacherPhotoUrl2 || null,
         description: settings.description,
         primaryColor: settings.primaryColor,
         secondaryColor: settings.secondaryColor,
@@ -194,6 +196,18 @@ export default function AdminSettingsPage() {
             onChange={(url) => setSettings({ ...settings, teacherPhotoUrl: url || null })}
             shape="circle"
           />
+
+          <div className="border-t border-border pt-5 space-y-4">
+            <ImageUploadField
+              label="صورة ثانية للمدرّس (اختياري)"
+              value={settings.teacherPhotoUrl2 ?? ""}
+              onChange={(url) => setSettings({ ...settings, teacherPhotoUrl2: url || null })}
+              shape="circle"
+            />
+            <p className="text-xs text-ink-soft">
+              لو حطيت صورة هنا، هتظهر جنب الصورة الأولى في الصفحة الرئيسية تحت نفس الاسم (زاوية تانية أو صورة إضافية لنفس المدرّس).
+            </p>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-ink mb-1.5">الوصف</label>

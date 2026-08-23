@@ -468,6 +468,9 @@ model Settings {
   faviconUrl      String?  @map("favicon_url")
   teacherName     String?  @map("teacher_name")
   teacherPhotoUrl String?  @map("teacher_photo_url")
+  /// صورة تانية اختيارية لنفس المدرّس (بتظهر جنب الصورة الأولى في الصفحة
+  /// الرئيسية تحت نفس الاسم - شكلي بس، مفيش تأثير على باقي النظام).
+  teacherPhotoUrl2 String?  @map("teacher_photo_url_2")
   description     String?
   primaryColor    String   @default("#4f46e5") @map("primary_color")
   secondaryColor  String   @default("#0d9488") @map("secondary_color")

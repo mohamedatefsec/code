@@ -87,6 +87,7 @@ export const settingsUpdateSchema = z.object({
   faviconUrl: imagePathSchema,
   teacherName: z.string().max(100).nullable().optional(),
   teacherPhotoUrl: imagePathSchema,
+  teacherPhotoUrl2: imagePathSchema,
   description: z.string().max(500).nullable().optional(),
   primaryColor: z
     .string()

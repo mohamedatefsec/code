@@ -49,6 +49,8 @@ export default async function LandingPage() {
   const badges = Array.isArray(settings?.heroBadges) ? (settings.heroBadges as string[]) : [];
   const teacherName = settings?.teacherName;
   const teacherPhotoUrl = settings?.teacherPhotoUrl;
+  const teacherPhotoUrl2 = settings?.teacherPhotoUrl2;
+  const hasSecondPhoto = Boolean(teacherPhotoUrl2);
   const contactInfo = (settings?.contactInfo as { email?: string; phone?: string } | null) ?? null;
   const socialLinks =
     (settings?.socialLinks as
@@ -162,10 +164,28 @@ export default async function LandingPage() {
                 className="absolute -bottom-6 -end-6 w-20 h-20 rounded-full bg-primary/25 animate-float-slow"
                 style={{ animationDelay: "1.5s" }}
               />
-              <div className="relative w-72 rounded-2xl border border-border bg-surface shadow-elevated p-5 card-hover">
-                <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center">
-                  <TeacherPhoto src={teacherPhotoUrl ?? null} alt={teacherName ?? platformName} />
-                </div>
+              <div
+                className={`relative rounded-2xl border border-border bg-surface shadow-elevated p-5 card-hover ${
+                  hasSecondPhoto ? "w-[26rem]" : "w-72"
+                }`}
+              >
+                {hasSecondPhoto ? (
+                  <div className="flex gap-3">
+                    <div className="flex-1 aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center animate-float-card">
+                      <TeacherPhoto src={teacherPhotoUrl ?? null} alt={teacherName ?? platformName} />
+                    </div>
+                    <div
+                      className="flex-1 aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center animate-float-card"
+                      style={{ animationDelay: "1.1s", animationDuration: "5.5s" }}
+                    >
+                      <TeacherPhoto src={teacherPhotoUrl2 ?? null} alt={teacherName ?? platformName} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center">
+                    <TeacherPhoto src={teacherPhotoUrl ?? null} alt={teacherName ?? platformName} />
+                  </div>
+                )}
                 {teacherName && (
                   <p className="mt-4 font-bold text-lg text-ink text-center">{teacherName}</p>
                 )}
