@@ -95,7 +95,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       // رسم بدقة الشاشة الفعلية (devicePixelRatio) مع إبقاء الحجم الظاهر
       // على الصفحة كما هو، حتى يظهر النص حادًا وواضحًا على الشاشات عالية
       // الكثافة (Retina) بدل صورة ضبابية مكبَّرة.
-      const outputScale = window.devicePixelRatio || 1;
+     const outputScale = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(viewport.width * outputScale);
       canvas.height = Math.floor(viewport.height * outputScale);
       canvas.style.width = `${Math.floor(viewport.width)}px`;
