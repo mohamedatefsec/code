@@ -7,6 +7,14 @@ import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 type ContactInfo = { email?: string; phone?: string };
 type SocialLinks = { facebook?: string; instagram?: string; youtube?: string; whatsapp?: string };
+type Feature = { icon: string; title: string; desc: string };
+
+const DEFAULT_FEATURES: Feature[] = [
+  { icon: "📚", title: "محتوى منظّم", desc: "دروس مقسّمة لوحدات واضحة، بفيديوهات وملفات وشرح مكتوب." },
+  { icon: "❓", title: "بنك أسئلة متنوع", desc: "اختيار من متعدد، صح وخطأ، ترتيب، أسئلة برمجية، وأسئلة مقالية." },
+  { icon: "⏱️", title: "اختبارات فورية", desc: "تصحيح تلقائي لحظة التسليم، ونتيجة تفصيلية لكل سؤال." },
+  { icon: "🏆", title: "تحفيز مستمر", desc: "شارات إنجاز وإشعارات تبقيك متابعًا لتقدّمك أول بأول." },
+];
 
 type Settings = {
   id: string;
@@ -20,6 +28,8 @@ type Settings = {
   footerText: string | null;
   heroHeadline: string | null;
   heroBadges: string[] | null;
+  featuresTitle: string | null;
+  features: Feature[] | null;
   contactInfo: ContactInfo | null;
   socialLinks: SocialLinks | null;
 };
@@ -41,6 +51,10 @@ export default function AdminSettingsPage() {
           heroBadges: Array.isArray(data.settings.heroBadges)
             ? data.settings.heroBadges
             : ["", "", ""],
+          features:
+            Array.isArray(data.settings.features) && data.settings.features.length > 0
+              ? data.settings.features
+              : DEFAULT_FEATURES,
           contactInfo: data.settings.contactInfo ?? {},
           socialLinks: data.settings.socialLinks ?? {},
         })
@@ -67,6 +81,10 @@ export default function AdminSettingsPage() {
         footerText: settings.footerText,
         heroHeadline: settings.heroHeadline,
         heroBadges: (settings.heroBadges ?? []).map((b) => b.trim()).filter(Boolean),
+        featuresTitle: settings.featuresTitle,
+        features: (settings.features ?? [])
+          .map((f) => ({ icon: f.icon.trim(), title: f.title.trim(), desc: f.desc.trim() }))
+          .filter((f) => f.title && f.desc),
         contactInfo: settings.contactInfo,
         socialLinks: settings.socialLinks,
       }),
@@ -102,6 +120,23 @@ export default function AdminSettingsPage() {
         setSettings({ ...settings!, heroBadges: next });
       },
     };
+  }
+
+  function updateFeature(index: number, key: keyof Feature, value: string) {
+    const next = [...(settings!.features ?? [])];
+    next[index] = { ...next[index], [key]: value };
+    setSettings({ ...settings!, features: next });
+  }
+
+  function addFeature() {
+    const current = settings!.features ?? [];
+    if (current.length >= 8) return;
+    setSettings({ ...settings!, features: [...current, { icon: "✨", title: "", desc: "" }] });
+  }
+
+  function removeFeature(index: number) {
+    const next = (settings!.features ?? []).filter((_, i) => i !== index);
+    setSettings({ ...settings!, features: next });
   }
 
   function contactField(key: keyof ContactInfo) {
@@ -210,6 +245,72 @@ export default function AdminSettingsPage() {
               <input {...badgeField(2)} placeholder="متابعة شخصية" className={inputClass} />
             </div>
           </div>
+        </div>
+
+        {/* قسم "ليه المنصة؟" */}
+        <div className="space-y-5 rounded-xl border border-border bg-surface p-6 shadow-elevated">
+          <div>
+            <h2 className="font-semibold text-ink">قسم &quot;ليه المنصة؟&quot;</h2>
+            <p className="text-sm text-ink-soft mt-0.5">
+              بطاقات المميزات اللي بتظهر تحت المسارات في الصفحة الرئيسية. عدّل أو احذف أي بطاقة، أو ضيف بطاقة جديدة.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">عنوان القسم</label>
+            <input
+              value={settings.featuresTitle ?? ""}
+              onChange={(e) => setSettings({ ...settings, featuresTitle: e.target.value })}
+              placeholder={`ليه ${settings.platformName}؟`}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="space-y-3">
+            {(settings.features ?? []).map((f, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-lg border border-border p-3">
+                <input
+                  value={f.icon}
+                  onChange={(e) => updateFeature(i, "icon", e.target.value)}
+                  placeholder="🎯"
+                  className="w-16 shrink-0 rounded-lg border border-border px-2 py-2 text-center text-lg"
+                />
+                <div className="flex-1 space-y-2">
+                  <input
+                    value={f.title}
+                    onChange={(e) => updateFeature(i, "title", e.target.value)}
+                    placeholder="عنوان الميزة"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm font-medium"
+                  />
+                  <textarea
+                    value={f.desc}
+                    onChange={(e) => updateFeature(i, "desc", e.target.value)}
+                    placeholder="وصف قصير للميزة"
+                    rows={2}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFeature(i)}
+                  className="shrink-0 rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger hover:bg-danger/10 transition-colors"
+                  aria-label="حذف الميزة"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {(settings.features?.length ?? 0) < 8 && (
+            <button
+              type="button"
+              onClick={addFeature}
+              className="rounded-lg border border-dashed border-border px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink hover:border-primary transition-colors"
+            >
+              + إضافة ميزة
+            </button>
+          )}
         </div>
 
         {/* التواصل */}

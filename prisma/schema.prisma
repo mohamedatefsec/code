@@ -479,6 +479,10 @@ model Settings {
   heroHeadline    String?  @map("hero_headline")
   /// حتى 3 عبارات قصيرة تظهر كـ Badges تحت مقدمة الصفحة الرئيسية
   heroBadges      Json?    @map("hero_badges")
+  /// عنوان قسم "ليه المنصة؟" في الصفحة الرئيسية العامة
+  featuresTitle   String?  @map("features_title")
+  /// بطاقات قسم "ليه المنصة؟" - مصفوفة {icon, title, desc}
+  features        Json?
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("settings")

@@ -116,6 +116,18 @@ export const settingsUpdateSchema = z.object({
   footerText: z.string().max(300).nullable().optional(),
   heroHeadline: z.string().max(150).nullable().optional(),
   heroBadges: z.array(z.string().max(60)).max(3).nullable().optional(),
+  featuresTitle: z.string().max(150).nullable().optional(),
+  features: z
+    .array(
+      z.object({
+        icon: z.string().min(1).max(10),
+        title: z.string().min(1).max(60),
+        desc: z.string().min(1).max(200),
+      })
+    )
+    .max(8)
+    .nullable()
+    .optional(),
 });
 
 export const changePasswordSchema = z.object({

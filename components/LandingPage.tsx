@@ -28,7 +28,9 @@ async function getLandingData() {
   return { settings, studentCount, lessonCount, quizCount, subjects };
 }
 
-const FEATURES = [
+type Feature = { icon: string; title: string; desc: string };
+
+const DEFAULT_FEATURES: Feature[] = [
   { icon: "📚", title: "محتوى منظّم", desc: "دروس مقسّمة لوحدات واضحة، بفيديوهات وملفات وشرح مكتوب." },
   { icon: "❓", title: "بنك أسئلة متنوع", desc: "اختيار من متعدد، صح وخطأ، ترتيب، أسئلة برمجية، وأسئلة مقالية." },
   { icon: "⏱️", title: "اختبارات فورية", desc: "تصحيح تلقائي لحظة التسليم، ونتيجة تفصيلية لكل سؤال." },
@@ -53,6 +55,11 @@ export default async function LandingPage() {
       | { facebook?: string; instagram?: string; youtube?: string; whatsapp?: string }
       | null) ?? null;
   const footerText = settings?.footerText;
+  const featuresTitle = settings?.featuresTitle || `ليه ${platformName}؟`;
+  const features =
+    Array.isArray(settings?.features) && (settings.features as Feature[]).length > 0
+      ? (settings.features as Feature[])
+      : DEFAULT_FEATURES;
 
   const visibleSubjects = subjects.filter((s) => s._count.units > 0);
   const stats = [
@@ -283,10 +290,10 @@ export default async function LandingPage() {
       {/* ===== المميزات ===== */}
       <section id="about" className="bg-surface-2 border-y border-border">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="text-3xl font-bold text-ink text-center">ليه {platformName}؟</h2>
+          <h2 className="text-3xl font-bold text-ink text-center">{featuresTitle}</h2>
           <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="rounded-2xl border border-border bg-surface p-6 card-hover">
+            {features.map((f, i) => (
+              <div key={i} className="rounded-2xl border border-border bg-surface p-6 card-hover">
                 <span className="text-3xl">{f.icon}</span>
                 <p className="font-bold text-lg text-ink mt-3">{f.title}</p>
                 <p className="text-base text-ink-soft mt-2 leading-7">{f.desc}</p>
