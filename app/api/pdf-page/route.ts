@@ -75,6 +75,15 @@ export async function GET(request: NextRequest) {
     // Worker منفصل، وهو ما يناسب التنفيذ داخل دالة سيرفرلس واحدة.
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
+    // pdfjs-dist يحاول تحديد مسار ملف الـ worker تلقائيًا استنادًا لمكانه
+    // النسبي داخل node_modules، لكن حزم النشر السيرفرلس (Vercel) تعيد ترتيب
+    // الملفات فتكسر هذا التخمين التلقائي وتظهر رسالة "Cannot find module".
+    // نحدد المسار صراحة هنا لتفادي الاعتماد على التخمين.
+    pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(
+      process.cwd(),
+      "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"
+    );
+
     const loadingTask = pdfjsLib.getDocument({
       data: bytes,
       disableFontFace: true,

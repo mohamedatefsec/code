@@ -15,11 +15,15 @@ const nextConfig: NextConfig = {
     ],
   },
   // مسار /api/pdf-page يقرأ ملفات خطوط pdfjs-dist القياسية (standard_fonts)
-  // عبر مسار ملف يُبنى وقت التشغيل (path.join(process.cwd(), ...))، وهذا لا
-  // يُكتشف تلقائيًا بتتبّع next.js الثابت للاستيرادات. نضيفه صراحة هنا حتى
-  // يُدرَج ضمن حزمة الدالة السيرفرلس عند النشر على Vercel.
+  // وملف الـ worker (pdf.worker.mjs) عبر مسارات تُبنى وقت التشغيل
+  // (path.join(process.cwd(), ...))، وهذا لا يُكتشف تلقائيًا بتتبّع next.js
+  // الثابت للاستيرادات. نضيفها صراحة هنا حتى تُدرَج ضمن حزمة الدالة
+  // السيرفرلس عند النشر على Vercel، وإلا تفشل الرسالة بـ "Cannot find module".
   outputFileTracingIncludes: {
-    "/api/pdf-page/route": ["./node_modules/pdfjs-dist/standard_fonts/**"],
+    "/api/pdf-page/route": [
+      "./node_modules/pdfjs-dist/standard_fonts/**",
+      "./node_modules/pdfjs-dist/legacy/build/**",
+    ],
   },
 };
 
