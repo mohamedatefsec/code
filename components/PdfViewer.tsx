@@ -35,7 +35,10 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
     (async () => {
       try {
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+        // نستضيف ملف الـ worker من نفس الموقع بدل CDN خارجي (unpkg)، لأن
+        // بعض الشبكات (خصوصًا شبكات الموبايل/المدارس) تحجب أو تُبطئ الوصول
+        // لنطاقات CDN خارجية، مما يجعل تحميل الملف يعلّق للأبد بلا أي خطأ.
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
         const loadingTask = pdfjsLib.getDocument({
           url: `/api/pdf-proxy?url=${encodeURIComponent(url)}`,
@@ -45,7 +48,16 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           disableStream: true,
         });
         loadingTaskRef.current = loadingTask;
-        const pdf = await loadingTask.promise;
+        // شبكة تحجب مصدر الملف بصمت (بدل رفض الطلب) قد تترك الوعد معلّقًا
+        // للأبد؛ هذه المهلة تضمن ظهور رسالة خطأ للمستخدم دائمًا بدل تحميل
+        // بلا نهاية.
+        const timeoutMs = 20000;
+        const pdf = await Promise.race([
+          loadingTask.promise,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("انتهت مهلة تحميل الملف.")), timeoutMs)
+          ),
+        ]);
         if (cancelled) return;
         pdfDocRef.current = pdf;
         setNumPages(pdf.numPages);
@@ -59,9 +71,15 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
         const fitScale = Math.max(0.5, Math.min(2.5, (containerWidth - 32) / unscaledWidth));
         setScale(fitScale);
         setLoading(false);
-      } catch {
+      } catch (loadErr) {
         if (!cancelled) {
-          setError("تعذّر تحميل الملف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+          console.error("PDF load error:", loadErr);
+          const detail = loadErr instanceof Error ? loadErr.message : null;
+          setError(
+            detail
+              ? `تعذّر تحميل الملف: ${detail}`
+              : "تعذّر تحميل الملف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى."
+          );
           setLoading(false);
         }
       }
@@ -95,7 +113,9 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       // رسم بدقة الشاشة الفعلية (devicePixelRatio) مع إبقاء الحجم الظاهر
       // على الصفحة كما هو، حتى يظهر النص حادًا وواضحًا على الشاشات عالية
       // الكثافة (Retina) بدل صورة ضبابية مكبَّرة.
-     const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+      // نحدّ الدقة القصوى لتفادي فشل رسم الـ canvas بصمت على بعض هواتف
+      // أندرويد ذات كثافة البكسل العالية (devicePixelRatio 3 فأكثر).
+      const outputScale = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(viewport.width * outputScale);
       canvas.height = Math.floor(viewport.height * outputScale);
       canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -107,8 +127,18 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       renderTaskRef.current = task;
       try {
         await task.promise;
-      } catch {
-        // تجاهل أخطاء الإلغاء الناتجة عن تبديل سريع بين الصفحات
+      } catch (renderErr) {
+        // نتجاهل فقط أخطاء الإلغاء الطبيعية (تبديل سريع بين الصفحات)، ونعرض
+        // أي خطأ حقيقي آخر بدل إخفائه، حتى نقدر نشخّص مشاكل الرسم الفعلية.
+        const name = renderErr instanceof Error ? renderErr.name : "";
+        if (name !== "RenderingCancelledException") {
+          console.error("PDF render error:", renderErr);
+          setError(
+            renderErr instanceof Error
+              ? `تعذّر رسم الصفحة: ${renderErr.message}`
+              : "تعذّر رسم الصفحة لسبب غير معروف."
+          );
+        }
       }
     })();
 
