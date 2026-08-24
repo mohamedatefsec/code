@@ -21,7 +21,7 @@ export default async function StudentLessonDetailPage({
     },
   });
 
-  if (!lesson || lesson.status !== "published") {
+  if (!lesson || lesson.status !== "published" || lesson.unit.status !== "published") {
     notFound();
   }
 
