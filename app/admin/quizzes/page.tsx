@@ -100,10 +100,15 @@ export default function AdminQuizzesPage() {
                     {STATUS_LABELS[q.status]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-end">
-                  <button onClick={() => handleDelete(q.id)} className="text-danger hover:underline text-sm">
-                    حذف
-                  </button>
+                          <td className="px-4 py-3 text-end">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link href={`/admin/quizzes/${q.id}/monitor`} className="text-primary hover:underline text-sm">
+                      متابعة لحظية
+                    </Link>
+                    <button onClick={() => handleDelete(q.id)} className="text-danger hover:underline text-sm">
+                      حذف
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
