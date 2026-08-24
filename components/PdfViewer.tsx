@@ -1,151 +1,62 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+import { useEffect, useState } from "react";
 
 /**
- * عارض PDF مستضاف بالكامل داخل الموقع (PDF.js) بدل الاعتماد على خدمة خارجية
- * (Google Docs Viewer) أو عرض المتصفح المباشر للملف. بما أننا نبني الواجهة
- * بأنفسنا، لا يوجد أي زر "فتح في نافذة جديدة" أو تحميل أو طباعة في أي مكان -
- * فقط تنقّل بين الصفحات وتكبير/تصغير. هذا لا يمنع التحميل بشكل مطلق (يظل
- * ممكنًا عبر لقطة شاشة أو أدوات المطوّر)، لكنه أقصى تحكم ممكن تقنيًا.
+ * عارض PDF يعرض كل صفحة كصورة (PNG) مُولَّدة على السيرفر (عبر
+ * /api/pdf-page)، بدل تحميل PDF.js ورسمه على <canvas> داخل متصفح الطالب.
+ *
+ * السبب: بعض هواتف أندرويد تفشل بصمت (بلا أي رسالة خطأ) في رسم عارض
+ * PDF.js على canvas بسبب قيود ذاكرة/تسريع رسومي على الجهاز نفسه، رغم أن
+ * تحميل وقراءة الملف نفسه ينجح. تحويل الصفحة لصورة عادية على السيرفر
+ * يتجنب هذه المشكلة تمامًا، لأن أي متصفح على أي جهاز يعرض صورة PNG
+ * عادية دون أي تعقيد. الأثر الجانبي: لا يوجد نص قابل للتحديد/النسخ داخل
+ * الصفحة (وهو أصلًا متوافق مع نية عدم توفير زر تحميل/طباعة مباشر).
  */
 export function PdfViewer({ url, title }: { url: string; title?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
-  const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
-  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
-
   const [numPages, setNumPages] = useState(0);
   const [pageNum, setPageNum] = useState(1);
-  const [scale, setScale] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [widthPx, setWidthPx] = useState(900);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [imgLoading, setImgLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // تحميل المستند عند تغيّر الرابط
+  // جلب عدد الصفحات عند تغيّر رابط الملف
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setMetaLoading(true);
     setError(null);
     setNumPages(0);
     setPageNum(1);
-    setScale(null);
 
-    (async () => {
-      try {
-        const pdfjsLib = await import("pdfjs-dist");
-        // نستضيف ملف الـ worker من نفس الموقع بدل CDN خارجي (unpkg)، لأن
-        // بعض الشبكات (خصوصًا شبكات الموبايل/المدارس) تحجب أو تُبطئ الوصول
-        // لنطاقات CDN خارجية، مما يجعل تحميل الملف يعلّق للأبد بلا أي خطأ.
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-
-        const loadingTask = pdfjsLib.getDocument({
-          url: `/api/pdf-proxy?url=${encodeURIComponent(url)}`,
-          // نتجنب طلبات Range (تحتاج إعداد CORS دقيق على السيرفر المُستضيف)
-          // ونحمّل الملف كاملًا دفعة واحدة، وهو مناسب لحجم ملفات الدروس.
-          disableRange: true,
-          disableStream: true,
-        });
-        loadingTaskRef.current = loadingTask;
-        // شبكة تحجب مصدر الملف بصمت (بدل رفض الطلب) قد تترك الوعد معلّقًا
-        // للأبد؛ هذه المهلة تضمن ظهور رسالة خطأ للمستخدم دائمًا بدل تحميل
-        // بلا نهاية.
-        const timeoutMs = 20000;
-        const pdf = await Promise.race([
-          loadingTask.promise,
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("انتهت مهلة تحميل الملف.")), timeoutMs)
-          ),
-        ]);
+    fetch(`/api/pdf-page?url=${encodeURIComponent(url)}&meta=1`)
+      .then((res) => {
+        if (!res.ok) throw new Error("تعذّر قراءة الملف.");
+        return res.json() as Promise<{ numPages: number }>;
+      })
+      .then((data) => {
         if (cancelled) return;
-        pdfDocRef.current = pdf;
-        setNumPages(pdf.numPages);
-
-        // نحسب مستوى تكبير أولي يملأ عرض الحاوية بدل مستوى ثابت صغير، حتى
-        // يظهر النص واضحًا للقراءة من أول لحظة بدل الاعتماد على تكبير يدوي.
-        const firstPage = await pdf.getPage(1);
-        if (cancelled) return;
-        const unscaledWidth = firstPage.getViewport({ scale: 1 }).width;
-        const containerWidth = containerRef.current?.clientWidth ?? 800;
-        const fitScale = Math.max(0.5, Math.min(2.5, (containerWidth - 32) / unscaledWidth));
-        setScale(fitScale);
-        setLoading(false);
-      } catch (loadErr) {
+        setNumPages(data.numPages);
+        setMetaLoading(false);
+      })
+      .catch(() => {
         if (!cancelled) {
-          console.error("PDF load error:", loadErr);
-          const detail = loadErr instanceof Error ? loadErr.message : null;
-          setError(
-            detail
-              ? `تعذّر تحميل الملف: ${detail}`
-              : "تعذّر تحميل الملف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى."
-          );
-          setLoading(false);
+          setError("تعذّر تحميل الملف. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.");
+          setMetaLoading(false);
         }
-      }
-    })();
+      });
 
     return () => {
       cancelled = true;
-      loadingTaskRef.current?.destroy();
-      loadingTaskRef.current = null;
-      pdfDocRef.current = null;
     };
   }, [url]);
 
-  // رسم الصفحة الحالية كل ما يتغيّر رقم الصفحة أو مستوى التكبير
+  // إظهار حالة تحميل قصيرة كل ما نتنقل لصفحة جديدة (الصورة نفسها لها onLoad)
   useEffect(() => {
-    const pdf = pdfDocRef.current;
-    if (!pdf || !canvasRef.current || scale === null) return;
+    setImgLoading(true);
+  }, [pageNum, widthPx, url]);
 
-    let cancelled = false;
-
-    (async () => {
-      const page = await pdf.getPage(pageNum);
-      if (cancelled) return;
-
-      const viewport = page.getViewport({ scale });
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-
-      // رسم بدقة الشاشة الفعلية (devicePixelRatio) مع إبقاء الحجم الظاهر
-      // على الصفحة كما هو، حتى يظهر النص حادًا وواضحًا على الشاشات عالية
-      // الكثافة (Retina) بدل صورة ضبابية مكبَّرة.
-      // نحدّ الدقة القصوى لتفادي فشل رسم الـ canvas بصمت على بعض هواتف
-      // أندرويد ذات كثافة البكسل العالية (devicePixelRatio 3 فأكثر).
-      const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(viewport.width * outputScale);
-      canvas.height = Math.floor(viewport.height * outputScale);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
-      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-
-      renderTaskRef.current?.cancel();
-      const task = page.render({ canvasContext: context, viewport, canvas, transform });
-      renderTaskRef.current = task;
-      try {
-        await task.promise;
-      } catch (renderErr) {
-        // نتجاهل فقط أخطاء الإلغاء الطبيعية (تبديل سريع بين الصفحات)، ونعرض
-        // أي خطأ حقيقي آخر بدل إخفائه، حتى نقدر نشخّص مشاكل الرسم الفعلية.
-        const name = renderErr instanceof Error ? renderErr.name : "";
-        if (name !== "RenderingCancelledException") {
-          console.error("PDF render error:", renderErr);
-          setError(
-            renderErr instanceof Error
-              ? `تعذّر رسم الصفحة: ${renderErr.message}`
-              : "تعذّر رسم الصفحة لسبب غير معروف."
-          );
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pageNum, scale, numPages]);
+  const imageSrc = `/api/pdf-page?url=${encodeURIComponent(url)}&page=${pageNum}&width=${widthPx}`;
 
   return (
     <div className="rounded-xl border border-border shadow-elevated bg-canvas overflow-hidden">
@@ -155,7 +66,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           <button
             type="button"
             onClick={() => setPageNum((p) => Math.max(1, p - 1))}
-            disabled={pageNum <= 1 || loading}
+            disabled={pageNum <= 1 || metaLoading || !!error}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
             السابق
@@ -166,7 +77,7 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           <button
             type="button"
             onClick={() => setPageNum((p) => Math.min(numPages, p + 1))}
-            disabled={pageNum >= numPages || loading}
+            disabled={pageNum >= numPages || metaLoading || !!error}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
             التالي
@@ -174,16 +85,16 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
           <div className="w-px h-5 bg-border mx-1" />
           <button
             type="button"
-            onClick={() => setScale((s) => Math.max(0.5, +((s ?? 1) - 0.15).toFixed(2)))}
-            disabled={loading}
+            onClick={() => setWidthPx((w) => Math.max(500, w - 150))}
+            disabled={metaLoading || !!error}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
             −
           </button>
           <button
             type="button"
-            onClick={() => setScale((s) => Math.min(2.5, +((s ?? 1) + 0.15).toFixed(2)))}
-            disabled={loading}
+            onClick={() => setWidthPx((w) => Math.min(1800, w + 150))}
+            disabled={metaLoading || !!error}
             className="rounded-md border border-border px-2.5 py-1 text-sm hover:bg-canvas disabled:opacity-40 transition-colors"
           >
             +
@@ -192,14 +103,32 @@ export function PdfViewer({ url, title }: { url: string; title?: string }) {
       </div>
 
       <div
-        ref={containerRef}
-        className="overflow-auto flex justify-center p-4"
+        className="relative overflow-auto flex justify-center p-4"
         style={{ height: "70vh" }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        {loading && <p className="text-sm text-ink-soft self-center">جارٍ تحميل الملف...</p>}
+        {metaLoading && <p className="text-sm text-ink-soft self-center">جارٍ تحميل الملف...</p>}
         {error && <p className="text-sm text-danger self-center">{error}</p>}
-        {!loading && !error && <canvas ref={canvasRef} className="shadow-elevated h-fit" />}
+        {!metaLoading && !error && (
+          <>
+            {imgLoading && (
+              <p className="text-sm text-ink-soft absolute top-1/2 -translate-y-1/2">
+                جارٍ تحميل الصفحة...
+              </p>
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element -- صورة مولَّدة ديناميكيًا من مسار API داخلي بأبعاد متغيرة، لا تناسب قيود next/image */}
+            <img
+              src={imageSrc}
+              alt={title ?? "صفحة PDF"}
+              className={`h-fit shadow-elevated ${imgLoading ? "invisible" : ""}`}
+              onLoad={() => setImgLoading(false)}
+              onError={() => {
+                setImgLoading(false);
+                setError("تعذّر عرض هذه الصفحة.");
+              }}
+            />
+          </>
+        )}
       </div>
     </div>
   );
