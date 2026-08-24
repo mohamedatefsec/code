@@ -20,6 +20,7 @@ type StudentRow = {
   groupName: string | null;
   latestAttempt: LatestAttempt | null;
   attemptsUsed: number;
+  extraGrants: number;
 };
 
 type MonitorData = {
@@ -42,6 +43,7 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [reopeningId, setReopeningId] = useState<string | null>(null);
+  const [grantingId, setGrantingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetch(`/api/quizzes/${quizId}/monitor`)
@@ -82,6 +84,25 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function handleGrantAttempt(studentId: string, studentName: string) {
+    if (!confirm(`هل تريد منح "${studentName}" محاولة إضافية لهذا الاختبار؟ نتائجه السابقة ستبقى محفوظة كما هي.`)) {
+      return;
+    }
+    setGrantingId(studentId);
+    const res = await fetch(`/api/quizzes/${quizId}/grant-attempt`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    });
+    setGrantingId(null);
+    if (res.ok) {
+      load();
+    } else {
+      const d = await res.json().catch(() => null);
+      alert(d?.error ?? "تعذّر منح المحاولة الإضافية.");
+    }
+  }
+
   if (error) {
     return <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>;
   }
@@ -108,13 +129,14 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
               <th className="text-start px-4 py-3 font-medium">الطالب</th>
               <th className="text-start px-4 py-3 font-medium">المجموعة</th>
               <th className="text-start px-4 py-3 font-medium">الحالة</th>
+              <th className="text-start px-4 py-3 font-medium">المحاولات</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {data.students.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={5} className="px-4 py-6 text-center text-ink-soft">
                   لا يوجد طلاب مستهدَفون بهذا الاختبار.
                 </td>
               </tr>
@@ -157,16 +179,33 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                   </td>
                   <td className="px-4 py-3 text-ink-soft">{s.groupName ?? "—"}</td>
                   <td className="px-4 py-3">{statusNode}</td>
-                  <td className="px-4 py-3 text-end">
-                    {showReopen && attempt && (
-                      <button
-                        onClick={() => handleReopen(attempt.id)}
-                        disabled={reopeningId === attempt.id}
-                        className="rounded-lg border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary hover:opacity-90 transition disabled:opacity-50"
-                      >
-                        {reopeningId === attempt.id ? "جارٍ الفتح..." : "منح وقت جديد للدخول"}
-                      </button>
+                  <td className="px-4 py-3 stat-figure text-ink-soft">
+                    {s.attemptsUsed} / {data.quiz.maxAttempts + s.extraGrants}
+                    {s.extraGrants > 0 && (
+                      <span className="text-accent"> (+{s.extraGrants})</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-end whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
+                      {showReopen && attempt && (
+                        <button
+                          onClick={() => handleReopen(attempt.id)}
+                          disabled={reopeningId === attempt.id}
+                          className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {reopeningId === attempt.id ? "جارٍ الفتح..." : "منح وقت جديد للدخول"}
+                        </button>
+                      )}
+                      {attempt?.status === "submitted" && (
+                        <button
+                          onClick={() => handleGrantAttempt(s.id, s.fullName)}
+                          disabled={grantingId === s.id}
+                          className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {grantingId === s.id ? "جارٍ المنح..." : "منح محاولة إضافية"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -176,8 +215,9 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <p className="text-xs text-ink-soft">
-        "منح وقت جديد للدخول" يعيد ضبط مؤقّت نفس المحاولة من جديد كاملة، ولا يُحتسب محاولة إضافية
-        ولا يؤثر على عدد المحاولات المسموح بها ({data.quiz.maxAttempts}).
+        &quot;منح وقت جديد للدخول&quot; يعيد ضبط مؤقّت نفس المحاولة العالقة من جديد كاملة، ولا يُحتسب محاولة
+        إضافية. &quot;منح محاولة إضافية&quot; يفتح للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته
+        السابقة المحفوظة ولا على عدد المحاولات المسموح به لباقي الطلاب.
       </p>
     </div>
   );
