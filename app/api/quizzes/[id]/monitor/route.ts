@@ -67,6 +67,14 @@ export async function GET(
     orderBy: { fullName: "asc" },
   });
 
+  // محاولات إضافية اتمنحت لطلاب معيّنين على هذا الاختبار تحديدًا (لو حصلت)،
+  // نجيبها كلها مرة واحدة ونطابقها بالـ studentId بدل استعلام منفصل لكل طالب.
+  const extraGrants = await db.quizExtraAttempt.findMany({
+    where: { quizId: id },
+    select: { studentId: true, count: true },
+  });
+  const extraGrantsByStudent = new Map(extraGrants.map((g) => [g.studentId, g.count]));
+
   return NextResponse.json({
     quiz: {
       id: quiz.id,
@@ -81,6 +89,7 @@ export async function GET(
       groupName: s.group?.name ?? null,
       latestAttempt: s.quizAttempts[0] ?? null,
       attemptsUsed: s.quizAttempts.length,
+      extraGrants: extraGrantsByStudent.get(s.id) ?? 0,
     })),
   });
 }

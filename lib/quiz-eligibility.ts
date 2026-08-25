@@ -36,9 +36,17 @@ export async function getQuizEligibility(
     where: { quizId: quiz.id, studentId },
   });
 
-  if (attemptsUsed >= quiz.maxAttempts) {
+  // محاولات إضافية منحها المدرّس لهذا الطالب تحديدًا (مثلًا بعد ما يكون
+  // استنفد الحد العادي)، بتزوّد الحد المسموح له وحده دون التأثير على باقي
+  // الطلاب أو على maxAttempts العام للاختبار.
+  const extraGrant = await db.quizExtraAttempt.findUnique({
+    where: { quizId_studentId: { quizId: quiz.id, studentId } },
+  });
+  const effectiveMax = quiz.maxAttempts + (extraGrant?.count ?? 0);
+
+  if (attemptsUsed >= effectiveMax) {
     return { eligible: false, reason: "استنفدت عدد المحاولات المسموح بها لهذا الاختبار." };
   }
 
-  return { eligible: true, attemptsUsed, attemptsRemaining: quiz.maxAttempts - attemptsUsed };
+  return { eligible: true, attemptsUsed, attemptsRemaining: effectiveMax - attemptsUsed };
 }
