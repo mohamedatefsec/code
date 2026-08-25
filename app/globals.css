@@ -205,6 +205,14 @@ body {
   50% { transform: translateY(-18px) translateX(10px); }
 }
 
+/* حركة أهدأ وأصغر مخصّصة لصندوق الصورة نفسه (طفو خفيف + ميل بسيط)، بحيث
+   تتحرك الصورة بحرية زي الشكلين الزخرفيين خلفها لكن بمدى أصغر يناسب كونها
+   عنصر محتوى وليست مجرد شكل زخرفي في الخلفية. */
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1.2deg); }
+}
+
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
@@ -221,6 +229,9 @@ body {
 }
 .animate-float-slow {
   animation: floatSlow 8s ease-in-out infinite;
+}
+.animate-float-card {
+  animation: floatCard 6s ease-in-out infinite;
 }
 .animate-pulse-glow {
   animation: pulseGlow 2.4s ease-in-out infinite;

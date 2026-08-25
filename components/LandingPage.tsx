@@ -182,7 +182,7 @@ export default async function LandingPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center">
+                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-gradient-brand grid place-items-center animate-float-card">
                     <TeacherPhoto src={teacherPhotoUrl ?? null} alt={teacherName ?? platformName} />
                   </div>
                 )}
