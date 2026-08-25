@@ -60,6 +60,7 @@ model StudentProfile {
   group Group? @relation(fields: [groupId], references: [id])
   quizTargets QuizTarget[]
   quizAttempts QuizAttempt[]
+  extraAttemptGrants QuizExtraAttempt[]
   attendanceRecords AttendanceRecord[]
   notificationReads NotificationRead[]
   studentBadges StudentBadge[]
@@ -272,6 +273,7 @@ model Quiz {
   questions QuizQuestion[]
   targets   QuizTarget[]
   attempts  QuizAttempt[]
+  extraAttemptGrants QuizExtraAttempt[]
 
   @@index([subjectId, status])
   @@map("quizzes")
@@ -290,6 +292,24 @@ model QuizQuestion {
 
   @@unique([quizId, questionId])
   @@map("quiz_questions")
+}
+
+/// عدد المحاولات الإضافية اللي المدرّس منحها لطالب معيّن على اختبار معيّن،
+/// بعد ما يكون الطالب استنفد الحد الأقصى العادي (maxAttempts) واحتاج فرصة
+/// تانية (مثلًا لو الاختبار اتعدّل بعد ما هو سلّم). ده تعديل خاص بهذا
+/// الطالب فقط، ولا يغيّر maxAttempts العام اللي بيتطبّق على باقي الطلاب.
+model QuizExtraAttempt {
+  id        String   @id @default(cuid())
+  quizId    String   @map("quiz_id")
+  studentId String   @map("student_id")
+  count     Int      @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  quiz    Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, studentId])
+  @@map("quiz_extra_attempts")
 }
 
 /// تحديد من يُسمح له بدخول الاختبار. عدم وجود أي صف = متاح لكل الطلاب النشطين.
