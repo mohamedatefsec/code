@@ -12,6 +12,7 @@ type Student = {
   phone: string | null;
   grade: string | null;
   groupId: string | null;
+  attendanceStartDate: string | null;
   user: { status: "active" | "disabled"; loginIdentifier: string };
 };
 
@@ -61,6 +62,7 @@ export default function EditStudentPage({
         phone: student.phone,
         grade: student.grade,
         groupId: student.groupId,
+        attendanceStartDate: student.attendanceStartDate || null,
       }),
     });
 
@@ -186,6 +188,19 @@ export default function EditStudentPage({
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1.5">تاريخ بداية الحضور (اختياري)</label>
+          <input
+            type="date"
+            value={student.attendanceStartDate ? student.attendanceStartDate.slice(0, 10) : ""}
+            onChange={(e) => update("attendanceStartDate", e.target.value || null)}
+            className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+          />
+          <p className="text-xs text-ink-soft mt-1">
+            حصص الحضور قبل هذا التاريخ لن تُحتسب على الطالب (لا حضور ولا غياب). اتركه فارغًا لعدم التقييد.
+          </p>
         </div>
 
         {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}

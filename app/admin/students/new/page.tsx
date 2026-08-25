@@ -16,6 +16,7 @@ export default function NewStudentPage() {
     grade: "",
     groupId: "",
     password: "",
+    attendanceStartDate: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -45,6 +46,7 @@ export default function NewStudentPage() {
         grade: form.grade || null,
         groupId: form.groupId || null,
         password: form.password,
+        attendanceStartDate: form.attendanceStartDate || null,
       }),
     });
 
@@ -134,6 +136,19 @@ export default function NewStudentPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1.5">تاريخ بداية الحضور (اختياري)</label>
+          <input
+            type="date"
+            value={form.attendanceStartDate}
+            onChange={(e) => update("attendanceStartDate", e.target.value)}
+            className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+          />
+          <p className="text-xs text-ink-soft mt-1">
+            لو الطالب هينضم من تاريخ معيّن، حصص الحضور قبل هذا التاريخ لن تُحتسب عليه (لا حضور ولا غياب).
+          </p>
         </div>
 
         {error && (

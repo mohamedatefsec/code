@@ -20,7 +20,13 @@ export async function GET(
   }
 
   const students = await db.studentProfile.findMany({
-    where: { groupId: session.groupId, user: { status: "active" } },
+    where: {
+      groupId: session.groupId,
+      user: { status: "active" },
+      // نستبعد أي طالب حُدد له تاريخ بداية حضور لاحق لتاريخ هذه الحصة -
+      // يعني حصص قبل انضمامه الفعلي متتسجلش عليه خالص (لا حضور ولا غياب).
+      OR: [{ attendanceStartDate: null }, { attendanceStartDate: { lte: session.sessionDate } }],
+    },
     orderBy: { fullName: "asc" },
     select: { id: true, fullName: true, studentCode: true },
   });

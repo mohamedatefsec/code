@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { fullName, studentCode, phone, grade, groupId, password } = parsed.data;
+  const { fullName, studentCode, phone, grade, groupId, password, attendanceStartDate } = parsed.data;
 
   try {
     const passwordHash = await hashPassword(password);
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
             phone: phone ?? undefined,
             grade: grade ?? undefined,
             groupId: groupId ?? undefined,
+            attendanceStartDate: attendanceStartDate ? new Date(attendanceStartDate) : undefined,
           },
         },
       },

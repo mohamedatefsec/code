@@ -24,6 +24,7 @@ export const studentCreateSchema = z.object({
   grade: z.string().max(50).optional().nullable(),
   groupId: z.string().min(1).optional().nullable(),
   password: z.string().min(6, "كلمة المرور يجب ألا تقل عن 6 أحرف"),
+  attendanceStartDate: z.string().optional().nullable(),
 });
 
 export const studentUpdateSchema = z.object({
@@ -32,6 +33,7 @@ export const studentUpdateSchema = z.object({
   phone: z.string().max(30).optional().nullable(),
   grade: z.string().max(50).optional().nullable(),
   groupId: z.string().min(1).optional().nullable(),
+  attendanceStartDate: z.string().optional().nullable(),
 });
 
 export const resetPasswordSchema = z.object({

@@ -54,6 +54,11 @@ model StudentProfile {
   grade       String?
   groupId     String?  @map("group_id")
   avatarUrl   String?  @map("avatar_url")
+  /// تاريخ بداية انضمام الطالب فعليًا للحصص (اختياري). لو محدد، حصص
+  /// الحضور اللي قبل التاريخ ده متتجاهلش لهذا الطالب - يعني مش هيظهر في
+  /// قائمة "افتح الحصة" لتسجيل حضور قديم قبل ما ينضم، ومش هيتحسبله غياب
+  /// على حصص فاتت قبل انضمامه.
+  attendanceStartDate DateTime? @map("attendance_start_date") @db.Date
   createdAt   DateTime @default(now()) @map("created_at")
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)

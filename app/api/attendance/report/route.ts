@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       id: true,
       fullName: true,
       studentCode: true,
+      attendanceStartDate: true,
       group: { select: { id: true, name: true } },
       attendanceRecords: {
         select: {
@@ -33,11 +34,15 @@ export async function GET(req: NextRequest) {
   });
 
   const report = students.map((s) => {
-    const records = s.attendanceRecords.map((r) => ({
-      date: r.session.sessionDate,
-      label: r.session.sessionLabel,
-      status: r.status,
-    }));
+    // نتجاهل أي سجل حصة تاريخها قبل تاريخ بداية حضور الطالب (لو محدد) -
+    // احتياط إضافي حتى لو كان فيه سجلات قديمة اتسجلت قبل ضبط هذا التاريخ.
+    const records = s.attendanceRecords
+      .filter((r) => !s.attendanceStartDate || r.session.sessionDate >= s.attendanceStartDate)
+      .map((r) => ({
+        date: r.session.sessionDate,
+        label: r.session.sessionLabel,
+        status: r.status,
+      }));
     const present = records.filter((r) => r.status === "present").length;
     const late = records.filter((r) => r.status === "late").length;
     const absent = records.filter((r) => r.status === "absent").length;
