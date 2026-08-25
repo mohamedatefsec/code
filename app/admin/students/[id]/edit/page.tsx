@@ -25,6 +25,8 @@ export default function EditStudentPage({
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [student, setStudent] = useState<Student | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -36,10 +38,21 @@ export default function EditStudentPage({
   useEffect(() => {
     fetch("/api/groups")
       .then((r) => r.json())
-      .then((d) => setGroups(d.groups));
+      .then((d) => setGroups(d.groups ?? []))
+      .catch(() => {});
+
+    setLoading(true);
+    setLoadError(null);
     fetch(`/api/students/${id}`)
-      .then((r) => r.json())
-      .then((d) => setStudent(d.student));
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok || !data?.student) {
+          throw new Error(data?.error ?? `تعذّر تحميل بيانات الطالب (${r.status}).`);
+        }
+        setStudent(data.student);
+      })
+      .catch((err: Error) => setLoadError(err.message))
+      .finally(() => setLoading(false));
   }, [id]);
 
   function update<K extends keyof Student>(key: K, value: Student[K]) {
@@ -112,7 +125,20 @@ export default function EditStudentPage({
     }
   }
 
-  if (!student) {
+  if (loadError) {
+    return (
+      <div className="max-w-lg space-y-4">
+        <Link href="/admin/students" className="text-sm text-ink-soft hover:text-ink">
+          ← رجوع لقائمة الطلاب
+        </Link>
+        <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {loadError}
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !student) {
     return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
   }
 
