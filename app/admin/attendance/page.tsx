@@ -89,7 +89,12 @@ export default function AdminAttendancePage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-ink">الحضور والغياب</h1>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h1 className="text-xl font-bold text-ink">الحضور والغياب</h1>
+          <a href="/admin/attendance/report" className="text-primary text-sm hover:underline">
+            📄 تقرير الحضور الشامل
+          </a>
+        </div>
         <p className="text-sm text-ink-soft mt-1">اختر المجموعة والتاريخ لفتح الحصة وتسجيل الحضور.</p>
       </div>
 
