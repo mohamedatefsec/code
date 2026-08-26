@@ -33,6 +33,13 @@ export default function AdminAttendancePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // تعديل تاريخ/اسم الحصة المفتوحة حاليًا
+  const [editingDate, setEditingDate] = useState("");
+  const [editingLabel, setEditingLabel] = useState("");
+  const [savingSessionInfo, setSavingSessionInfo] = useState(false);
+  const [sessionInfoMessage, setSessionInfoMessage] = useState<string | null>(null);
+  const [sessionInfoError, setSessionInfoError] = useState<string | null>(null);
+
   useEffect(() => {
     fetch("/api/groups")
       .then((r) => r.json())
@@ -60,7 +67,32 @@ export default function AdminAttendancePage() {
     const detail = await detailRes.json();
     setSessionId(session.id);
     setRoster(detail.roster);
+    setEditingDate(String(detail.session.sessionDate).slice(0, 10));
+    setEditingLabel(detail.session.sessionLabel ?? "");
+    setSessionInfoMessage(null);
+    setSessionInfoError(null);
     setOpening(false);
+  }
+
+  async function saveSessionInfo() {
+    if (!sessionId || !editingDate) return;
+    setSavingSessionInfo(true);
+    setSessionInfoMessage(null);
+    setSessionInfoError(null);
+    const res = await fetch(`/api/attendance/sessions/${sessionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionDate: editingDate, sessionLabel: editingLabel || null }),
+    });
+    setSavingSessionInfo(false);
+    if (res.ok) {
+      setSessionInfoMessage("تم تعديل تاريخ الحصة بنجاح.");
+      setDate(editingDate);
+      setLabel(editingLabel);
+    } else {
+      const data = await res.json().catch(() => null);
+      setSessionInfoError(data?.error ?? "تعذّر تعديل تاريخ الحصة.");
+    }
   }
 
   function setStatus(studentId: string, status: RosterRow["status"]) {
@@ -143,6 +175,52 @@ export default function AdminAttendancePage() {
 
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
       {message && <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">{message}</div>}
+
+      {roster && sessionId && (
+        <div className="rounded-xl border border-border bg-surface p-4 space-y-3 shadow-elevated">
+          <h2 className="font-semibold text-ink text-sm">تعديل تاريخ هذه الحصة</h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">التاريخ</label>
+              <input
+                type="date"
+                value={editingDate}
+                onChange={(e) => setEditingDate(e.target.value)}
+                className="rounded-lg border border-border px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-sm font-medium text-ink mb-1.5">اسم الحصة (اختياري)</label>
+              <input
+                value={editingLabel}
+                onChange={(e) => setEditingLabel(e.target.value)}
+                placeholder="مثال: الحصة الأولى"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+              />
+            </div>
+            <button
+              onClick={saveSessionInfo}
+              disabled={savingSessionInfo || !editingDate}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-canvas transition disabled:opacity-50"
+            >
+              {savingSessionInfo ? "جارٍ الحفظ..." : "حفظ التاريخ"}
+            </button>
+          </div>
+          {sessionInfoError && (
+            <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">
+              {sessionInfoError}
+            </div>
+          )}
+          {sessionInfoMessage && (
+            <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">
+              {sessionInfoMessage}
+            </div>
+          )}
+          <p className="text-xs text-ink-soft">
+            ده بيغيّر اليوم اللي اتسجل فيه حضور/غياب هذه الحصة (مفيد لو اتسجلت بالغلط بتاريخ خطأ). حفظ درجات الحضور نفسها بيبقى بزر &quot;حفظ الحضور&quot; تحت.
+          </p>
+        </div>
+      )}
 
       {roster && (
         <div className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">
