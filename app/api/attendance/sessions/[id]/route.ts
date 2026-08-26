@@ -105,6 +105,13 @@ export async function DELETE(
   }
   const { id } = await params;
 
-  await db.attendanceSession.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  try {
+    await db.attendanceSession.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return NextResponse.json({ error: "الحصة غير موجودة." }, { status: 404 });
+    }
+    throw err;
+  }
 }

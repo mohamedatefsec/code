@@ -56,6 +56,7 @@ export default function AdminAttendancePage() {
   const [sessions, setSessions] = useState<SessionListItem[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [openingExisting, setOpeningExisting] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   function loadSessions() {
     setLoadingSessions(true);
@@ -89,6 +90,29 @@ export default function AdminAttendancePage() {
     setEditingLabel(detail.session.sessionLabel ?? "");
     setSessionInfoMessage(null);
     setSessionInfoError(null);
+  }
+
+  async function deleteSession(id: string) {
+    if (!confirm("متأكد إنك عايز تحذف هذه الحصة؟ هيتم حذف كل سجلات الحضور المرتبطة بيها ولا يمكن التراجع.")) {
+      return;
+    }
+    setDeletingId(id);
+    setError(null);
+    setMessage(null);
+    const res = await fetch(`/api/attendance/sessions/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "تعذّر حذف الحصة.");
+      return;
+    }
+    // لو الحصة المحذوفة هي نفسها المفتوحة حاليًا، نقفل عرضها
+    if (sessionId === id) {
+      setSessionId(null);
+      setRoster(null);
+    }
+    setMessage("تم حذف الحصة بنجاح.");
+    loadSessions();
   }
 
   useEffect(() => {
@@ -249,25 +273,35 @@ export default function AdminAttendancePage() {
         ) : (
           <div className="space-y-1.5 max-h-72 overflow-y-auto">
             {sessions.map((s) => (
-              <button
+              <div
                 key={s.id}
-                onClick={() => openExistingSession(s.id)}
-                disabled={openingExisting === s.id}
-                className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-start text-sm transition ${
-                  sessionId === s.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:bg-canvas"
-                } disabled:opacity-50`}
+                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition ${
+                  sessionId === s.id ? "border-primary bg-primary/5" : "border-border"
+                }`}
               >
-                <span>
+                <span className="min-w-0 truncate">
                   <span className="font-medium text-ink">{formatDateShort(s.sessionDate)}</span>
                   <span className="text-ink-soft"> · {s.group.name}</span>
                   {s.sessionLabel && <span className="text-ink-soft"> · {s.sessionLabel}</span>}
+                  <span className="text-xs text-ink-soft"> · {s._count.records} سجل</span>
                 </span>
-                <span className="text-xs text-ink-soft shrink-0">
-                  {openingExisting === s.id ? "جارٍ الفتح..." : `${s._count.records} سجل`}
+                <span className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => openExistingSession(s.id)}
+                    disabled={openingExisting === s.id || deletingId === s.id}
+                    className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-canvas transition disabled:opacity-50"
+                  >
+                    {openingExisting === s.id ? "جارٍ الفتح..." : "تعديل"}
+                  </button>
+                  <button
+                    onClick={() => deleteSession(s.id)}
+                    disabled={deletingId === s.id || openingExisting === s.id}
+                    className="rounded-md border border-danger/40 text-danger px-2.5 py-1 text-xs font-medium hover:bg-danger/10 transition disabled:opacity-50"
+                  >
+                    {deletingId === s.id ? "جارٍ الحذف..." : "حذف"}
+                  </button>
                 </span>
-              </button>
+              </div>
             ))}
           </div>
         )}
