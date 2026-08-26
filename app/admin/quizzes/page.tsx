@@ -105,6 +105,9 @@ export default function AdminQuizzesPage() {
                     <Link href={`/admin/quizzes/${q.id}/monitor`} className="text-primary hover:underline text-sm">
                       متابعة لحظية
                     </Link>
+                    <Link href={`/admin/quizzes/${q.id}/edit`} className="text-ink-soft hover:text-ink hover:underline text-sm">
+                      تعديل
+                    </Link>
                     <button onClick={() => handleDelete(q.id)} className="text-danger hover:underline text-sm">
                       حذف
                     </button>
