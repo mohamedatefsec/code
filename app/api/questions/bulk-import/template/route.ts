@@ -78,11 +78,15 @@ export async function GET() {
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const filename = "قالب-استيراد-الأسئلة.xlsx";
+  // اسم الملف عربي، والـ HTTP headers بتقبل بس ASCII، فلازم نرمّزه بصيغة RFC 5987
+  // (filename* بدل filename) عشان يظهر بالعربي صح عند التحميل بدل ما يكسر الطلب
+  const encodedFilename = encodeURIComponent(filename);
 
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="قالب-استيراد-الأسئلة.xlsx"`,
+      "Content-Disposition": `attachment; filename="quiz-import-template.xlsx"; filename*=UTF-8''${encodedFilename}`,
     },
   });
 }
