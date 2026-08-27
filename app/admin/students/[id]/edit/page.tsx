@@ -36,23 +36,43 @@ export default function EditStudentPage({
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/groups")
-      .then((r) => r.json())
-      .then((d) => setGroups(d.groups ?? []))
-      .catch(() => {});
-
+    let cancelled = false;
     setLoading(true);
     setLoadError(null);
+
+    fetch("/api/groups")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setGroups(d.groups ?? []);
+      })
+      .catch(() => {
+        // فشل تحميل المجموعات ليس خطأ حرج - النموذج يظل قابلاً للاستخدام بدونها.
+      });
+
     fetch(`/api/students/${id}`)
       .then(async (r) => {
         const data = await r.json().catch(() => null);
-        if (!r.ok || !data?.student) {
-          throw new Error(data?.error ?? `تعذّر تحميل بيانات الطالب (${r.status}).`);
+        if (!r.ok) {
+          throw new Error(data?.error ?? `تعذّر تحميل بيانات الطالب (خطأ ${r.status}).`);
         }
-        setStudent(data.student);
+        if (!data?.student) {
+          throw new Error("تعذّر تحميل بيانات الطالب: استجابة غير متوقعة من الخادم.");
+        }
+        return data.student as Student;
       })
-      .catch((err: Error) => setLoadError(err.message))
-      .finally(() => setLoading(false));
+      .then((student) => {
+        if (!cancelled) setStudent(student);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setLoadError(err.message || "تعذّر تحميل بيانات الطالب.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   function update<K extends keyof Student>(key: K, value: Student[K]) {
@@ -125,21 +145,21 @@ export default function EditStudentPage({
     }
   }
 
-  if (loadError) {
+  if (loading) {
+    return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
+  }
+
+  if (loadError || !student) {
     return (
       <div className="max-w-lg space-y-4">
         <Link href="/admin/students" className="text-sm text-ink-soft hover:text-ink">
           ← رجوع لقائمة الطلاب
         </Link>
         <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {loadError}
+          {loadError ?? "تعذّر تحميل بيانات الطالب."}
         </div>
       </div>
     );
-  }
-
-  if (loading || !student) {
-    return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
   }
 
   return (

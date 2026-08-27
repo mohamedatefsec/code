@@ -67,11 +67,21 @@ export async function GET(
     };
   });
 
+  // نحسب الوقت المتبقي على السيرفر (مش الاعتماد على ساعة جهاز الطالب)، لأن
+  // ساعة الموبايل ممكن تكون مضبوطة غلط عند بعض الطلاب، فلو الحساب اعتمد على
+  // "الآن" بتاع المتصفح ممكن يظهر الوقت خالص فورًا حتى لو المدرّس منحه وقت
+  // إضافي فعليًا. القيمة دي بتُحسب مرة واحدة هنا وبعدين العميل بيعد تنازليًا
+  // منها محليًا (setInterval) من غير ما يعيد حسابها من ساعته هو.
+  const elapsedSeconds = Math.floor((Date.now() - attempt.startedAt.getTime()) / 1000);
+  const totalSeconds = attempt.quiz.durationMinutes * 60;
+  const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+
   return NextResponse.json({
     attempt: {
       id: attempt.id,
       status: attempt.status,
       startedAt: attempt.startedAt,
+      remainingSeconds,
       quiz: {
         id: attempt.quiz.id,
         title: attempt.quiz.title,

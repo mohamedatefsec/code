@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<Quiz["status"], string> = {
 
 export default function AdminQuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   function load() {
     fetch("/api/quizzes")
@@ -33,6 +34,23 @@ export default function AdminQuizzesPage() {
     if (!confirm("متأكد من حذف هذا الاختبار؟ كل محاولات الطلاب المرتبطة به هتتحذف كمان.")) return;
     const res = await fetch(`/api/quizzes/${id}`, { method: "DELETE" });
     if (res.ok) load();
+  }
+
+  async function handleTogglePublish(quiz: Quiz) {
+    const nextStatus = quiz.status === "published" ? "draft" : "published";
+    setTogglingId(quiz.id);
+    const res = await fetch(`/api/quizzes/${quiz.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    setTogglingId(null);
+    if (res.ok) {
+      load();
+    } else {
+      const data = await res.json().catch(() => null);
+      alert(data?.error ?? "تعذّر تغيير حالة النشر.");
+    }
   }
 
   return (
@@ -102,6 +120,19 @@ export default function AdminQuizzesPage() {
                 </td>
                 <td className="px-4 py-3 text-end">
                   <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => handleTogglePublish(q)}
+                      disabled={togglingId === q.id}
+                      className={`text-sm hover:underline ${
+                        q.status === "published" ? "text-danger" : "text-accent"
+                      }`}
+                    >
+                      {togglingId === q.id
+                        ? "جارٍ التحديث..."
+                        : q.status === "published"
+                        ? "إلغاء النشر"
+                        : "نشر للطلاب"}
+                    </button>
                     <Link href={`/admin/quizzes/${q.id}/monitor`} className="text-primary hover:underline text-sm">
                       متابعة لحظية
                     </Link>

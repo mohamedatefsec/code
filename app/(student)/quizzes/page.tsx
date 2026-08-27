@@ -73,11 +73,17 @@ export default function StudentQuizzesPage() {
                   <> · {q.attemptsRemaining} محاولة متبقية</>
                 )}
               </p>
-              {!q.eligible && q.reason && <p className="text-sm text-danger mt-1">{q.reason}</p>}
+              {/* لو عنده محاولة شغّالة بالفعل، خليه يكمّلها دايمًا حتى لو
+                  استنفد عدد المحاولات المسموح بها لمحاولات جديدة - السبب
+                  محيّر وغير مهم هنا لأن زرار "متابعة الاختبار" أصلًا هيوديه
+                  لنفس المحاولة القديمة، مش هيبدأ واحدة جديدة. */}
+              {!q.eligible && !q.inProgressAttemptId && q.reason && (
+                <p className="text-sm text-danger mt-1">{q.reason}</p>
+              )}
             </div>
             <button
               onClick={() => handleStart(q)}
-              disabled={!q.eligible || startingId === q.id}
+              disabled={(!q.eligible && !q.inProgressAttemptId) || startingId === q.id}
               className="rounded-lg bg-gradient-brand px-5 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {startingId === q.id
