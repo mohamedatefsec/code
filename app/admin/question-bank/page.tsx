@@ -102,6 +102,12 @@ export default function QuestionBankPage() {
             ⬇️ تحميل Excel
           </a>
           <Link
+            href="/admin/question-bank/import"
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas transition-all active:scale-[0.98]"
+          >
+            📥 استيراد مجموعة أسئلة
+          </Link>
+          <Link
             href="/admin/question-bank/new"
             className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
           >
