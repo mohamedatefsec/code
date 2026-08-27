@@ -16,5 +16,21 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json({ attempts });
+  // لو نفس الطالب دخل نفس الاختبار أكتر من مرة (مثلًا بعد ما اتمنحله
+  // محاولة إضافية)، بنعرض آخر محاولة بتاعته بس في قائمة الانتظار - مش كل
+  // محاولاته - عشان محاولاته القديمة تبقى مجرد تاريخ سابق مش حاجة محتاجة
+  // تصحيح منفصل، وده بيمنع ظهور نفس الطالب مكرر لنفس الاختبار في القائمة.
+  const latestPerStudentAndQuiz = new Map<string, (typeof attempts)[number]>();
+  for (const attempt of attempts) {
+    const key = `${attempt.studentId}::${attempt.quizId}`;
+    const existing = latestPerStudentAndQuiz.get(key);
+    if (!existing || attempt.attemptNumber > existing.attemptNumber) {
+      latestPerStudentAndQuiz.set(key, attempt);
+    }
+  }
+  const deduped = Array.from(latestPerStudentAndQuiz.values()).sort(
+    (a, b) => (a.submittedAt?.getTime() ?? 0) - (b.submittedAt?.getTime() ?? 0)
+  );
+
+  return NextResponse.json({ attempts: deduped });
 }
