@@ -63,9 +63,11 @@ const NAV_ITEMS = [
 export function StudentShell({
   children,
   studentName,
+  platformName,
 }: {
   children: React.ReactNode;
   studentName: string;
+  platformName: string;
 }) {
   const pathname = usePathname();
 
@@ -85,7 +87,7 @@ export function StudentShell({
       >
         <div className="flex items-center gap-2 text-white mb-8 px-1">
           <span className="font-mono text-accent">{">"}_</span>
-          <span className="font-bold tracking-tight">Code AI</span>
+          <span className="font-bold tracking-tight">{platformName}</span>
         </div>
         <nav className="flex flex-col gap-0.5 text-sm">
           {NAV_ITEMS.map((item) => {
@@ -117,7 +119,7 @@ export function StudentShell({
         <header className="sticky top-0 z-20 flex items-center justify-between glass-surface border-b border-border px-6 py-3.5">
           <div className="md:hidden flex items-center gap-2">
             <span className="font-mono text-primary">{">"}_</span>
-            <span className="font-bold">Code AI</span>
+            <span className="font-bold">{platformName}</span>
           </div>
           <div className="hidden md:block" />
           <div className="flex items-center gap-2">
