@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "./LogoutButton";
+import { ThemeToggle } from "./ThemeToggle";
 
 const NAV_ITEMS = [
   {
@@ -94,10 +95,11 @@ export function StudentShell({
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-ink-soft hidden sm:inline">
               مرحبًا، <span className="text-ink font-medium">{studentName}</span>
             </span>
+            <ThemeToggle />
             <LogoutButton />
           </div>
         </div>

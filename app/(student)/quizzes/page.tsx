@@ -64,7 +64,7 @@ export default function StudentQuizzesPage() {
 
       <div className="space-y-3">
         {quizzes?.map((q) => (
-          <div key={q.id} className="rounded-xl border border-border bg-surface p-5 flex items-center justify-between flex-wrap gap-3 shadow-elevated card-hover">
+          <div key={q.id} className="rounded-2xl border border-border bg-surface p-5 flex items-center justify-between flex-wrap gap-3 shadow-elevated card-hover">
             <div>
               <p className="font-semibold text-ink">{q.title}</p>
               <p className="text-sm text-ink-soft mt-1">

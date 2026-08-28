@@ -218,7 +218,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
       {attempt.questions.map((q, index) => (
         <div
           key={q.id}
-          className="rounded-xl border border-border bg-surface p-6 space-y-4 shadow-elevated animate-fade-in-up"
+          className="rounded-2xl border border-border bg-surface p-6 space-y-4 shadow-elevated animate-fade-in-up"
           style={{ animationDelay: `${Math.min(index, 6) * 0.06}s` }}
         >
           <div>

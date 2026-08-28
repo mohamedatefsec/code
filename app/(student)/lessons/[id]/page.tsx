@@ -44,7 +44,7 @@ export default async function StudentLessonDetailPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
+      <div className="animate-fade-in-up">
         <Link href="/lessons" className="text-sm text-ink-soft hover:text-ink">
           ← رجوع للدروس
         </Link>
@@ -60,7 +60,7 @@ export default async function StudentLessonDetailPage({
         .map((m) => {
           const embedUrl = toEmbedUrl(m.url);
           return (
-            <div key={m.id} className="rounded-xl overflow-hidden border border-border aspect-video bg-ink">
+            <div key={m.id} className="rounded-2xl overflow-hidden border border-border aspect-video bg-ink shadow-elevated animate-fade-in-up">
               {embedUrl ? (
                 <iframe
                   src={embedUrl}
@@ -84,7 +84,7 @@ export default async function StudentLessonDetailPage({
         })}
 
       {paragraphs.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-6 space-y-4 leading-7 text-ink shadow-elevated">
+        <div className="rounded-2xl border border-border bg-surface p-6 space-y-4 leading-7 text-ink shadow-elevated animate-fade-in-up">
           {paragraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
@@ -101,7 +101,7 @@ export default async function StudentLessonDetailPage({
                 key={m.id}
                 src={m.url}
                 alt={m.title ?? lesson.title}
-                className="rounded-xl border border-border w-full"
+                className="rounded-2xl border border-border w-full shadow-elevated"
               />
             ))}
         </div>
@@ -118,7 +118,7 @@ export default async function StudentLessonDetailPage({
       )}
 
       {lesson.media.filter((m) => m.type === "link").length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-4 space-y-2 shadow-elevated">
+        <div className="rounded-2xl border border-border bg-surface p-4 space-y-2 shadow-elevated animate-fade-in-up">
           {lesson.media
             .filter((m) => m.type === "link")
             .map((m) => (
