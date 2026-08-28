@@ -184,7 +184,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
   const isTimeCritical = remainingSeconds !== null && remainingSeconds <= 60;
 
   return (
-    <div className="max-w-2xl space-y-6 pb-40 sm:pb-24">
+    <div className="max-w-2xl space-y-6 pb-40 md:pb-24">
       <div className="sticky top-0 z-10 -mx-6 glass-surface px-6 py-3 border-b border-border">
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-ink">{attempt.quiz.title}</h1>
@@ -304,7 +304,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
 
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
 
-      <div className="fixed bottom-16 sm:bottom-0 inset-x-0 z-30 sm:static bg-surface sm:bg-transparent border-t sm:border-0 border-border p-4 sm:p-0">
+      <div className="fixed bottom-16 md:bottom-0 inset-x-0 z-30 md:static bg-surface md:bg-transparent border-t md:border-0 border-border p-4 md:p-0">
         <button
           onClick={() => submit(attempt.id)}
           disabled={submitting}
