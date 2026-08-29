@@ -68,13 +68,13 @@ function AdminNavLinks({
   );
 }
 
-function SidebarBrand() {
+function SidebarBrand({ platformName }: { platformName: string }) {
   return (
     <div className="flex items-center gap-2 text-white mb-8 px-1">
       <span className="font-mono text-accent">{">"}_</span>
-      <span className="font-bold tracking-tight">Code AI</span>
+      <span className="font-bold tracking-tight truncate">{platformName}</span>
       <span
-        className="text-[10px] font-mono rounded px-1.5 py-0.5 ms-auto border"
+        className="text-[10px] font-mono rounded px-1.5 py-0.5 ms-auto border shrink-0"
         style={{ borderColor: "var(--color-sidebar-border)", color: "var(--color-sidebar-text)" }}
       >
         أدمن
@@ -86,9 +86,11 @@ function SidebarBrand() {
 export function AdminShell({
   children,
   adminName,
+  platformName,
 }: {
   children: React.ReactNode;
   adminName: string;
+  platformName: string;
 }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
@@ -119,7 +121,7 @@ export function AdminShell({
           color: "var(--color-sidebar-text)",
         }}
       >
-        <SidebarBrand />
+        <SidebarBrand platformName={platformName} />
         <AdminNavLinks pathname={pathname} animated />
       </aside>
 
@@ -144,7 +146,7 @@ export function AdminShell({
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <SidebarBrand />
+            <SidebarBrand platformName={platformName} />
           </div>
           <button
             onClick={() => setNavOpen(false)}
@@ -174,9 +176,9 @@ export function AdminShell({
                 />
               </svg>
             </button>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-primary">{">"}_</span>
-              <span className="font-bold">Code AI</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-mono text-primary shrink-0">{">"}_</span>
+              <span className="font-bold truncate">{platformName}</span>
             </div>
           </div>
           <div className="hidden md:block" />

@@ -22,12 +22,12 @@ const CODE_LINES = [
 export function LoginForm({ platformName }: { platformName: string }) {
   return (
     <Suspense fallback={null}>
-      <LoginPageInner platformName={platformName} />
+      <LoginFormInner platformName={platformName} />
     </Suspense>
   );
 }
 
-function LoginPageInner({ platformName }: { platformName: string }) {
+function LoginFormInner({ platformName }: { platformName: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionEnded = searchParams.get("reason") === "session-ended";
@@ -90,10 +90,10 @@ function LoginPageInner({ platformName }: { platformName: string }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative flex items-center gap-2 text-white"
+          className="relative flex items-center gap-2 text-white min-w-0"
         >
-          <span className="font-mono text-accent text-lg">{">"}_</span>
-          <span className="font-bold text-xl">{platformName}</span>
+          <span className="font-mono text-accent text-lg shrink-0">{">"}_</span>
+          <span className="font-bold text-xl truncate">{platformName}</span>
         </motion.div>
 
         <motion.div

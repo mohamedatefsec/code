@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
+import { BulkStudentPasswordForm } from "@/components/BulkStudentPasswordForm";
 
 type ContactInfo = { email?: string; phone?: string };
 type SocialLinks = { facebook?: string; instagram?: string; youtube?: string; whatsapp?: string };
@@ -390,6 +391,8 @@ export default function AdminSettingsPage() {
       </form>
 
       <ChangePasswordForm />
+
+      <BulkStudentPasswordForm />
     </div>
   );
 }

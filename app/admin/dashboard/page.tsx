@@ -55,15 +55,6 @@ export default async function AdminDashboardPage() {
           { label: "شارات مُمنوحة", value: totalBadgesAwarded, accent: "accent" },
         ]}
       />
-
-      <div className="rounded-xl border border-border bg-surface p-6 animate-fade-in-up shadow-elevated" style={{ animationDelay: "0.3s" }}>
-        <h2 className="font-semibold text-gradient-brand mb-2">Phase 1 → 8 مكتملة ✅</h2>
-        <p className="text-sm text-ink-soft leading-6">
-          التأسيس، إدارة الطلاب والمجموعات، المحتوى التعليمي، بنك الأسئلة
-          (بما فيها المقالي)، الاختبارات، الحضور والغياب، الإشعارات والتحفيز،
-          ومولّد الأسئلة بالذكاء الاصطناعي — كل المراحل الأساسية جاهزة.
-        </p>
-      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { requireActiveUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { StudentShell } from "@/components/StudentShell";
+import { getPlatformName } from "@/lib/settings";
 
 export default async function StudentLayout({
   children,
@@ -19,12 +20,13 @@ export default async function StudentLayout({
     redirect(hadStaleSession ? "/login?reason=session-ended" : "/login");
   }
 
-  const profile = await db.studentProfile.findUnique({
-    where: { userId: user.id },
-  });
+  const [profile, platformName] = await Promise.all([
+    db.studentProfile.findUnique({ where: { userId: user.id } }),
+    getPlatformName(),
+  ]);
 
   return (
-    <StudentShell studentName={profile?.fullName ?? "الطالب"}>
+    <StudentShell studentName={profile?.fullName ?? "الطالب"} platformName={platformName}>
       {children}
     </StudentShell>
   );
