@@ -253,6 +253,9 @@ enum QuizTargetType {
 }
 
 enum AttemptStatus {
+  /// اتفتحت المحاولة (أنشئها الطالب أو منحها المدرّس) لكن العدّاد لسه ما بدأش -
+  /// بينتظر الطالب يضغط زر "ابدأ الاختبار" بنفسه. startedAt = null في هذه الحالة.
+  pending
   in_progress
   submitted
 }
@@ -338,12 +341,12 @@ model QuizAttempt {
   quizId           String        @map("quiz_id")
   studentId        String        @map("student_id")
   attemptNumber    Int           @map("attempt_number")
-  startedAt        DateTime      @default(now()) @map("started_at")
+  startedAt        DateTime?     @map("started_at")
   submittedAt      DateTime?     @map("submitted_at")
   score            Int?
   maxScore         Int?          @map("max_score")
   percentage       Float?
-  status           AttemptStatus @default(in_progress)
+  status           AttemptStatus @default(pending)
   timeSpentSeconds Int?          @map("time_spent_seconds")
   /// true لو فيها إجابة سؤال مقالي واحد على الأقل لسه ما اتصححش يدويًا -
   /// الدرجة والنسبة تبقى غير نهائية (جزئية من الأسئلة المُصحَّحة تلقائيًا فقط)

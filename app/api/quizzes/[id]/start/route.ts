@@ -18,12 +18,13 @@ export async function POST(
     return NextResponse.json({ error: "الملف الشخصي غير موجود." }, { status: 404 });
   }
 
-  // لو فيه محاولة شغّالة بالفعل لنفس الاختبار، كمّل فيها بدل ما تبدأ محاولة جديدة
-  const existingInProgress = await db.quizAttempt.findFirst({
-    where: { quizId: id, studentId: student.id, status: "in_progress" },
+  // لو فيه محاولة مفتوحة بالفعل لنفس الاختبار (لسه ما بدأتش، أو شغّالة)،
+  // كمّل فيها بدل ما تبدأ محاولة جديدة.
+  const existingOpen = await db.quizAttempt.findFirst({
+    where: { quizId: id, studentId: student.id, status: { in: ["pending", "in_progress"] } },
   });
-  if (existingInProgress) {
-    return NextResponse.json({ attemptId: existingInProgress.id });
+  if (existingOpen) {
+    return NextResponse.json({ attemptId: existingOpen.id });
   }
 
   const quiz = await db.quiz.findUnique({ where: { id }, include: { targets: true } });
@@ -36,11 +37,14 @@ export async function POST(
     return NextResponse.json({ error: eligibility.reason }, { status: 403 });
   }
 
+  // بيتفتح بحالة "pending" - العدّاد ما بيبدأش إلا لما الطالب يضغط زر "ابدأ
+  // الاختبار" فعليًا (POST /api/attempts/{id}/begin)، مش أول ما تتفتح الصفحة.
   const attempt = await db.quizAttempt.create({
     data: {
       quizId: id,
       studentId: student.id,
       attemptNumber: eligibility.attemptsUsed + 1,
+      status: "pending",
     },
   });
 

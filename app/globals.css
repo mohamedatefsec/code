@@ -255,3 +255,17 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* رادع الطباعة لواجهة الطالب: يمنع طباعة محتوى منطقة الطالب فقط
+   (لا يؤثر على لوحة الأدمن) عبر إخفائها بالكامل عند أمر الطباعة. */
+@media print {
+  .student-guard-root {
+    display: none !important;
+  }
+  .student-guard-print-message {
+    display: block !important;
+  }
+}
+.student-guard-print-message {
+  display: none;
+}

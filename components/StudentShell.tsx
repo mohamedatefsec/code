@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { ScreenshotGuard } from "./ScreenshotGuard";
 
 const NAV_ITEMS = [
   {
@@ -157,11 +158,12 @@ export function StudentShell({
   }, [navOpen]);
 
   return (
-    <div className="min-h-screen flex">
-      {/* الشريط الجانبي الثابت - على اليمين في واجهة RTL */}
-      <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-s border-border bg-surface p-5">
-        <SidebarBrand platformName={platformName} />
-        <div className="mt-4 flex-1">
+    <ScreenshotGuard studentName={studentName}>
+      <div className="min-h-screen flex">
+        {/* الشريط الجانبي الثابت - على اليمين في واجهة RTL */}
+        <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-s border-border bg-surface p-5">
+          <SidebarBrand platformName={platformName} />
+          <div className="mt-4 flex-1">
           <NavLinks pathname={pathname} animated />
         </div>
         <div className="pt-4 border-t border-border space-y-3">
@@ -271,6 +273,7 @@ export function StudentShell({
           })}
         </div>
       </nav>
-    </div>
+      </div>
+    </ScreenshotGuard>
   );
 }

@@ -24,11 +24,11 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  const inProgressAttempts = await db.quizAttempt.findMany({
-    where: { studentId: student.id, status: "in_progress" },
+  const openAttempts = await db.quizAttempt.findMany({
+    where: { studentId: student.id, status: { in: ["pending", "in_progress"] } },
     select: { quizId: true, id: true },
   });
-  const inProgressByQuiz = new Map(inProgressAttempts.map((a) => [a.quizId, a.id]));
+  const inProgressByQuiz = new Map(openAttempts.map((a) => [a.quizId, a.id]));
 
   const result = await Promise.all(
     quizzes.map(async (quiz) => {
