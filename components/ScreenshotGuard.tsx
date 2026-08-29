@@ -64,16 +64,19 @@ export function ScreenshotGuard({
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
-    const handleBlur = () => setIsActive(false);
-    const handleFocus = () => setIsActive(true);
+    // بنعتمد بس على visibilitychange، مش على blur/focus. لأن blur/focus
+    // بيحصلوا كمان لما الفوكس ينتقل لعنصر داخل نفس الصفحة (زي iframe فيديو
+    // اليوتيوب/Vimeo في صفحة الدرس) - مش بس لما الطالب فعلًا يسيب التاب أو
+    // يبدّل تطبيق. على الموبايل بالذات، لمس عناصر تحكّم الفيديو (زر ملء
+    // الشاشة مثلًا) بينقل الفوكس لداخل الـ iframe، فيطلق حدث blur على
+    // النافذة رغم إن الطالب لسه في نفس الصفحة - وبما إن الفوكس بيفضل جوّه
+    // الـ iframe، حدث focus ممكن ميرجعش تاني، فتفضل الشاشة معتّمة بشكل دائم.
+    // visibilitychange بالعكس بيعكس فعليًا هل التاب نفسه في الخلفية ولا لأ،
+    // بغض النظر عن أي عنصر جوّه الصفحة ماسك الفوكس.
     const handleVisibility = () => setIsActive(document.visibilityState === "visible");
 
-    window.addEventListener("blur", handleBlur);
-    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
