@@ -21,6 +21,7 @@ type StudentRow = {
   latestAttempt: LatestAttempt | null;
   attemptsUsed: number;
   extraGrants: number;
+  clearedAttempts: number;
 };
 
 type MonitorData = {
@@ -44,6 +45,7 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
   const [now, setNow] = useState(() => Date.now());
   const [reopeningId, setReopeningId] = useState<string | null>(null);
   const [grantingId, setGrantingId] = useState<string | null>(null);
+  const [clearingId, setClearingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetch(`/api/quizzes/${quizId}/monitor`)
@@ -100,6 +102,29 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     } else {
       const d = await res.json().catch(() => null);
       alert(d?.error ?? "تعذّر منح المحاولة الإضافية.");
+    }
+  }
+
+  async function handleClearAttempts(studentId: string, studentName: string) {
+    if (
+      !confirm(
+        `هل تريد مسح كل محاولات "${studentName}" في هذا الاختبار نهائيًا؟ سيُحذف السجل بالكامل (الدرجات والإجابات) ولا يمكن التراجع، ولن يحصل الطالب على فرصة دخول جديدة نتيجة المسح.`
+      )
+    ) {
+      return;
+    }
+    setClearingId(studentId);
+    const res = await fetch(`/api/quizzes/${quizId}/clear-attempts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    });
+    setClearingId(null);
+    if (res.ok) {
+      load();
+    } else {
+      const d = await res.json().catch(() => null);
+      alert(d?.error ?? "تعذّر مسح المحاولات.");
     }
   }
 
@@ -187,9 +212,12 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                   <td className="px-4 py-3 text-ink-soft">{s.groupName ?? "—"}</td>
                   <td className="px-4 py-3">{statusNode}</td>
                   <td className="px-4 py-3 stat-figure text-ink-soft">
-                    {s.attemptsUsed} / {data.quiz.maxAttempts + s.extraGrants}
+                    {s.attemptsUsed} / {data.quiz.maxAttempts + s.extraGrants - s.clearedAttempts}
                     {s.extraGrants > 0 && (
                       <span className="text-accent"> (+{s.extraGrants})</span>
+                    )}
+                    {s.clearedAttempts > 0 && (
+                      <span className="text-ink-soft"> (مسح {s.clearedAttempts})</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-end whitespace-nowrap">
@@ -212,6 +240,15 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                           {grantingId === s.id ? "جارٍ المنح..." : "منح محاولة إضافية"}
                         </button>
                       )}
+                      {s.attemptsUsed > 0 && (
+                        <button
+                          onClick={() => handleClearAttempts(s.id, s.fullName)}
+                          disabled={clearingId === s.id}
+                          className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {clearingId === s.id ? "جارٍ المسح..." : "مسح المحاولات"}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -225,7 +262,9 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
         &quot;منح وقت جديد للدخول&quot; يعيد فتح نفس المحاولة العالقة من جديد (بدون احتساب محاولة إضافية)،
         والعدّاد ما بيبدأش إلا لما الطالب نفسه يدخل ويضغط زر البدء. &quot;منح محاولة إضافية&quot; يفتح
         للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته السابقة المحفوظة ولا على عدد المحاولات
-        المسموح به لباقي الطلاب.
+        المسموح به لباقي الطلاب. &quot;مسح المحاولات&quot; يحذف نهائيًا كل سجل محاولات الطالب في هذا
+        الاختبار (الدرجات والإجابات) - ده إجراء لا يمكن التراجع عنه، ولا يمنح الطالب أي فرصة دخول
+        جديدة نتيجة المسح.
       </p>
     </div>
   );

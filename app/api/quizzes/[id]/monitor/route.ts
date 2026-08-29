@@ -75,6 +75,14 @@ export async function GET(
   });
   const extraGrantsByStudent = new Map(extraGrants.map((g) => [g.studentId, g.count]));
 
+  // نفس الفكرة لمحاولات اتمسحت (اتحذف سجلّها) - نعرضها في الشاشة عشان
+  // المدرّس يعرف إن في محاولات سابقة كانت موجودة واتمسحت.
+  const clearedAttempts = await db.quizClearedAttempt.findMany({
+    where: { quizId: id },
+    select: { studentId: true, count: true },
+  });
+  const clearedByStudent = new Map(clearedAttempts.map((c) => [c.studentId, c.count]));
+
   return NextResponse.json({
     quiz: {
       id: quiz.id,
@@ -90,6 +98,7 @@ export async function GET(
       latestAttempt: s.quizAttempts[0] ?? null,
       attemptsUsed: s.quizAttempts.length,
       extraGrants: extraGrantsByStudent.get(s.id) ?? 0,
+      clearedAttempts: clearedByStudent.get(s.id) ?? 0,
     })),
   });
 }

@@ -66,6 +66,7 @@ model StudentProfile {
   quizTargets QuizTarget[]
   quizAttempts QuizAttempt[]
   extraAttemptGrants QuizExtraAttempt[]
+  clearedAttempts QuizClearedAttempt[]
   attendanceRecords AttendanceRecord[]
   notificationReads NotificationRead[]
   studentBadges StudentBadge[]
@@ -282,6 +283,7 @@ model Quiz {
   targets   QuizTarget[]
   attempts  QuizAttempt[]
   extraAttemptGrants QuizExtraAttempt[]
+  clearedAttempts QuizClearedAttempt[]
 
   @@index([subjectId, status])
   @@map("quizzes")
@@ -318,6 +320,23 @@ model QuizExtraAttempt {
 
   @@unique([quizId, studentId])
   @@map("quiz_extra_attempts")
+}
+
+/// عدد المحاولات اللي المدرّس مسحها (حذف سجلّها بالكامل) لطالب معيّن في
+/// اختبار معيّن. بيتخصم من الحد المسموح بيه (maxAttempts + extraGrant) عشان
+/// مسح السجل ميفتحش للطالب فرصة دخول إضافية ماكانتش موجودة أصلًا.
+model QuizClearedAttempt {
+  id        String   @id @default(cuid())
+  quizId    String   @map("quiz_id")
+  studentId String   @map("student_id")
+  count     Int      @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  quiz    Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, studentId])
+  @@map("quiz_cleared_attempts")
 }
 
 /// تحديد من يُسمح له بدخول الاختبار. عدم وجود أي صف = متاح لكل الطلاب النشطين.

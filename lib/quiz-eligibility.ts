@@ -42,7 +42,18 @@ export async function getQuizEligibility(
   const extraGrant = await db.quizExtraAttempt.findUnique({
     where: { quizId_studentId: { quizId: quiz.id, studentId } },
   });
-  const effectiveMax = quiz.maxAttempts + (extraGrant?.count ?? 0);
+
+  // محاولات المدرّس مسح سجلّها (حذفها بالكامل من صفحة المتابعة) - بتتخصم من
+  // الحد المسموح بيه عشان مسح السجل ميفتحش للطالب فرصة دخول إضافية
+  // ماكانتش موجودة أصلًا قبل المسح.
+  const clearedAttempt = await db.quizClearedAttempt.findUnique({
+    where: { quizId_studentId: { quizId: quiz.id, studentId } },
+  });
+
+  const effectiveMax = Math.max(
+    attemptsUsed,
+    quiz.maxAttempts + (extraGrant?.count ?? 0) - (clearedAttempt?.count ?? 0)
+  );
 
   if (attemptsUsed >= effectiveMax) {
     return { eligible: false, reason: "استنفدت عدد المحاولات المسموح بها لهذا الاختبار." };
