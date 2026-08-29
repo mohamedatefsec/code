@@ -80,8 +80,8 @@ function SidebarBrand({ platformName }: { platformName: string }) {
         </svg>
       </span>
       <div className="min-w-0 leading-tight">
-        <p className="font-bold text-ink truncate">{platformName}</p>
-        <p className="text-[11px] text-ink-soft truncate">للتعلم الذكي</p>
+        <p className="font-bold text-ink break-words">{platformName}</p>
+        <p className="text-[11px] text-ink-soft">للتعلم الذكي</p>
       </div>
     </div>
   );
@@ -240,8 +240,8 @@ export function StudentShell({
               <path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-bold truncate">{platformName}</span>
+          <div className="flex-1 min-w-0 flex items-center justify-center text-center px-2">
+            <span className="font-bold leading-tight break-words">{platformName}</span>
           </div>
           <ThemeToggle />
         </header>

@@ -70,11 +70,13 @@ function AdminNavLinks({
 
 function SidebarBrand({ platformName }: { platformName: string }) {
   return (
-    <div className="flex items-center gap-2 text-white mb-8 px-1">
-      <span className="font-mono text-accent">{">"}_</span>
-      <span className="font-bold tracking-tight truncate">{platformName}</span>
+    <div className="flex items-start gap-2 text-white mb-8 px-1">
+      <span className="font-mono text-accent shrink-0 leading-6">{">"}_</span>
+      <span className="font-bold tracking-tight leading-snug break-words flex-1 min-w-0">
+        {platformName}
+      </span>
       <span
-        className="text-[10px] font-mono rounded px-1.5 py-0.5 ms-auto border shrink-0"
+        className="text-[10px] font-mono rounded px-1.5 py-0.5 border shrink-0 mt-0.5"
         style={{ borderColor: "var(--color-sidebar-border)", color: "var(--color-sidebar-text)" }}
       >
         أدمن
@@ -176,9 +178,9 @@ export function AdminShell({
                 />
               </svg>
             </button>
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="font-mono text-primary shrink-0">{">"}_</span>
-              <span className="font-bold truncate">{platformName}</span>
+              <span className="font-bold leading-tight break-words">{platformName}</span>
             </div>
           </div>
           <div className="hidden md:block" />
