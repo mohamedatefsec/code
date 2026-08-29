@@ -31,6 +31,7 @@ export async function PATCH(
     data: {
       title: parsed.data.title,
       body: parsed.data.body,
+      imageUrl: parsed.data.imageUrl || null,
       targetType: parsed.data.targetType,
       targetGroupId: parsed.data.targetType === "group" ? parsed.data.targetGroupId : null,
       targetStudentId: parsed.data.targetType === "student" ? parsed.data.targetStudentId : null,

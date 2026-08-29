@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import { ImageUploadField } from "@/components/ImageUploadField";
 
 type Group = { id: string; name: string };
 type Student = { id: string; fullName: string; studentCode: string };
@@ -8,6 +9,7 @@ type Notification = {
   id: string;
   title: string;
   body: string;
+  imageUrl: string | null;
   targetType: "all" | "group" | "student";
   targetGroupId: string | null;
   targetStudentId: string | null;
@@ -29,6 +31,7 @@ export default function AdminNotificationsPage() {
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [targetType, setTargetType] = useState<Notification["targetType"]>("all");
   const [targetGroupId, setTargetGroupId] = useState("");
   const [targetStudentId, setTargetStudentId] = useState("");
@@ -40,6 +43,7 @@ export default function AdminNotificationsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
   const [editTargetType, setEditTargetType] = useState<Notification["targetType"]>("all");
   const [editTargetGroupId, setEditTargetGroupId] = useState("");
   const [editTargetStudentId, setEditTargetStudentId] = useState("");
@@ -67,6 +71,7 @@ export default function AdminNotificationsPage() {
     setEditingId(n.id);
     setEditTitle(n.title);
     setEditBody(n.body);
+    setEditImageUrl(n.imageUrl ?? "");
     setEditTargetType(n.targetType);
     setEditTargetGroupId(n.targetGroupId ?? "");
     setEditTargetStudentId(n.targetStudentId ?? "");
@@ -87,6 +92,7 @@ export default function AdminNotificationsPage() {
       body: JSON.stringify({
         title: editTitle,
         body: editBody,
+        imageUrl: editImageUrl || null,
         targetType: editTargetType,
         targetGroupId: editTargetType === "group" ? editTargetGroupId : null,
         targetStudentId: editTargetType === "student" ? editTargetStudentId : null,
@@ -125,6 +131,7 @@ export default function AdminNotificationsPage() {
       body: JSON.stringify({
         title,
         body,
+        imageUrl: imageUrl || null,
         targetType,
         targetGroupId: targetType === "group" ? targetGroupId : null,
         targetStudentId: targetType === "student" ? targetStudentId : null,
@@ -134,6 +141,7 @@ export default function AdminNotificationsPage() {
     if (res.ok) {
       setTitle("");
       setBody("");
+      setImageUrl("");
       setTargetType("all");
       setTargetGroupId("");
       setTargetStudentId("");
@@ -172,6 +180,8 @@ export default function AdminNotificationsPage() {
             className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
           />
         </div>
+
+        <ImageUploadField label="صورة (اختياري)" value={imageUrl} onChange={setImageUrl} />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
@@ -261,6 +271,7 @@ export default function AdminNotificationsPage() {
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
+              <ImageUploadField label="صورة (اختياري)" value={editImageUrl} onChange={setEditImageUrl} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-ink mb-1">إرسال إلى</label>
@@ -337,9 +348,19 @@ export default function AdminNotificationsPage() {
           ) : (
             <div key={n.id} className="rounded-xl border border-border bg-surface p-4 shadow-elevated">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-ink">{n.title}</p>
-                  <p className="text-sm text-ink-soft mt-0.5">{n.body}</p>
+                <div className="flex items-start gap-3 min-w-0">
+                  {n.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- معاينة صورة مرفوعة، ليست next/image
+                    <img
+                      src={n.imageUrl}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover border border-border shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{n.title}</p>
+                    <p className="text-sm text-ink-soft mt-0.5">{n.body}</p>
+                  </div>
                 </div>
                 <span className="text-xs text-ink-soft shrink-0">{TARGET_LABELS[n.targetType]}</span>
               </div>

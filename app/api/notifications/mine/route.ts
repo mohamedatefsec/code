@@ -34,6 +34,7 @@ export async function GET() {
     id: n.id,
     title: n.title,
     body: n.body,
+    imageUrl: n.imageUrl,
     createdAt: n.createdAt,
     isRead: n.reads.length > 0,
   }));

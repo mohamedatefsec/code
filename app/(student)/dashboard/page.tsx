@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { StatGrid } from "@/components/StatGrid";
-import { SubjectGlyph, subjectTheme } from "@/components/SubjectArt";
+import { SubjectGlyph } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
 import { CodeTypewriterLine } from "@/components/CodeTypewriter";
 
@@ -56,6 +56,27 @@ function BookmarkIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
       <path d="M6 4h12v17l-6-3.8L6 21V4Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/// زخرفة صغيرة لبطاقة "أحدث الدروس" - نفس مفردات الشعار البصري للمنصة
+/// (شبكة الذكاء الاصطناعي + أقواس الكود) بس بحجم أصغر ومكانها في ركن
+/// البطاقة، مش بانر كامل مستقل زي بانر الترحيب.
+function LessonsCardMotif() {
+  return (
+    <svg viewBox="0 0 140 100" className="absolute -top-2 end-0 w-28 h-20 sm:w-36 sm:h-24 opacity-90" aria-hidden="true">
+      <g className="animate-float-card">
+        <circle cx="100" cy="28" r="14" fill="rgba(255,255,255,0.14)" />
+        <circle cx="96" cy="23" r="2.2" fill="#fff" fillOpacity="0.65" />
+        <circle cx="107" cy="21" r="2.2" fill="#fff" fillOpacity="0.65" />
+        <circle cx="103" cy="34" r="2.2" fill="#fff" fillOpacity="0.65" />
+        <path d="M96 23 103 34M107 21 103 34M96 23 107 21" stroke="#fff" strokeOpacity="0.4" strokeWidth="1" />
+      </g>
+      <g className="animate-float-slow" style={{ animationDelay: "0.8s" }}>
+        <rect x="18" y="8" width="30" height="30" rx="9" fill="rgba(255,255,255,0.1)" />
+        <text x="24" y="28" fontFamily="var(--font-mono)" fontSize="12" fill="#fff" fillOpacity="0.45">{"</>"}</text>
+      </g>
     </svg>
   );
 }
@@ -221,50 +242,57 @@ export default async function StudentDashboardPage() {
 
       <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
         <div
-          className="md:col-span-2 rounded-xl border border-border bg-surface p-4 sm:p-6 shadow-elevated animate-fade-in-up"
+          className="relative overflow-hidden md:col-span-2 rounded-xl bg-gradient-brand p-4 sm:p-6 shadow-glow animate-fade-in-up"
           style={{ animationDelay: "0.15s" }}
         >
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="flex items-center gap-2 font-semibold text-ink">
-              <span className="grid place-items-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary-soft text-primary">
+          <LessonsCardMotif />
+          <div className="relative flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="flex items-center gap-2 font-semibold text-white">
+              <span className="grid place-items-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/15 backdrop-blur-sm">
                 <BookmarkIcon />
               </span>
               أحدث الدروس
             </h2>
-            <Link href="/lessons" className="text-sm text-primary hover:underline">
+            <Link
+              href="/lessons"
+              className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary hover:opacity-90 transition"
+            >
               عرض الكل
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} className="w-3 h-3">
+                <path d="m15 6-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </Link>
           </div>
           {recentLessons.length === 0 ? (
-            <p className="text-sm text-ink-soft">لا توجد دروس منشورة بعد. راجع لاحقًا.</p>
+            <p className="relative text-sm text-white/80">لا توجد دروس منشورة بعد. راجع لاحقًا.</p>
           ) : (
-            <div className="space-y-2">
-              {recentLessons.map((l) => {
-                const theme = subjectTheme(l.unit.subject);
+            <div className="relative space-y-2">
+              {recentLessons.map((l, i) => {
                 const fresh = isNewLesson(l.createdAt);
                 return (
                   <Link
                     key={l.id}
                     href={`/lessons/${l.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border px-3 sm:px-4 py-2 sm:py-2.5 hover:border-primary hover:bg-primary-soft/40 transition-colors text-sm"
+                    className="group flex items-center gap-3 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 transition-colors text-sm animate-fade-in-up"
+                    style={{ animationDelay: `${0.2 + i * 0.05}s` }}
                   >
-                    <span
-                      className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg text-white"
-                      style={{ background: theme.gradient }}
-                    >
+                    <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:scale-105">
                       <SubjectGlyph subject={l.unit.subject} className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="font-medium text-ink truncate">{l.title}</span>
+                        <span className="font-medium text-white truncate">{l.title}</span>
                         {fresh && (
-                          <span className="shrink-0 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                          <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-primary">
                             جديد
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="text-ink-soft shrink-0 hidden sm:inline">{l.unit.title}</span>
+                    <span className="text-white/70 shrink-0 hidden sm:inline">{l.unit.title}</span>
+                    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} className="w-3.5 h-3.5 text-white/60 shrink-0 transition-transform group-hover:-translate-x-0.5">
+                      <path d="m15 6-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </Link>
                 );
               })}

@@ -6,9 +6,26 @@ type Notification = {
   id: string;
   title: string;
   body: string;
+  imageUrl: string | null;
   createdAt: string;
   isRead: boolean;
 };
+
+/// معاينة صورة الإشعار - نفس منطق ImageUploadField (إخفاء الصورة بهدوء لو
+/// الرابط بقى غير صالح بدل ما تسيب أيقونة "صورة مكسورة" ظاهرة للطالب).
+function NotificationImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- صورة مرفوعة عبر Vercel Blob، ليست next/image
+    <img
+      src={src}
+      alt={alt}
+      className="mt-2 w-full max-h-40 rounded-lg object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function NotificationsWidget() {
   const [notifications, setNotifications] = useState<Notification[] | null>(null);
@@ -45,19 +62,21 @@ export function NotificationsWidget() {
         </h2>
       </div>
       <div className="space-y-2">
-        {notifications.map((n) => (
+        {notifications.map((n, i) => (
           <button
             key={n.id}
             onClick={() => markRead(n.id)}
-            className={`w-full text-start rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-sm transition ${
+            className={`w-full text-start rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-sm transition card-hover animate-fade-in-up ${
               n.isRead ? "border-border text-ink-soft" : "border-primary/30 bg-primary-soft text-ink"
             }`}
+            style={{ animationDelay: `${Math.min(i, 6) * 0.05}s` }}
           >
             <div className="flex items-center gap-2">
-              {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand shrink-0" />}
+              {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand shrink-0 animate-pulse-glow" />}
               <p className="font-medium">{n.title}</p>
             </div>
             <p className="mt-1 text-ink-soft">{n.body}</p>
+            {n.imageUrl && <NotificationImage src={n.imageUrl} alt={n.title} />}
           </button>
         ))}
       </div>
