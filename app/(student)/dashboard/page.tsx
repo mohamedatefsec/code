@@ -6,6 +6,93 @@ import { StatGrid } from "@/components/StatGrid";
 import { SubjectGlyph, subjectTheme } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
 
+/// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
+/// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
+function AttendanceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
+      <path d="M4 9h16M7 3v3M17 3v3" stroke="currentColor" strokeLinecap="round" />
+      <rect x="4" y="5.5" width="16" height="15" rx="2.5" stroke="currentColor" />
+      <path d="m8.5 14 2.3 2.3L16 11.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function GradeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
+      <path d="M12 3 14.2 8 20 8.8l-4.2 3.9 1.1 5.7L12 15.6 6.9 18.4 8 12.7 3.8 8.8 9.6 8 12 3Z" stroke="currentColor" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function QuizIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
+      <path
+        d="M9 3.5h6a1 1 0 0 1 1 1v.5h1a1 1 0 0 1 1 1V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h1v-.5a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="m9 12.5 2 2 4-4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function LessonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
+      <path
+        d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19a1 1 0 0 1 1 1v15.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18V5.5Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 7h8M8 10.2h8" stroke="currentColor" strokeLinecap="round" />
+    </svg>
+  );
+}
+function BookmarkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
+      <path d="M6 4h12v17l-6-3.8L6 21V4Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/// رسم زخرفي للبانر الترحيبي - يمزج بين رمزَي المنصة (أقواس الكود `</>`
+/// وشبكة الذكاء الاصطناعي) في تركيبة واحدة عائمة، بدل رسمة عامة لا علاقة
+/// لها بمحتوى المنصة الفعلي (برمجة + ذكاء اصطناعي).
+function HeroIllustration() {
+  return (
+    <svg viewBox="0 0 220 180" className="w-44 h-36 sm:w-56 sm:h-44" aria-hidden="true">
+      <g className="animate-float-slow">
+        <rect x="30" y="40" width="120" height="80" rx="14" fill="rgba(255,255,255,0.14)" />
+        <rect x="30" y="40" width="120" height="20" rx="10" fill="rgba(255,255,255,0.22)" />
+        <circle cx="40" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
+        <circle cx="48" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
+        <circle cx="56" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
+        <text x="42" y="80" fontFamily="var(--font-mono)" fontSize="13" fill="#fff" fillOpacity="0.55">{"</>"}</text>
+        <text x="42" y="100" fontFamily="var(--font-mono)" fontSize="10" fill="#fff" fillOpacity="0.4">{"if (learn) {"}</text>
+      </g>
+      <g className="animate-float-card">
+        <circle cx="175" cy="35" r="16" fill="rgba(255,255,255,0.18)" />
+        <circle cx="170" cy="30" r="2.6" fill="#fff" fillOpacity="0.8" />
+        <circle cx="182" cy="28" r="2.6" fill="#fff" fillOpacity="0.8" />
+        <circle cx="178" cy="42" r="2.6" fill="#fff" fillOpacity="0.8" />
+        <path d="M170 30 178 42M182 28 178 42M170 30 182 28" stroke="#fff" strokeOpacity="0.5" strokeWidth="1.2" />
+      </g>
+      <g className="animate-float-slow" style={{ animationDelay: "1.2s" }}>
+        <circle cx="35" cy="145" r="13" fill="rgba(255,255,255,0.16)" />
+        <path d="M29 145h12M35 139v12" stroke="#fff" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+      </g>
+      <g className="animate-float-card" style={{ animationDelay: "0.6s" }}>
+        <rect x="150" y="110" width="46" height="46" rx="12" fill="rgba(255,255,255,0.14)" />
+        <path d="M164 133h18M173 124v18" stroke="#fff" strokeOpacity="0.6" strokeWidth="1.6" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
 export default async function StudentDashboardPage() {
   const user = await requireActiveUser("student");
   const profile = user
@@ -71,82 +158,128 @@ export default async function StudentDashboardPage() {
       )
     : new Set<string>();
 
+  const firstName = profile?.fullName?.split(" ")[0] ?? "طالبنا";
+
   return (
-    <div className="space-y-8">
-      <div className="animate-fade-in-up">
-        <h1 className="text-xl font-bold text-ink">
-          مرحبًا بك يا {profile?.fullName?.split(" ")[0] ?? "طالبنا"} 👋
-        </h1>
-        <p className="text-sm text-ink-soft mt-1">
-          {profile?.group ? `مجموعة: ${profile.group.name}` : "لم تُضف لأي مجموعة بعد."}
-        </p>
+    <div className="space-y-6">
+      {/* البانر الترحيبي */}
+      <div
+        className="relative overflow-hidden rounded-2xl px-6 sm:px-8 py-7 sm:py-9 shadow-glow animate-fade-in-up"
+        style={{ background: "var(--gradient-brand)" }}
+      >
+        <div className="absolute -top-10 -end-10 w-52 h-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+        <div className="absolute -bottom-16 -start-10 w-56 h-56 rounded-full bg-black/10 blur-2xl" aria-hidden="true" />
+        <div className="relative flex items-center justify-between gap-6">
+          <div className="max-w-md">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              مرحبًا بك يا {firstName} 👋
+            </h1>
+            <p className="text-sm text-white/80 mt-1.5">
+              {profile?.group ? `مجموعة: ${profile.group.name}` : "لم تُضف لأي مجموعة بعد."} — جاهز لمواصلة رحلتك التعليمية؟
+            </p>
+            <Link
+              href="/lessons"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-white text-primary px-5 py-2.5 text-sm font-semibold shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-transform"
+            >
+              متابعة التعلم
+              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                <path d="M15 6 9 12l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </div>
+          <div className="hidden sm:block shrink-0">
+            <HeroIllustration />
+          </div>
+        </div>
       </div>
 
       <StatGrid
         stats={[
-          { label: "الدروس", value: lessonsCount },
-          { label: "الاختبارات", value: publishedQuizzesCount, accent: "accent" },
-          {
-            label: "متوسط الدرجات",
-            value: averagePercentage !== null ? averagePercentage : "—",
-            suffix: "%",
-          },
           {
             label: "نسبة الحضور",
             value: attendancePercentage !== null ? attendancePercentage : "—",
             suffix: "%",
             accent: "accent",
+            icon: <AttendanceIcon />,
           },
+          {
+            label: "متوسط الدرجات",
+            value: averagePercentage !== null ? averagePercentage : "—",
+            suffix: "%",
+            icon: <GradeIcon />,
+          },
+          {
+            label: "الاختبارات",
+            value: publishedQuizzesCount,
+            accent: "accent",
+            icon: <QuizIcon />,
+          },
+          { label: "الدروس", value: lessonsCount, icon: <LessonIcon /> },
         ]}
       />
 
-      <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-ink">أحدث الدروس</h2>
-          <Link href="/lessons" className="text-sm text-primary hover:underline">
-            عرض الكل
-          </Link>
-        </div>
-        {recentLessons.length === 0 ? (
-          <p className="text-sm text-ink-soft">لا توجد دروس منشورة بعد. راجع لاحقًا.</p>
-        ) : (
-          <div className="space-y-2">
-            {recentLessons.map((l) => {
-              const theme = subjectTheme(l.unit.subject);
-              const fresh = isNewLesson(l.createdAt);
-              return (
-                <Link
-                  key={l.id}
-                  href={`/lessons/${l.id}`}
-                  className="flex items-center gap-3 rounded-lg border border-border px-4 py-2.5 hover:border-primary hover:bg-primary-soft/40 transition-colors text-sm"
-                >
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
-                    style={{ background: theme.gradient }}
-                  >
-                    <SubjectGlyph subject={l.unit.subject} className="w-5 h-5" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="flex items-center gap-1.5">
-                      <span className="font-medium text-ink truncate">{l.title}</span>
-                      {fresh && (
-                        <span className="shrink-0 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                          جديد
-                        </span>
-                      )}
-                    </span>
-                  </span>
-                  <span className="text-ink-soft shrink-0">{l.unit.title}</span>
-                </Link>
-              );
-            })}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div
+          className="lg:col-span-2 rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up"
+          style={{ animationDelay: "0.15s" }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="flex items-center gap-2 font-semibold text-ink">
+              <span className="grid place-items-center w-8 h-8 rounded-lg bg-primary-soft text-primary">
+                <BookmarkIcon />
+              </span>
+              أحدث الدروس
+            </h2>
+            <Link href="/lessons" className="text-sm text-primary hover:underline">
+              عرض الكل
+            </Link>
           </div>
-        )}
+          {recentLessons.length === 0 ? (
+            <p className="text-sm text-ink-soft">لا توجد دروس منشورة بعد. راجع لاحقًا.</p>
+          ) : (
+            <div className="space-y-2">
+              {recentLessons.map((l) => {
+                const theme = subjectTheme(l.unit.subject);
+                const fresh = isNewLesson(l.createdAt);
+                return (
+                  <Link
+                    key={l.id}
+                    href={`/lessons/${l.id}`}
+                    className="flex items-center gap-3 rounded-lg border border-border px-4 py-2.5 hover:border-primary hover:bg-primary-soft/40 transition-colors text-sm"
+                  >
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+                      style={{ background: theme.gradient }}
+                    >
+                      <SubjectGlyph subject={l.unit.subject} className="w-5 h-5" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-medium text-ink truncate">{l.title}</span>
+                        {fresh && (
+                          <span className="shrink-0 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                            جديد
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="text-ink-soft shrink-0">{l.unit.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-1">
+          <NotificationsWidget />
+        </div>
       </div>
 
-      <NotificationsWidget />
-
-      <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+      <div
+        className="rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up"
+        style={{ animationDelay: "0.25s" }}
+      >
         <h2 className="font-semibold text-ink mb-4">الشارات</h2>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {allBadges.map((b, i) => {
@@ -170,10 +303,29 @@ export default async function StudentDashboardPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-6 text-sm text-ink-soft leading-6 shadow-elevated">
-        {attendancePercentage !== null
-          ? `سُجّل حضورك في ${attendanceRecords.length} حصة حتى الآن.`
-          : "لم يُسجَّل حضورك في أي حصة بعد."}
+      {/* بانر تحفيزي سفلي */}
+      <div
+        className="relative overflow-hidden rounded-xl border border-border bg-surface p-6 sm:p-7 shadow-elevated flex items-center justify-between gap-6 flex-wrap"
+      >
+        <div
+          className="absolute -top-8 -start-8 w-40 h-40 rounded-full opacity-[0.08] blur-2xl"
+          style={{ background: "var(--gradient-brand)" }}
+          aria-hidden="true"
+        />
+        <div className="relative">
+          <h3 className="font-semibold text-ink">استمر في التعلم كل يوم</h3>
+          <p className="text-sm text-ink-soft mt-1">
+            {attendancePercentage !== null
+              ? `سُجّل حضورك في ${attendanceRecords.length} حصة حتى الآن — كل خطوة صغيرة تقرّبك من هدفك الأكبر.`
+              : "لم يُسجَّل حضورك في أي حصة بعد — كل خطوة صغيرة تقرّبك من هدفك الأكبر."}
+          </p>
+        </div>
+        <Link
+          href="/lessons"
+          className="relative shrink-0 inline-flex items-center gap-2 rounded-full bg-gradient-brand text-white px-5 py-2.5 text-sm font-semibold shadow-glow hover:scale-[1.03] active:scale-[0.98] transition-transform"
+        >
+          اكتشف المزيد
+        </Link>
       </div>
     </div>
   );

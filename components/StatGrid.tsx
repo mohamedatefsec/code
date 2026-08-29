@@ -8,6 +8,7 @@ export type Stat = {
   value: number | string;
   accent?: "primary" | "accent";
   suffix?: string;
+  icon?: React.ReactNode;
 };
 
 export function StatGrid({ stats }: { stats: Stat[] }) {
@@ -26,7 +27,18 @@ export function StatGrid({ stats }: { stats: Stat[] }) {
             className="absolute -top-6 -end-6 w-20 h-20 rounded-full opacity-[0.07] blur-xl"
             style={{ background: stat.accent === "accent" ? "var(--color-accent)" : "var(--color-primary)" }}
           />
-          <p className="text-sm text-ink-soft mb-2 relative">{stat.label}</p>
+          <div className="flex items-center justify-between relative mb-2">
+            <p className="text-sm text-ink-soft">{stat.label}</p>
+            {stat.icon && (
+              <span
+                className={`grid place-items-center w-8 h-8 rounded-lg shrink-0 ${
+                  stat.accent === "accent" ? "bg-accent-soft text-accent" : "bg-primary-soft text-primary"
+                }`}
+              >
+                {stat.icon}
+              </span>
+            )}
+          </div>
           <p
             className={`stat-figure text-3xl font-semibold relative ${
               stat.accent === "accent" ? "text-accent" : "text-primary"
