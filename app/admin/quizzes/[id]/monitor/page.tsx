@@ -6,8 +6,8 @@ import Link from "next/link";
 type LatestAttempt = {
   id: string;
   attemptNumber: number;
-  status: "in_progress" | "submitted";
-  startedAt: string;
+  status: "pending" | "in_progress" | "submitted";
+  startedAt: string | null;
   submittedAt: string | null;
   percentage: number | null;
   needsManualGrading: boolean;
@@ -159,6 +159,13 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                       : ""}
                   </span>
                 );
+              } else if (attempt.status === "pending") {
+                statusNode = (
+                  <span className="text-primary">المحاولة مفتوحة · بانتظار أن يبدأ الطالب</span>
+                );
+              } else if (!attempt.startedAt) {
+                // احتياطي دفاعي: in_progress من المفترض دايمًا يكون معاها startedAt
+                statusNode = <span className="text-ink-soft">قيد التنفيذ</span>;
               } else {
                 const remaining = formatRemaining(attempt.startedAt, data.quiz.durationMinutes, now);
                 if (remaining) {
@@ -215,9 +222,10 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <p className="text-xs text-ink-soft">
-        &quot;منح وقت جديد للدخول&quot; يعيد ضبط مؤقّت نفس المحاولة العالقة من جديد كاملة، ولا يُحتسب محاولة
-        إضافية. &quot;منح محاولة إضافية&quot; يفتح للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته
-        السابقة المحفوظة ولا على عدد المحاولات المسموح به لباقي الطلاب.
+        &quot;منح وقت جديد للدخول&quot; يعيد فتح نفس المحاولة العالقة من جديد (بدون احتساب محاولة إضافية)،
+        والعدّاد ما بيبدأش إلا لما الطالب نفسه يدخل ويضغط زر البدء. &quot;منح محاولة إضافية&quot; يفتح
+        للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته السابقة المحفوظة ولا على عدد المحاولات
+        المسموح به لباقي الطلاب.
       </p>
     </div>
   );

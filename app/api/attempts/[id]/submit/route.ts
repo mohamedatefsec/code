@@ -46,6 +46,14 @@ export async function POST(
   if (attempt.status === "submitted") {
     return NextResponse.json({ error: "تم تسليم هذه المحاولة بالفعل." }, { status: 409 });
   }
+  // محاولة "pending" لسه ما بدأتش فعليًا (الطالب ما ضغطش زر البدء)، فمفيش
+  // startedAt نحسب منه الوقت المستغرق - لازم يبدأ أولًا قبل ما يقدر يسلّم.
+  if (attempt.status === "pending" || !attempt.startedAt) {
+    return NextResponse.json(
+      { error: "لازم تضغط زر (ابدأ الاختبار) أولًا قبل التسليم." },
+      { status: 400 }
+    );
+  }
 
   const answersByQuestionId = new Map(parsed.data.answers.map((a) => [a.questionId, a]));
 

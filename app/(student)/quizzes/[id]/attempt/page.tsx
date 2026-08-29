@@ -16,7 +16,7 @@ type AttemptQuestion = {
 type AttemptData = {
   id: string;
   status: string;
-  startedAt: string;
+  startedAt: string | null;
   quiz: { id: string; title: string; durationMinutes: number };
   questions: AttemptQuestion[];
 };
@@ -46,6 +46,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
   const [orderState, setOrderState] = useState<Record<string, Option[]>>({});
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [beginning, setBeginning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoSubmitted = useRef(false);
 
@@ -104,9 +105,27 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
     [answers, router]
   );
 
-  // العدّاد التنازلي
-  useEffect(() => {
+  // زر "ابدأ الاختبار" الفعلي: هنا بس بيبدأ العدّاد التنازلي، مش أول ما
+  // تُفتح الصفحة - سواء كانت هذه أول محاولة أو محاولة فتحها المدرّس.
+  async function handleBegin() {
     if (!attempt) return;
+    setBeginning(true);
+    setError(null);
+    const res = await fetch(`/api/attempts/${attempt.id}/begin`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    setBeginning(false);
+    if (!res.ok) {
+      setError(data?.error ?? "تعذّر بدء الاختبار.");
+      return;
+    }
+    setAttempt((prev) =>
+      prev ? { ...prev, status: data.attempt.status, startedAt: data.attempt.startedAt } : prev
+    );
+  }
+
+  // العدّاد التنازلي - بيشتغل بس لما المحاولة "in_progress" وليها startedAt فعلي
+  useEffect(() => {
+    if (!attempt || attempt.status !== "in_progress" || !attempt.startedAt) return;
     const deadline =
       new Date(attempt.startedAt).getTime() + attempt.quiz.durationMinutes * 60 * 1000;
 
@@ -164,6 +183,34 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
   }
   if (!attempt) {
     return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
+  }
+
+  // شاشة البداية: المحاولة مفتوحة لكن العدّاد لسه ما بدأش - بينتظر الطالب
+  // يضغط الزر بنفسه، بدل ما يبدأ تلقائيًا لحظة تحميل الصفحة.
+  if (attempt.status === "pending") {
+    return (
+      <div className="max-w-lg mx-auto space-y-6 pt-6">
+        <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated text-center space-y-4 animate-fade-in-up">
+          <h1 className="text-xl font-bold text-ink">{attempt.quiz.title}</h1>
+          <p className="text-sm text-ink-soft">
+            الاختبار يحتوي على {attempt.questions.length} سؤال، ومدته {attempt.quiz.durationMinutes} دقيقة.
+            العدّاد التنازلي هيبدأ فور ما تضغط الزر تحت - خُد وقتك وجهّز نفسك الأول.
+          </p>
+          {error && (
+            <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">
+              {error}
+            </div>
+          )}
+          <button
+            onClick={handleBegin}
+            disabled={beginning}
+            className="w-full sm:w-auto rounded-lg bg-gradient-brand px-8 py-3 font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            {beginning ? "جارٍ البدء..." : "ابدأ الاختبار"}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const isTimeCritical = remainingSeconds !== null && remainingSeconds <= 60;
