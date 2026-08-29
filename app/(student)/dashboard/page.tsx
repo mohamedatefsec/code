@@ -218,14 +218,14 @@ export default async function StudentDashboardPage() {
         ]}
       />
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
         <div
-          className="lg:col-span-2 rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up"
+          className="md:col-span-2 rounded-xl border border-border bg-surface p-4 sm:p-6 shadow-elevated animate-fade-in-up"
           style={{ animationDelay: "0.15s" }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="flex items-center gap-2 font-semibold text-ink">
-              <span className="grid place-items-center w-8 h-8 rounded-lg bg-primary-soft text-primary">
+              <span className="grid place-items-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary-soft text-primary">
                 <BookmarkIcon />
               </span>
               أحدث الدروس
@@ -245,13 +245,13 @@ export default async function StudentDashboardPage() {
                   <Link
                     key={l.id}
                     href={`/lessons/${l.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border px-4 py-2.5 hover:border-primary hover:bg-primary-soft/40 transition-colors text-sm"
+                    className="flex items-center gap-3 rounded-lg border border-border px-3 sm:px-4 py-2 sm:py-2.5 hover:border-primary hover:bg-primary-soft/40 transition-colors text-sm"
                   >
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+                      className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg text-white"
                       style={{ background: theme.gradient }}
                     >
-                      <SubjectGlyph subject={l.unit.subject} className="w-5 h-5" />
+                      <SubjectGlyph subject={l.unit.subject} className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-1.5">
@@ -263,7 +263,7 @@ export default async function StudentDashboardPage() {
                         )}
                       </span>
                     </span>
-                    <span className="text-ink-soft shrink-0">{l.unit.title}</span>
+                    <span className="text-ink-soft shrink-0 hidden sm:inline">{l.unit.title}</span>
                   </Link>
                 );
               })}
@@ -271,7 +271,7 @@ export default async function StudentDashboardPage() {
           )}
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="md:col-span-1">
           <NotificationsWidget />
         </div>
       </div>

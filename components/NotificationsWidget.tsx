@@ -32,10 +32,10 @@ export function NotificationsWidget() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="h-full rounded-xl border border-border bg-surface p-6 shadow-elevated">
-      <div className="flex items-center justify-between mb-4">
+    <div className="h-full rounded-xl border border-border bg-surface p-4 sm:p-6 shadow-elevated">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <h2 className="flex items-center gap-2 font-semibold text-ink">
-          <span className="grid place-items-center w-8 h-8 rounded-lg bg-accent-soft text-accent">
+          <span className="grid place-items-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-accent-soft text-accent">
             <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
               <path d="M6 9.5a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13.5 6 9.5Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M10 18a2 2 0 0 0 4 0" stroke="currentColor" strokeLinecap="round" />
@@ -49,7 +49,7 @@ export function NotificationsWidget() {
           <button
             key={n.id}
             onClick={() => markRead(n.id)}
-            className={`w-full text-start rounded-lg border px-4 py-3 text-sm transition ${
+            className={`w-full text-start rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-sm transition ${
               n.isRead ? "border-border text-ink-soft" : "border-primary/30 bg-primary-soft text-ink"
             }`}
           >
