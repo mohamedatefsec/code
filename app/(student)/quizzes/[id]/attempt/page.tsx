@@ -17,7 +17,6 @@ type AttemptData = {
   id: string;
   status: string;
   startedAt: string;
-  remainingSeconds: number;
   quiz: { id: string; title: string; durationMinutes: number };
   questions: AttemptQuestion[];
 };
@@ -70,7 +69,6 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
             }
             const a: AttemptData = d.attempt;
             setAttempt(a);
-            setRemainingSeconds(a.remainingSeconds);
             const initialOrder: Record<string, Option[]> = {};
             a.questions.forEach((q) => {
               if (q.type === "ordering") initialOrder[q.id] = q.options;
@@ -106,37 +104,24 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
     [answers, router]
   );
 
-  // نحتفظ بأحدث نسخة من submit في ref بدل الاعتماد عليها كاعتمادية مباشرة
-  // في useEffect العدّاد - لأن submit بيتغيّر مع كل إجابة يكتبها الطالب،
-  // ولو اعتمدنا عليها مباشرة كان هيعيد ضبط الـ interval مع كل إجابة
-  // ويبطّئ العدّ الفعلي عن الثانية الحقيقية.
-  const submitRef = useRef(submit);
-  useEffect(() => {
-    submitRef.current = submit;
-  }, [submit]);
-
-  // العدّاد التنازلي: نعدّ محليًا كل ثانية من القيمة الجاية من السيرفر
-  // (remainingSeconds) بدل ما نحسب الفرق بين "الآن" بتاع جهاز الطالب وبين
-  // وقت البدء - عشان لو ساعة جهاز الطالب غلط، العدّاد يفضل صحيح وميظهرش
-  // "انتهى الوقت" فورًا رغم إن الوقت الفعلي لسه متبقّي.
+  // العدّاد التنازلي
   useEffect(() => {
     if (!attempt) return;
-    const interval = setInterval(() => {
-      setRemainingSeconds((s) => {
-        if (s === null) return s;
-        if (s <= 1) {
-          clearInterval(interval);
-          if (!autoSubmitted.current) {
-            autoSubmitted.current = true;
-            submitRef.current(attempt.id);
-          }
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
+    const deadline =
+      new Date(attempt.startedAt).getTime() + attempt.quiz.durationMinutes * 60 * 1000;
+
+    const tick = () => {
+      const secs = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      setRemainingSeconds(secs);
+      if (secs === 0 && !autoSubmitted.current) {
+        autoSubmitted.current = true;
+        submit(attempt.id);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [attempt]);
+  }, [attempt, submit]);
 
   function setSingleAnswer(questionId: string, optionId: string) {
     setAnswers((a) => ({ ...a, [questionId]: { selectedOptionIds: [optionId] } }));
@@ -184,7 +169,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
   const isTimeCritical = remainingSeconds !== null && remainingSeconds <= 60;
 
   return (
-    <div className="max-w-2xl space-y-6 pb-40 md:pb-24">
+    <div className="max-w-2xl space-y-6 pb-24">
       <div className="sticky top-0 z-10 -mx-6 glass-surface px-6 py-3 border-b border-border">
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-ink">{attempt.quiz.title}</h1>
@@ -218,7 +203,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
       {attempt.questions.map((q, index) => (
         <div
           key={q.id}
-          className="rounded-2xl border border-border bg-surface p-6 space-y-4 shadow-elevated animate-fade-in-up"
+          className="rounded-xl border border-border bg-surface p-6 space-y-4 shadow-elevated animate-fade-in-up"
           style={{ animationDelay: `${Math.min(index, 6) * 0.06}s` }}
         >
           <div>
@@ -304,7 +289,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
 
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
 
-      <div className="fixed bottom-16 md:bottom-0 inset-x-0 z-30 md:static bg-surface md:bg-transparent border-t md:border-0 border-border p-4 md:p-0">
+      <div className="fixed bottom-0 inset-x-0 sm:static bg-surface sm:bg-transparent border-t sm:border-0 border-border p-4 sm:p-0">
         <button
           onClick={() => submit(attempt.id)}
           disabled={submitting}

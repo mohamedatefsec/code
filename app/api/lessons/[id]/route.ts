@@ -32,7 +32,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await requireAdminSession())) {
+  const session = await requireAdminSession();
+  if (!session) {
     return NextResponse.json({ error: "غير مصرّح." }, { status: 403 });
   }
   const { id } = await params;
@@ -46,7 +47,37 @@ export async function PATCH(
     );
   }
 
-  const lesson = await db.lesson.update({ where: { id }, data: parsed.data });
+  // نجيب حالة الدرس قبل التحديث عشان نكتشف لحظة "أول نشر" بالتحديد (draft
+  // → published)، ونميّزها عن أي تعديل تاني عادي على درس منشور بالفعل.
+  const before = await db.lesson.findUnique({
+    where: { id },
+    select: { status: true },
+  });
+
+  const lesson = await db.lesson.update({
+    where: { id },
+    data: parsed.data,
+    include: { unit: { include: { subject: true } } },
+  });
+
+  // عند أول نشر لدرس، نبعت إشعار تلقائي لكل الطلاب عشان يكون النشر
+  // "بارزًا وواضحًا" لهم فورًا، مش مجرد ظهور صامت في قائمة الدروس.
+  const justPublished = before?.status !== "published" && lesson.status === "published";
+  if (justPublished) {
+    try {
+      await db.notification.create({
+        data: {
+          title: `📘 درس جديد: ${lesson.title}`,
+          body: `تم نشر درس جديد في مادة ${lesson.unit.subject.name} - ${lesson.unit.title}. افتح صفحة الدروس للاطّلاع عليه الآن.`,
+          targetType: "all",
+          createdBy: session.userId,
+        },
+      });
+    } catch {
+      // فشل إرسال الإشعار لا يجب أن يفشّل عملية النشر نفسها
+    }
+  }
+
   return NextResponse.json({ lesson });
 }
 

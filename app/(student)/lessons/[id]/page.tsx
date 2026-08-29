@@ -5,6 +5,8 @@ import { toEmbedUrl } from "@/lib/media";
 import { PdfViewer } from "@/components/PdfViewer";
 import { requireActiveUser } from "@/lib/auth";
 import { awardBadge } from "@/lib/badges";
+import { SubjectCoverArt } from "@/components/SubjectArt";
+import { isNewLesson } from "@/lib/lesson-badge";
 
 export default async function StudentLessonDetailPage({
   params,
@@ -41,18 +43,32 @@ export default async function StudentLessonDetailPage({
   }
 
   const paragraphs = (lesson.content ?? "").split(/\n{2,}/).filter(Boolean);
+  const fresh = isNewLesson(lesson.createdAt);
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="animate-fade-in-up">
-        <Link href="/lessons" className="text-sm text-ink-soft hover:text-ink">
-          ← رجوع للدروس
-        </Link>
-        <p className="text-sm text-primary mt-2">
-          {lesson.unit.subject.name} · {lesson.unit.title}
-        </p>
-        <h1 className="text-2xl font-bold text-ink mt-1">{lesson.title}</h1>
-        {lesson.description && <p className="text-ink-soft mt-2">{lesson.description}</p>}
+      <Link href="/lessons" className="text-sm text-ink-soft hover:text-ink inline-block">
+        ← رجوع للدروس
+      </Link>
+
+      <div className="relative rounded-2xl overflow-hidden shadow-glow animate-fade-in-up">
+        <SubjectCoverArt subject={lesson.unit.subject} className="h-40 sm:h-48 w-full" />
+        <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="rounded-full bg-white/15 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white">
+              {lesson.unit.subject.name} · {lesson.unit.title}
+            </span>
+            {fresh && (
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-primary animate-pulse-glow">
+                ✨ جديد
+              </span>
+            )}
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white leading-snug">{lesson.title}</h1>
+          {lesson.description && (
+            <p className="text-white/85 text-sm mt-1.5 max-w-lg">{lesson.description}</p>
+          )}
+        </div>
       </div>
 
       {lesson.media
@@ -60,7 +76,7 @@ export default async function StudentLessonDetailPage({
         .map((m) => {
           const embedUrl = toEmbedUrl(m.url);
           return (
-            <div key={m.id} className="rounded-2xl overflow-hidden border border-border aspect-video bg-ink shadow-elevated animate-fade-in-up">
+            <div key={m.id} className="rounded-xl overflow-hidden border border-border aspect-video bg-ink">
               {embedUrl ? (
                 <iframe
                   src={embedUrl}
@@ -84,7 +100,7 @@ export default async function StudentLessonDetailPage({
         })}
 
       {paragraphs.length > 0 && (
-        <div className="rounded-2xl border border-border bg-surface p-6 space-y-4 leading-7 text-ink shadow-elevated animate-fade-in-up">
+        <div className="rounded-xl border border-border bg-surface p-6 space-y-4 leading-7 text-ink shadow-elevated">
           {paragraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
@@ -101,7 +117,7 @@ export default async function StudentLessonDetailPage({
                 key={m.id}
                 src={m.url}
                 alt={m.title ?? lesson.title}
-                className="rounded-2xl border border-border w-full shadow-elevated"
+                className="rounded-xl border border-border w-full"
               />
             ))}
         </div>
@@ -118,7 +134,7 @@ export default async function StudentLessonDetailPage({
       )}
 
       {lesson.media.filter((m) => m.type === "link").length > 0 && (
-        <div className="rounded-2xl border border-border bg-surface p-4 space-y-2 shadow-elevated animate-fade-in-up">
+        <div className="rounded-xl border border-border bg-surface p-4 space-y-2 shadow-elevated">
           {lesson.media
             .filter((m) => m.type === "link")
             .map((m) => (

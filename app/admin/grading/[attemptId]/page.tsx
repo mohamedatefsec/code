@@ -111,14 +111,13 @@ export default function GradeAttemptPage({
                 type="number"
                 min={0}
                 max={a.maxPoints}
-                step={0.25}
                 value={points[a.questionId] ?? 0}
                 onChange={(e) =>
                   setPoints((p) => ({ ...p, [a.questionId]: Number(e.target.value) }))
                 }
                 className="w-20 rounded-lg border border-border px-3 py-1.5 text-sm"
               />
-              <span className="text-sm text-ink-soft">/ {a.maxPoints} (تقبل الأرباع مثل 0.5 أو 1.25)</span>
+              <span className="text-sm text-ink-soft">/ {a.maxPoints}</span>
             </div>
           </div>
         ))}

@@ -63,7 +63,7 @@ export default function ResultDetailPage({
         </h1>
       </motion.div>
 
-      <div className="rounded-2xl border border-border bg-surface p-6 flex items-center justify-around text-center shadow-elevated relative overflow-hidden">
+      <div className="rounded-xl border border-border bg-surface p-6 flex items-center justify-around text-center shadow-elevated relative overflow-hidden">
         {result.percentage >= 90 && !result.needsManualGrading && (
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
@@ -104,7 +104,7 @@ export default function ResultDetailPage({
         {result.answers.map((a, i) => (
           <div
             key={i}
-            className={`rounded-2xl border p-5 ${
+            className={`rounded-xl border p-5 ${
               a.isCorrect === null
                 ? "border-border bg-surface"
                 : a.isCorrect

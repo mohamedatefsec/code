@@ -9,14 +9,6 @@ type RosterRow = {
   studentCode: string;
   status: "present" | "absent" | "late";
 };
-type SessionListItem = {
-  id: string;
-  sessionDate: string;
-  sessionLabel: string | null;
-  groupId: string;
-  group: { name: string };
-  _count: { records: number };
-};
 
 const STATUS_OPTIONS: { value: RosterRow["status"]; label: string; activeClass: string }[] = [
   { value: "present", label: "حاضر", activeClass: "bg-accent/10 text-accent border-accent" },
@@ -26,10 +18,6 @@ const STATUS_OPTIONS: { value: RosterRow["status"]; label: string; activeClass: 
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function formatDateShort(iso: string) {
-  return new Date(iso).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export default function AdminAttendancePage() {
@@ -44,76 +32,6 @@ export default function AdminAttendancePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // تعديل تاريخ/اسم الحصة المفتوحة حاليًا
-  const [editingDate, setEditingDate] = useState("");
-  const [editingLabel, setEditingLabel] = useState("");
-  const [savingSessionInfo, setSavingSessionInfo] = useState(false);
-  const [sessionInfoMessage, setSessionInfoMessage] = useState<string | null>(null);
-  const [sessionInfoError, setSessionInfoError] = useState<string | null>(null);
-
-  // قائمة آخر الحصص المسجّلة، للرجوع لأي حصة سابقة وتعديلها من غير ما تعرف تاريخها بالظبط
-  const [sessions, setSessions] = useState<SessionListItem[] | null>(null);
-  const [loadingSessions, setLoadingSessions] = useState(false);
-  const [openingExisting, setOpeningExisting] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  function loadSessions() {
-    setLoadingSessions(true);
-    fetch("/api/attendance/sessions")
-      .then((r) => r.json())
-      .then((d) => setSessions(d.sessions ?? []))
-      .finally(() => setLoadingSessions(false));
-  }
-
-  useEffect(() => {
-    loadSessions();
-  }, []);
-
-  async function openExistingSession(id: string) {
-    setOpeningExisting(id);
-    setError(null);
-    setMessage(null);
-    const detailRes = await fetch(`/api/attendance/sessions/${id}`);
-    const detail = await detailRes.json().catch(() => null);
-    setOpeningExisting(null);
-    if (!detailRes.ok || !detail) {
-      setError(detail?.error ?? "تعذّر فتح الحصة.");
-      return;
-    }
-    setGroupId(detail.session.group.id);
-    setDate(String(detail.session.sessionDate).slice(0, 10));
-    setLabel(detail.session.sessionLabel ?? "");
-    setSessionId(detail.session.id);
-    setRoster(detail.roster);
-    setEditingDate(String(detail.session.sessionDate).slice(0, 10));
-    setEditingLabel(detail.session.sessionLabel ?? "");
-    setSessionInfoMessage(null);
-    setSessionInfoError(null);
-  }
-
-  async function deleteSession(id: string) {
-    if (!confirm("متأكد إنك عايز تحذف هذه الحصة؟ هيتم حذف كل سجلات الحضور المرتبطة بيها ولا يمكن التراجع.")) {
-      return;
-    }
-    setDeletingId(id);
-    setError(null);
-    setMessage(null);
-    const res = await fetch(`/api/attendance/sessions/${id}`, { method: "DELETE" });
-    setDeletingId(null);
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? "تعذّر حذف الحصة.");
-      return;
-    }
-    // لو الحصة المحذوفة هي نفسها المفتوحة حاليًا، نقفل عرضها
-    if (sessionId === id) {
-      setSessionId(null);
-      setRoster(null);
-    }
-    setMessage("تم حذف الحصة بنجاح.");
-    loadSessions();
-  }
 
   useEffect(() => {
     fetch("/api/groups")
@@ -142,34 +60,7 @@ export default function AdminAttendancePage() {
     const detail = await detailRes.json();
     setSessionId(session.id);
     setRoster(detail.roster);
-    setEditingDate(String(detail.session.sessionDate).slice(0, 10));
-    setEditingLabel(detail.session.sessionLabel ?? "");
-    setSessionInfoMessage(null);
-    setSessionInfoError(null);
     setOpening(false);
-    loadSessions();
-  }
-
-  async function saveSessionInfo() {
-    if (!sessionId || !editingDate) return;
-    setSavingSessionInfo(true);
-    setSessionInfoMessage(null);
-    setSessionInfoError(null);
-    const res = await fetch(`/api/attendance/sessions/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionDate: editingDate, sessionLabel: editingLabel || null }),
-    });
-    setSavingSessionInfo(false);
-    if (res.ok) {
-      setSessionInfoMessage("تم تعديل تاريخ الحصة بنجاح.");
-      setDate(editingDate);
-      setLabel(editingLabel);
-      loadSessions();
-    } else {
-      const data = await res.json().catch(() => null);
-      setSessionInfoError(data?.error ?? "تعذّر تعديل تاريخ الحصة.");
-    }
   }
 
   function setStatus(studentId: string, status: RosterRow["status"]) {
@@ -189,10 +80,8 @@ export default function AdminAttendancePage() {
       }),
     });
     setSaving(false);
-    if (res.ok) {
-      setMessage("تم حفظ الحضور بنجاح.");
-      loadSessions();
-    } else setError("تعذّر حفظ الحضور.");
+    if (res.ok) setMessage("تم حفظ الحضور بنجاح.");
+    else setError("تعذّر حفظ الحضور.");
   }
 
   const presentCount = roster?.filter((r) => r.status !== "absent").length ?? 0;
@@ -254,104 +143,6 @@ export default function AdminAttendancePage() {
 
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
       {message && <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">{message}</div>}
-
-      <div className="rounded-xl border border-border bg-surface p-4 space-y-3 shadow-elevated">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-ink text-sm">آخر الحصص المسجّلة</h2>
-          <button
-            onClick={loadSessions}
-            disabled={loadingSessions}
-            className="text-xs text-ink-soft hover:text-ink transition disabled:opacity-50"
-          >
-            {loadingSessions ? "جارٍ التحديث..." : "🔄 تحديث"}
-          </button>
-        </div>
-        {sessions === null || loadingSessions ? (
-          <p className="text-sm text-ink-soft">جارٍ التحميل...</p>
-        ) : sessions.length === 0 ? (
-          <p className="text-sm text-ink-soft">لا توجد حصص مسجّلة بعد.</p>
-        ) : (
-          <div className="space-y-1.5 max-h-72 overflow-y-auto">
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                  sessionId === s.id ? "border-primary bg-primary/5" : "border-border"
-                }`}
-              >
-                <span className="min-w-0 truncate">
-                  <span className="font-medium text-ink">{formatDateShort(s.sessionDate)}</span>
-                  <span className="text-ink-soft"> · {s.group.name}</span>
-                  {s.sessionLabel && <span className="text-ink-soft"> · {s.sessionLabel}</span>}
-                  <span className="text-xs text-ink-soft"> · {s._count.records} سجل</span>
-                </span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openExistingSession(s.id)}
-                    disabled={openingExisting === s.id || deletingId === s.id}
-                    className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-canvas transition disabled:opacity-50"
-                  >
-                    {openingExisting === s.id ? "جارٍ الفتح..." : "تعديل"}
-                  </button>
-                  <button
-                    onClick={() => deleteSession(s.id)}
-                    disabled={deletingId === s.id || openingExisting === s.id}
-                    className="rounded-md border border-danger/40 text-danger px-2.5 py-1 text-xs font-medium hover:bg-danger/10 transition disabled:opacity-50"
-                  >
-                    {deletingId === s.id ? "جارٍ الحذف..." : "حذف"}
-                  </button>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {roster && sessionId && (
-        <div className="rounded-xl border border-border bg-surface p-4 space-y-3 shadow-elevated">
-          <h2 className="font-semibold text-ink text-sm">تعديل تاريخ هذه الحصة</h2>
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="block text-sm font-medium text-ink mb-1.5">التاريخ</label>
-              <input
-                type="date"
-                value={editingDate}
-                onChange={(e) => setEditingDate(e.target.value)}
-                className="rounded-lg border border-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex-1 min-w-[140px]">
-              <label className="block text-sm font-medium text-ink mb-1.5">اسم الحصة (اختياري)</label>
-              <input
-                value={editingLabel}
-                onChange={(e) => setEditingLabel(e.target.value)}
-                placeholder="مثال: الحصة الأولى"
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
-              />
-            </div>
-            <button
-              onClick={saveSessionInfo}
-              disabled={savingSessionInfo || !editingDate}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-canvas transition disabled:opacity-50"
-            >
-              {savingSessionInfo ? "جارٍ الحفظ..." : "حفظ التاريخ"}
-            </button>
-          </div>
-          {sessionInfoError && (
-            <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">
-              {sessionInfoError}
-            </div>
-          )}
-          {sessionInfoMessage && (
-            <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">
-              {sessionInfoMessage}
-            </div>
-          )}
-          <p className="text-xs text-ink-soft">
-            ده بيغيّر اليوم اللي اتسجل فيه حضور/غياب هذه الحصة (مفيد لو اتسجلت بالغلط بتاريخ خطأ). حفظ درجات الحضور نفسها بيبقى بزر &quot;حفظ الحضور&quot; تحت.
-          </p>
-        </div>
-      )}
 
       {roster && (
         <div className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">

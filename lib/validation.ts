@@ -248,11 +248,6 @@ export const attendanceSessionCreateSchema = z.object({
   sessionLabel: z.string().max(80).optional().nullable(),
 });
 
-export const attendanceSessionUpdateSchema = z.object({
-  sessionDate: z.string().min(1, "اختر تاريخ"), // "YYYY-MM-DD"
-  sessionLabel: z.string().max(80).optional().nullable(),
-});
-
 export const attendanceRecordsUpdateSchema = z.object({
   records: z
     .array(
@@ -303,14 +298,7 @@ export const gradeEssaysSchema = z.object({
     .array(
       z.object({
         questionId: z.string().min(1),
-        // بنسمح بأرباع الدرجة (0.25) عشان المصحّح ميضطرش يلتزم برقم صحيح -
-        // بس برضه بنرفض دقة أعلى من كده (زي 0.333) حفاظًا على معنى واضح
-        // للدرجة. أي قيمة أعلى من درجة السؤال بيتم قصّها لاحقًا في المسار
-        // نفسه بغض النظر (Math.min مع question.points).
-        pointsEarned: z
-          .number()
-          .min(0)
-          .multipleOf(0.25, "الدرجة لازم تكون مضاعف لـ 0.25 كحد أقصى للدقة (مثال: 0.5, 1.25)."),
+        pointsEarned: z.number().int().min(0),
       })
     )
     .min(1),

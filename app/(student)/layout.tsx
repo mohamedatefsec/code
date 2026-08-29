@@ -19,16 +19,12 @@ export default async function StudentLayout({
     redirect(hadStaleSession ? "/login?reason=session-ended" : "/login");
   }
 
-  const [profile, settings] = await Promise.all([
-    db.studentProfile.findUnique({ where: { userId: user.id } }),
-    db.settings.findFirst(),
-  ]);
+  const profile = await db.studentProfile.findUnique({
+    where: { userId: user.id },
+  });
 
   return (
-    <StudentShell
-      studentName={profile?.fullName ?? "الطالب"}
-      platformName={settings?.platformName ?? "Code AI"}
-    >
+    <StudentShell studentName={profile?.fullName ?? "الطالب"}>
       {children}
     </StudentShell>
   );

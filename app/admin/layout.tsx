@@ -11,16 +11,12 @@ export default async function AdminLayout({
   const user = await requireActiveUser("admin");
   if (!user) redirect("/login");
 
-  const [profile, settings] = await Promise.all([
-    db.adminProfile.findUnique({ where: { userId: user.id } }),
-    db.settings.findFirst(),
-  ]);
+  const profile = await db.adminProfile.findUnique({
+    where: { userId: user.id },
+  });
 
   return (
-    <AdminShell
-      adminName={profile?.fullName ?? "المدير"}
-      platformName={settings?.platformName ?? "Code AI"}
-    >
+    <AdminShell adminName={profile?.fullName ?? "المدير"}>
       {children}
     </AdminShell>
   );
