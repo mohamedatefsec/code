@@ -218,6 +218,13 @@ body {
   50% { opacity: 1; }
 }
 
+/* مؤشر كتابة نابض (٠/١ صريحة) - يُستخدم في السطر الحي داخل بانر لوحة
+   التحكم، بيحاكي مؤشر الكتابة في محرر أكواد. */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -235,6 +242,9 @@ body {
 }
 .animate-pulse-glow {
   animation: pulseGlow 2.4s ease-in-out infinite;
+}
+.animate-blink {
+  animation: blink 1s steps(1, start) infinite;
 }
 
 .skeleton {

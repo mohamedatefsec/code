@@ -5,6 +5,7 @@ import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { StatGrid } from "@/components/StatGrid";
 import { SubjectGlyph, subjectTheme } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
+import { CodeTypewriterLine } from "@/components/CodeTypewriter";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -72,7 +73,7 @@ function HeroIllustration() {
         <circle cx="48" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
         <circle cx="56" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
         <text x="42" y="80" fontFamily="var(--font-mono)" fontSize="13" fill="#fff" fillOpacity="0.55">{"</>"}</text>
-        <text x="42" y="100" fontFamily="var(--font-mono)" fontSize="10" fill="#fff" fillOpacity="0.4">{"if (learn) {"}</text>
+        <CodeTypewriterLine x={42} y={100} />
       </g>
       <g className="animate-float-card">
         <circle cx="175" cy="35" r="16" fill="rgba(255,255,255,0.18)" />
