@@ -18,6 +18,7 @@ type QuizDetail = {
 
 type BankQuestion = { id: string; text: string; type: string; points: number; status: string };
 type Group = { id: string; name: string };
+type Subject = { id: string; name: string };
 
 const STATUS_LABELS: Record<QuizStatus, string> = {
   draft: "مسودة",
@@ -43,6 +44,7 @@ export default function QuizBuilderPage({
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetMode, setTargetMode] = useState<"all" | "groups">("all");
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
@@ -52,11 +54,22 @@ export default function QuizBuilderPage({
   const [savingTargets, setSavingTargets] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
 
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubjectId, setEditSubjectId] = useState("");
+  const [editDuration, setEditDuration] = useState(20);
+  const [editMaxAttempts, setEditMaxAttempts] = useState(1);
+  const [savingInfo, setSavingInfo] = useState(false);
+
   const loadQuiz = useCallback(async () => {
     const res = await fetch(`/api/quizzes/${id}`);
     const data = await res.json();
     const q: QuizDetail = data.quiz;
     setQuiz(q);
+    setEditTitle(q.title);
+    setEditSubjectId(q.subjectId);
+    setEditDuration(q.durationMinutes);
+    setEditMaxAttempts(q.maxAttempts);
     setSelectedIds(q.questions.map((qq) => qq.question.id));
     const groupTargets = q.targets.filter((t) => t.targetType === "group" && t.group);
     if (groupTargets.length > 0) {
@@ -76,6 +89,9 @@ export default function QuizBuilderPage({
     fetch("/api/groups")
       .then((r) => r.json())
       .then((d) => setGroups(d.groups));
+    fetch("/api/subjects")
+      .then((r) => r.json())
+      .then((d) => setSubjects(d.subjects));
   }, [loadQuiz]);
 
   useEffect(() => {
@@ -131,6 +147,31 @@ export default function QuizBuilderPage({
     else setError("تعذّر حفظ الاستهداف.");
   }
 
+  async function saveInfo() {
+    setSavingInfo(true);
+    setMessage(null);
+    setError(null);
+    const res = await fetch(`/api/quizzes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editTitle,
+        subjectId: editSubjectId,
+        durationMinutes: editDuration,
+        maxAttempts: editMaxAttempts,
+      }),
+    });
+    setSavingInfo(false);
+    if (res.ok) {
+      setMessage("تم حفظ بيانات الاختبار.");
+      setEditMode(false);
+      loadQuiz();
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "تعذّر حفظ بيانات الاختبار.");
+    }
+  }
+
   async function changeStatus(status: QuizStatus) {
     setChangingStatus(true);
     setError(null);
@@ -167,21 +208,92 @@ export default function QuizBuilderPage({
             {quiz.durationMinutes} دقيقة · {quiz.maxAttempts} محاولة مسموحة · {totalPoints} درجة إجمالية
           </p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-medium h-fit ${
-            quiz.status === "published"
-              ? "border border-accent/40 bg-accent/10 text-accent"
-              : quiz.status === "closed"
-              ? "border border-danger/40 bg-danger/10 text-danger"
-              : "bg-canvas text-ink-soft"
-          }`}
-        >
-          {STATUS_LABELS[quiz.status]}
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setEditMode((v) => !v)}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas"
+          >
+            {editMode ? "إلغاء التعديل" : "تعديل بيانات الاختبار"}
+          </button>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium h-fit ${
+              quiz.status === "published"
+                ? "border border-accent/40 bg-accent/10 text-accent"
+                : quiz.status === "closed"
+                ? "border border-danger/40 bg-danger/10 text-danger"
+                : "bg-canvas text-ink-soft"
+            }`}
+          >
+            {STATUS_LABELS[quiz.status]}
+          </span>
+        </div>
       </div>
 
       {message && <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">{message}</div>}
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
+
+      {editMode && (
+        <div className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">
+          <h2 className="font-semibold text-ink">تعديل بيانات الاختبار</h2>
+
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">عنوان الاختبار</label>
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">المادة</label>
+            <select
+              value={editSubjectId}
+              onChange={(e) => setEditSubjectId(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            >
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">مدة الاختبار (دقيقة)</label>
+              <input
+                type="number"
+                min={1}
+                max={600}
+                value={editDuration}
+                onChange={(e) => setEditDuration(Number(e.target.value))}
+                className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">عدد المحاولات المسموحة</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={editMaxAttempts}
+                onChange={(e) => setEditMaxAttempts(Number(e.target.value))}
+                className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={saveInfo}
+            disabled={savingInfo || !editTitle || !editSubjectId}
+            className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            {savingInfo ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+          </button>
+        </div>
+      )}
 
       {/* حالة النشر */}
       <div className="rounded-xl border border-border bg-surface p-5 flex items-center gap-3 flex-wrap shadow-elevated">
