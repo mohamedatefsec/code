@@ -130,7 +130,8 @@ export default function AttendanceReportPage() {
               {s.records.length === 0 ? (
                 <p className="text-sm text-ink-soft">لا توجد حصص مسجّلة لهذا الطالب بعد.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[420px] text-sm">
                   <thead className="text-ink-soft">
                     <tr>
                       <th className="text-start py-1.5 font-medium">التاريخ</th>
@@ -148,6 +149,7 @@ export default function AttendanceReportPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           ))}

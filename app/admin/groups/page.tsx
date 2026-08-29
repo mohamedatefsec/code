@@ -105,8 +105,8 @@ export default function AdminGroupsPage() {
         <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>
       )}
 
-      <div className="rounded-xl border border-border bg-surface overflow-hidden shadow-elevated">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border border-border bg-surface overflow-hidden overflow-x-auto shadow-elevated">
+        <table className="w-full min-w-[520px] text-sm">
           <thead className="bg-canvas text-ink-soft">
             <tr>
               <th className="text-start px-4 py-3 font-medium">الاسم</th>

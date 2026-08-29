@@ -216,8 +216,11 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
   const isTimeCritical = remainingSeconds !== null && remainingSeconds <= 60;
 
   return (
-    <div className="max-w-2xl space-y-6 pb-24">
-      <div className="sticky top-0 z-10 -mx-6 glass-surface px-6 py-3 border-b border-border">
+    <div className="max-w-2xl space-y-6 pb-32 md:pb-24">
+      {/* top-[60px] عشان ميتغطّاش وراء هيدر الموبايل العلوي (sticky top-0 برضه
+          في StudentShell) - القيمة دي تقريبًا ارتفاع الهيدر ده. من md وفوق
+          مفيش هيدر علوي للموبايل، فبيرجع top-0 عادي. */}
+      <div className="sticky top-[60px] md:top-0 z-10 -mx-4 sm:-mx-6 glass-surface px-4 sm:px-6 py-3 border-b border-border">
         <div className="flex items-center justify-between">
           <h1 className="font-bold text-ink">{attempt.quiz.title}</h1>
           {remainingSeconds !== null && (
@@ -336,11 +339,15 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
 
       {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
 
-      <div className="fixed bottom-0 inset-x-0 sm:static bg-surface sm:bg-transparent border-t sm:border-0 border-border p-4 sm:p-0">
+      {/* شريط التسليم: على الموبايل بيبقى ثابت فوق شريط التنقّل السفلي مباشرة
+          (اللي ارتفاعه تقريبًا 4rem) وبـ z-index أعلى منه، عشان زر "تسليم
+          الاختبار" ميختفيش وراه. من md وفوق مفيش شريط تنقّل سفلي أصلًا،
+          فبيرجع للتدفّق العادي في نهاية الصفحة. */}
+      <div className="fixed inset-x-0 bottom-16 z-30 md:static md:z-auto bg-surface md:bg-transparent border-t md:border-0 border-border p-4 md:p-0 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:shadow-none">
         <button
           onClick={() => submit(attempt.id)}
           disabled={submitting}
-          className="w-full sm:w-auto rounded-lg bg-gradient-brand px-6 py-3 font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
+          className="w-full md:w-auto rounded-lg bg-gradient-brand px-6 py-3 font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
         >
           {submitting ? "جارٍ التسليم..." : "تسليم الاختبار"}
         </button>
