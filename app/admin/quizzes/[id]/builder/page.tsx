@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use, useCallback, FormEvent } from "react";
 import Link from "next/link";
 
 type QuizStatus = "draft" | "published" | "closed";
@@ -12,9 +12,23 @@ type QuizDetail = {
   status: QuizStatus;
   durationMinutes: number;
   maxAttempts: number;
+  startAt: string | null;
+  endAt: string | null;
   questions: { question: { id: string; text: string; type: string; points: number } }[];
   targets: { targetType: string; group: { id: string; name: string } | null }[];
 };
+
+type Subject = { id: string; name: string };
+
+/// يحوّل تاريخ ISO (من الـ API، UTC) لصيغة datetime-local (بالتوقيت
+/// المحلي للمتصفح) عشان input[type=datetime-local] يعرضه صح. والعكس
+/// بالعكس عند الإرسال.
+function toLocalInputValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type BankQuestion = { id: string; text: string; type: string; points: number; status: string };
 type Group = { id: string; name: string };
@@ -43,6 +57,7 @@ export default function QuizBuilderPage({
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetMode, setTargetMode] = useState<"all" | "groups">("all");
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
@@ -51,6 +66,16 @@ export default function QuizBuilderPage({
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [savingTargets, setSavingTargets] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
+
+  // فورم "بيانات الاختبار الأساسية" - نسخة منفصلة قابلة للتعديل، بتتزامن
+  // مع quiz لما يتحمّل أو يتحدّث من السيرفر.
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubjectId, setEditSubjectId] = useState("");
+  const [editDuration, setEditDuration] = useState(20);
+  const [editMaxAttempts, setEditMaxAttempts] = useState(1);
+  const [editStartAt, setEditStartAt] = useState("");
+  const [editEndAt, setEditEndAt] = useState("");
+  const [savingBasics, setSavingBasics] = useState(false);
 
   const loadQuiz = useCallback(async () => {
     const res = await fetch(`/api/quizzes/${id}`);
@@ -66,6 +91,12 @@ export default function QuizBuilderPage({
       setTargetMode("all");
       setSelectedGroupIds([]);
     }
+    setEditTitle(q.title);
+    setEditSubjectId(q.subjectId);
+    setEditDuration(q.durationMinutes);
+    setEditMaxAttempts(q.maxAttempts);
+    setEditStartAt(toLocalInputValue(q.startAt));
+    setEditEndAt(toLocalInputValue(q.endAt));
   }, [id]);
 
   useEffect(() => {
@@ -76,6 +107,9 @@ export default function QuizBuilderPage({
     fetch("/api/groups")
       .then((r) => r.json())
       .then((d) => setGroups(d.groups));
+    fetch("/api/subjects")
+      .then((r) => r.json())
+      .then((d) => setSubjects(d.subjects));
   }, [loadQuiz]);
 
   useEffect(() => {
@@ -129,6 +163,33 @@ export default function QuizBuilderPage({
     setSavingTargets(false);
     if (res.ok) setMessage("تم حفظ استهداف الاختبار.");
     else setError("تعذّر حفظ الاستهداف.");
+  }
+
+  async function saveBasics(e: FormEvent) {
+    e.preventDefault();
+    setSavingBasics(true);
+    setMessage(null);
+    setError(null);
+    const res = await fetch(`/api/quizzes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editTitle,
+        subjectId: editSubjectId,
+        durationMinutes: editDuration,
+        maxAttempts: editMaxAttempts,
+        startAt: editStartAt ? new Date(editStartAt).toISOString() : null,
+        endAt: editEndAt ? new Date(editEndAt).toISOString() : null,
+      }),
+    });
+    setSavingBasics(false);
+    if (res.ok) {
+      setMessage("تم حفظ بيانات الاختبار.");
+      loadQuiz();
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "تعذّر حفظ بيانات الاختبار.");
+    }
   }
 
   async function changeStatus(status: QuizStatus) {
@@ -201,6 +262,95 @@ export default function QuizBuilderPage({
           </button>
         ))}
       </div>
+
+      {/* بيانات الاختبار الأساسية */}
+      <form onSubmit={saveBasics} className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">
+        <h2 className="font-semibold text-ink">بيانات الاختبار الأساسية</h2>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1.5">عنوان الاختبار</label>
+          <input
+            required
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1.5">المادة</label>
+          <select
+            required
+            value={editSubjectId}
+            onChange={(e) => setEditSubjectId(e.target.value)}
+            className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+          >
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">مدة الاختبار (دقيقة)</label>
+            <input
+              type="number"
+              min={1}
+              max={600}
+              required
+              value={editDuration}
+              onChange={(e) => setEditDuration(Number(e.target.value))}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">عدد المحاولات المسموحة</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              required
+              value={editMaxAttempts}
+              onChange={(e) => setEditMaxAttempts(Number(e.target.value))}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">وقت البدء (اختياري)</label>
+            <input
+              type="datetime-local"
+              value={editStartAt}
+              onChange={(e) => setEditStartAt(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            />
+            <p className="text-xs text-ink-soft mt-1">لو سايبها فاضية، الاختبار يبقى متاح من لحظة النشر.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">وقت الانتهاء (اختياري)</label>
+            <input
+              type="datetime-local"
+              value={editEndAt}
+              onChange={(e) => setEditEndAt(e.target.value)}
+              className="w-full rounded-lg border border-border px-4 py-2.5 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
+            />
+            <p className="text-xs text-ink-soft mt-1">لو سايبها فاضية، الاختبار يفضل متاح من غير موعد نهائي للدخول.</p>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={savingBasics}
+          className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
+        >
+          {savingBasics ? "جارٍ الحفظ..." : "حفظ بيانات الاختبار"}
+        </button>
+      </form>
 
       {/* اختيار الأسئلة */}
       <div className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">
