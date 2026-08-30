@@ -46,6 +46,7 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
   const [reopeningId, setReopeningId] = useState<string | null>(null);
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [clearingId, setClearingId] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
 
   const load = useCallback(() => {
     fetch(`/api/quizzes/${quizId}/monitor`)
@@ -128,6 +129,31 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function handleClearAllAttempts() {
+    if (!data) return;
+    const studentsWithAttempts = data.students.filter((s) => s.attemptsUsed > 0).length;
+    if (studentsWithAttempts === 0) {
+      alert("لا توجد أي محاولات على هذا الاختبار لمسحها.");
+      return;
+    }
+    if (
+      !confirm(
+        `هل تريد مسح كل محاولات كل الطلاب (${studentsWithAttempts} طالب) في هذا الاختبار نهائيًا؟ سيُحذف السجل بالكامل (الدرجات والإجابات) لكل الطلاب ولا يمكن التراجع، ولن يحصل أي طالب على فرصة دخول جديدة نتيجة المسح.`
+      )
+    ) {
+      return;
+    }
+    setClearingAll(true);
+    const res = await fetch(`/api/quizzes/${quizId}/clear-all-attempts`, { method: "POST" });
+    setClearingAll(false);
+    if (res.ok) {
+      load();
+    } else {
+      const d = await res.json().catch(() => null);
+      alert(d?.error ?? "تعذّر مسح المحاولات.");
+    }
+  }
+
   if (error) {
     return <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>;
   }
@@ -137,14 +163,23 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/admin/quizzes" className="text-sm text-ink-soft hover:text-ink">
-          ← رجوع للاختبارات
-        </Link>
-        <h1 className="text-xl font-bold text-ink mt-2">متابعة: {data.quiz.title}</h1>
-        <p className="text-sm text-ink-soft mt-1">
-          مدة الاختبار {data.quiz.durationMinutes} دقيقة · الصفحة تتحدّث تلقائيًا كل 10 ثوانٍ.
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <Link href="/admin/quizzes" className="text-sm text-ink-soft hover:text-ink">
+            ← رجوع للاختبارات
+          </Link>
+          <h1 className="text-xl font-bold text-ink mt-2">متابعة: {data.quiz.title}</h1>
+          <p className="text-sm text-ink-soft mt-1">
+            مدة الاختبار {data.quiz.durationMinutes} دقيقة · الصفحة تتحدّث تلقائيًا كل 10 ثوانٍ.
+          </p>
+        </div>
+        <button
+          onClick={handleClearAllAttempts}
+          disabled={clearingAll}
+          className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
+        >
+          {clearingAll ? "جارٍ المسح..." : "مسح محاولات كل الطلاب"}
+        </button>
       </div>
 
       <div className="rounded-xl border border-border bg-surface overflow-hidden overflow-x-auto shadow-elevated">
@@ -262,9 +297,9 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
         &quot;منح وقت جديد للدخول&quot; يعيد فتح نفس المحاولة العالقة من جديد (بدون احتساب محاولة إضافية)،
         والعدّاد ما بيبدأش إلا لما الطالب نفسه يدخل ويضغط زر البدء. &quot;منح محاولة إضافية&quot; يفتح
         للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته السابقة المحفوظة ولا على عدد المحاولات
-        المسموح به لباقي الطلاب. &quot;مسح المحاولات&quot; يحذف نهائيًا كل سجل محاولات الطالب في هذا
-        الاختبار (الدرجات والإجابات) - ده إجراء لا يمكن التراجع عنه، ولا يمنح الطالب أي فرصة دخول
-        جديدة نتيجة المسح.
+        المسموح به لباقي الطلاب. &quot;مسح المحاولات&quot; (لطالب واحد) و&quot;مسح محاولات كل الطلاب&quot;
+        (للكل دفعة واحدة) يحذفان نهائيًا سجل المحاولات (الدرجات والإجابات) - ده إجراء لا يمكن التراجع
+        عنه، ولا يمنح أي طالب فرصة دخول جديدة نتيجة المسح.
       </p>
     </div>
   );
