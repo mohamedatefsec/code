@@ -265,7 +265,7 @@ export const notificationCreateSchema = z
   .object({
     title: z.string().min(1, "عنوان الإشعار مطلوب").max(150),
     body: z.string().min(1, "نص الإشعار مطلوب").max(1000),
-    imageUrl: z.string().max(2000).optional().nullable(),
+    imageUrl: z.string().url().optional().nullable(),
     targetType: z.enum(["all", "group", "student"]),
     targetGroupId: z.string().min(1).optional().nullable(),
     targetStudentId: z.string().min(1).optional().nullable(),

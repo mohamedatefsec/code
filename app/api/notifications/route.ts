@@ -1,62 +1,43 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdminSession } from "@/lib/auth";
-import { notificationCreateSchema } from "@/lib/validation";
+import { getCurrentSession } from "@/lib/auth";
 
 export async function GET() {
-  if (!(await requireAdminSession())) {
+  const session = await getCurrentSession();
+  if (!session || session.role !== "student") {
     return NextResponse.json({ error: "غير مصرّح." }, { status: 403 });
+  }
+
+  const student = await db.studentProfile.findUnique({ where: { userId: session.userId } });
+  if (!student) {
+    return NextResponse.json({ error: "الملف الشخصي غير موجود." }, { status: 404 });
   }
 
   const notifications = await db.notification.findMany({
+    where: {
+      OR: [
+        { targetType: "all" },
+        ...(student.groupId
+          ? [{ targetType: "group" as const, targetGroupId: student.groupId }]
+          : []),
+        { targetType: "student", targetStudentId: student.id },
+      ],
+    },
     orderBy: { createdAt: "desc" },
-    take: 100,
-  });
-
-  // نحسب "وصلت لكام طالب" و"قرأها كام طالب" لكل إشعار لعرضهما في اللوحة
-  const enriched = await Promise.all(
-    notifications.map(async (n) => {
-      const audienceWhere =
-        n.targetType === "all"
-          ? {}
-          : n.targetType === "group"
-          ? { groupId: n.targetGroupId ?? undefined }
-          : { id: n.targetStudentId ?? undefined };
-      const audienceCount = await db.studentProfile.count({ where: audienceWhere });
-      const readCount = await db.notificationRead.count({ where: { notificationId: n.id } });
-      return { ...n, audienceCount, readCount };
-    })
-  );
-
-  return NextResponse.json({ notifications: enriched });
-}
-
-export async function POST(req: NextRequest) {
-  const session = await requireAdminSession();
-  if (!session) {
-    return NextResponse.json({ error: "غير مصرّح." }, { status: 403 });
-  }
-
-  const body = await req.json().catch(() => null);
-  const parsed = notificationCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "بيانات غير صالحة.", details: parsed.error.flatten() },
-      { status: 400 }
-    );
-  }
-
-  const notification = await db.notification.create({
-    data: {
-      title: parsed.data.title,
-      body: parsed.data.body,
-      imageUrl: parsed.data.imageUrl || null,
-      targetType: parsed.data.targetType,
-      targetGroupId: parsed.data.targetType === "group" ? parsed.data.targetGroupId : null,
-      targetStudentId: parsed.data.targetType === "student" ? parsed.data.targetStudentId : null,
-      createdBy: session.userId,
+    take: 20,
+    include: {
+      reads: { where: { studentId: student.id }, select: { readAt: true } },
     },
   });
 
-  return NextResponse.json({ notification }, { status: 201 });
+  const result = notifications.map((n) => ({
+    id: n.id,
+    title: n.title,
+    body: n.body,
+    imageUrl: n.imageUrl,
+    createdAt: n.createdAt,
+    isRead: n.reads.length > 0,
+  }));
+
+  return NextResponse.json({ notifications: result });
 }
