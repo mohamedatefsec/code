@@ -11,9 +11,24 @@ type Notification = {
   isRead: boolean;
 };
 
+/// معاينة صورة الإشعار - نفس منطق ImageUploadField (إخفاء الصورة بهدوء لو
+/// الرابط بقى غير صالح بدل ما تسيب أيقونة "صورة مكسورة" ظاهرة للطالب).
+function NotificationImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- صورة مرفوعة عبر Vercel Blob، ليست next/image
+    <img
+      src={src}
+      alt={alt}
+      className="mt-2 w-full max-h-40 rounded-lg object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function NotificationsWidget() {
   const [notifications, setNotifications] = useState<Notification[] | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/notifications/mine")
@@ -47,57 +62,24 @@ export function NotificationsWidget() {
         </h2>
       </div>
       <div className="space-y-2">
-        {notifications.map((n) => (
-          <div
+        {notifications.map((n, i) => (
+          <button
             key={n.id}
-            className={`w-full rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-sm transition ${
+            onClick={() => markRead(n.id)}
+            className={`w-full text-start rounded-lg border px-3 sm:px-4 py-2 sm:py-3 text-sm transition card-hover animate-fade-in-up ${
               n.isRead ? "border-border text-ink-soft" : "border-primary/30 bg-primary-soft text-ink"
             }`}
+            style={{ animationDelay: `${Math.min(i, 6) * 0.05}s` }}
           >
-            <button onClick={() => markRead(n.id)} className="w-full text-start">
-              <div className="flex items-center gap-2">
-                {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand shrink-0" />}
-                <p className="font-medium">{n.title}</p>
-              </div>
-              <p className="mt-1 text-ink-soft">{n.body}</p>
-            </button>
-            {n.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element -- صورة مرفوعة من الأدمن، لا تحتاج next/image
-              <img
-                src={n.imageUrl}
-                alt={n.title}
-                onClick={() => {
-                  markRead(n.id);
-                  setPreviewImage(n.imageUrl);
-                }}
-                className="mt-2 max-h-40 rounded-lg border border-border object-cover cursor-zoom-in hover:opacity-90 transition"
-              />
-            )}
-          </div>
+            <div className="flex items-center gap-2">
+              {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-gradient-brand shrink-0 animate-pulse-glow" />}
+              <p className="font-medium">{n.title}</p>
+            </div>
+            <p className="mt-1 text-ink-soft">{n.body}</p>
+            {n.imageUrl && <NotificationImage src={n.imageUrl} alt={n.title} />}
+          </button>
         ))}
       </div>
-
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
-          onClick={() => setPreviewImage(null)}
-        >
-          <button
-            onClick={() => setPreviewImage(null)}
-            className="absolute top-4 left-4 sm:top-6 sm:left-6 text-white/90 hover:text-white text-2xl leading-none"
-            aria-label="إغلاق"
-          >
-            ×
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element -- معاينة صورة إشعار مرفوعة من الأدمن */}
-          <img
-            src={previewImage}
-            alt="معاينة الصورة"
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-full rounded-xl object-contain"
-          />
-        </div>
-      )}
     </div>
   );
 }

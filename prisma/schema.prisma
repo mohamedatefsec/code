@@ -63,8 +63,11 @@ model StudentProfile {
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group? @relation(fields: [groupId], references: [id])
+  quizTargets QuizTarget[]
+  quizAttempts QuizAttempt[]
   extraAttemptGrants QuizExtraAttempt[]
   clearedAttempts QuizClearedAttempt[]
+  attendanceRecords AttendanceRecord[]
   notificationReads NotificationRead[]
   studentBadges StudentBadge[]
 
@@ -444,6 +447,8 @@ model Notification {
   id             String                 @id @default(cuid())
   title          String
   body           String
+  /// صورة اختيارية مرفقة بالإشعار (رابط Vercel Blob) - بتتعرض كمعاينة
+  /// صغيرة في قائمة الإشعارات وتتكبّر لو الطالب دوس عليها.
   imageUrl       String?                @map("image_url")
   targetType     NotificationTargetType @map("target_type")
   targetGroupId  String?                @map("target_group_id")

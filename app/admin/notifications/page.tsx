@@ -181,7 +181,7 @@ export default function AdminNotificationsPage() {
           />
         </div>
 
-        <ImageUploadField label="صورة الإشعار (اختياري)" value={imageUrl} onChange={setImageUrl} />
+        <ImageUploadField label="صورة (اختياري)" value={imageUrl} onChange={setImageUrl} />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
@@ -271,7 +271,7 @@ export default function AdminNotificationsPage() {
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                 />
               </div>
-              <ImageUploadField label="صورة الإشعار (اختياري)" value={editImageUrl} onChange={setEditImageUrl} />
+              <ImageUploadField label="صورة (اختياري)" value={editImageUrl} onChange={setEditImageUrl} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-ink mb-1">إرسال إلى</label>
@@ -348,13 +348,19 @@ export default function AdminNotificationsPage() {
           ) : (
             <div key={n.id} className="rounded-xl border border-border bg-surface p-4 shadow-elevated">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-ink">{n.title}</p>
-                  <p className="text-sm text-ink-soft mt-0.5">{n.body}</p>
+                <div className="flex items-start gap-3 min-w-0">
                   {n.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element -- معاينة صغيرة لصورة الإشعار في لوحة الأدمن
-                    <img src={n.imageUrl} alt={n.title} className="mt-2 h-16 w-16 rounded-lg object-cover border border-border" />
+                    // eslint-disable-next-line @next/next/no-img-element -- معاينة صورة مرفوعة، ليست next/image
+                    <img
+                      src={n.imageUrl}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover border border-border shrink-0"
+                    />
                   )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{n.title}</p>
+                    <p className="text-sm text-ink-soft mt-0.5">{n.body}</p>
+                  </div>
                 </div>
                 <span className="text-xs text-ink-soft shrink-0">{TARGET_LABELS[n.targetType]}</span>
               </div>
