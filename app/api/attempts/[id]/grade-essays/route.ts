@@ -88,7 +88,9 @@ export async function POST(
   await db.$transaction(async (tx) => {
     for (const answer of essayAnswers) {
       const rawPoints = gradesByQuestionId.get(answer.questionId) ?? 0;
-      const clamped = Math.max(0, Math.min(rawPoints, answer.question.points));
+      // بنقرّب لأقرب جزء من مية عشان نتجنب شوائب الفاصلة العائمة (زي
+      // 0.1 + 0.2 = 0.30000000000000004) لو المدرّس دخل رقم كسري.
+      const clamped = Math.round(Math.max(0, Math.min(rawPoints, answer.question.points)) * 100) / 100;
       await tx.quizAttemptAnswer.update({
         where: { id: answer.id },
         data: { pointsEarned: clamped, isCorrect: clamped >= answer.question.points },
@@ -96,7 +98,7 @@ export async function POST(
     }
 
     const freshAnswers = await tx.quizAttemptAnswer.findMany({ where: { attemptId: id } });
-    const totalScore = freshAnswers.reduce((sum, a) => sum + a.pointsEarned, 0);
+    const totalScore = Math.round(freshAnswers.reduce((sum, a) => sum + a.pointsEarned, 0) * 100) / 100;
     const maxScore = attempt.maxScore ?? 0;
     const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 1000) / 10 : 0;
 

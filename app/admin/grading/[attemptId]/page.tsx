@@ -111,10 +111,12 @@ export default function GradeAttemptPage({
                 type="number"
                 min={0}
                 max={a.maxPoints}
+                step="any"
                 value={points[a.questionId] ?? 0}
-                onChange={(e) =>
-                  setPoints((p) => ({ ...p, [a.questionId]: Number(e.target.value) }))
-                }
+                onChange={(e) => {
+                  const v = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  setPoints((p) => ({ ...p, [a.questionId]: Number.isNaN(v) ? 0 : v }));
+                }}
                 className="w-20 rounded-lg border border-border px-3 py-1.5 text-sm"
               />
               <span className="text-sm text-ink-soft">/ {a.maxPoints}</span>

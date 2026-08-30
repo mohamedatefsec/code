@@ -299,7 +299,7 @@ export const gradeEssaysSchema = z.object({
     .array(
       z.object({
         questionId: z.string().min(1),
-        pointsEarned: z.number().int().min(0),
+        pointsEarned: z.number().min(0),
       })
     )
     .min(1),

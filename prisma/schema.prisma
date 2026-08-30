@@ -362,8 +362,8 @@ model QuizAttempt {
   attemptNumber    Int           @map("attempt_number")
   startedAt        DateTime?     @map("started_at")
   submittedAt      DateTime?     @map("submitted_at")
-  score            Int?
-  maxScore         Int?          @map("max_score")
+  score            Float?
+  maxScore         Float?        @map("max_score")
   percentage       Float?
   status           AttemptStatus @default(pending)
   timeSpentSeconds Int?          @map("time_spent_seconds")
@@ -390,7 +390,7 @@ model QuizAttemptAnswer {
   textAnswer         String?  @map("text_answer")
   /// null = لسه ما اتصححش (أسئلة مقالية بانتظار المدرّس)
   isCorrect          Boolean? @map("is_correct")
-  pointsEarned       Int      @default(0) @map("points_earned")
+  pointsEarned       Float    @default(0) @map("points_earned")
 
   attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
