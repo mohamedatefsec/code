@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { NotificationImageViewer } from "@/components/NotificationImageViewer";
 
 type Notification = {
   id: string;
@@ -10,22 +11,6 @@ type Notification = {
   createdAt: string;
   isRead: boolean;
 };
-
-/// معاينة صورة الإشعار - نفس منطق ImageUploadField (إخفاء الصورة بهدوء لو
-/// الرابط بقى غير صالح بدل ما تسيب أيقونة "صورة مكسورة" ظاهرة للطالب).
-function NotificationImage({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return null;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- صورة مرفوعة عبر Vercel Blob، ليست next/image
-    <img
-      src={src}
-      alt={alt}
-      className="mt-2 w-full max-h-40 rounded-lg object-cover"
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
 export function NotificationsWidget() {
   const [notifications, setNotifications] = useState<Notification[] | null>(null);
@@ -76,7 +61,7 @@ export function NotificationsWidget() {
               <p className="font-medium">{n.title}</p>
             </div>
             <p className="mt-1 text-ink-soft">{n.body}</p>
-            {n.imageUrl && <NotificationImage src={n.imageUrl} alt={n.title} />}
+            {n.imageUrl && <NotificationImageViewer src={n.imageUrl} alt={n.title} />}
           </button>
         ))}
       </div>
