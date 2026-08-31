@@ -16,6 +16,7 @@ type Student = {
   payments: { id: string; amount: number; paidAt: string; note: string | null }[];
   attendanceStartDate: string | null;
   attendedSessionsCount: number;
+  totalSessionsCount: number;
   totalPaid: number;
 };
 
@@ -151,7 +152,10 @@ function AdminStudentsPageInner() {
                 <td className="px-4 py-3 font-mono text-xs text-ink-soft">{s.studentCode}</td>
                 <td className="px-4 py-3 text-ink-soft">{s.group?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-ink-soft whitespace-nowrap">
-                  <span className="stat-figure">{s.attendedSessionsCount}</span> حصة
+                  <span className="stat-figure">
+                    {s.attendedSessionsCount} / {s.totalSessionsCount}
+                  </span>{" "}
+                  حصة
                   {s.attendanceStartDate && (
                     <span className="block text-xs text-ink-soft/80 mt-0.5">
                       من {new Date(s.attendanceStartDate).toLocaleDateString("ar-EG")}

@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
   // absent) - بنجيبهم بـ groupBy على مستوى القاعدة كله بدل استعلام منفصل
   // لكل طالب (N+1)، وبعدين نربطهم بالقايمة في الذاكرة.
   const studentIds = students.map((s) => s.id);
-  const [paymentTotals, attendanceCounts] = await Promise.all([
+  const groupIds = [...new Set(students.map((s) => s.groupId).filter((g): g is string => !!g))];
+  const [paymentTotals, attendanceCounts, groupSessions] = await Promise.all([
     db.payment.groupBy({
       by: ["studentId"],
       where: { studentId: { in: studentIds } },
@@ -50,15 +51,36 @@ export async function GET(req: NextRequest) {
       where: { studentId: { in: studentIds }, status: { in: ["present", "late"] } },
       _count: { _all: true },
     }),
+    db.attendanceSession.findMany({
+      where: { groupId: { in: groupIds } },
+      select: { groupId: true, sessionDate: true },
+    }),
   ]);
   const totalPaidByStudent = new Map(paymentTotals.map((p) => [p.studentId, p._sum.amount ?? 0]));
   const attendedByStudent = new Map(attendanceCounts.map((a) => [a.studentId, a._count._all]));
 
-  const result = students.map((s) => ({
-    ...s,
-    totalPaid: totalPaidByStudent.get(s.id) ?? 0,
-    attendedSessionsCount: attendedByStudent.get(s.id) ?? 0,
-  }));
+  // تواريخ الحصص مجمّعة حسب المجموعة، عشان نحسب لكل طالب "إجمالي عدد
+  // الحصص من مجموعة اللي حصلت منذ بداية حضوره تحديدًا" - نفس منطق استبعاد
+  // الحصص اللي قبل attendanceStartDate المستخدم في تحميل قائمة الحصة.
+  const sessionDatesByGroup = new Map<string, Date[]>();
+  for (const sess of groupSessions) {
+    const list = sessionDatesByGroup.get(sess.groupId) ?? [];
+    list.push(sess.sessionDate);
+    sessionDatesByGroup.set(sess.groupId, list);
+  }
+
+  const result = students.map((s) => {
+    const groupSessionDates = s.groupId ? sessionDatesByGroup.get(s.groupId) ?? [] : [];
+    const totalSessionsCount = s.attendanceStartDate
+      ? groupSessionDates.filter((d) => d >= s.attendanceStartDate!).length
+      : groupSessionDates.length;
+    return {
+      ...s,
+      totalPaid: totalPaidByStudent.get(s.id) ?? 0,
+      attendedSessionsCount: attendedByStudent.get(s.id) ?? 0,
+      totalSessionsCount,
+    };
+  });
 
   return NextResponse.json({ students: result });
 }
