@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PaymentModal } from "@/components/PaymentModal";
 
 type Student = {
@@ -18,9 +19,18 @@ type Student = {
 type Group = { id: string; name: string };
 
 export default function AdminStudentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminStudentsPageInner />
+    </Suspense>
+  );
+}
+
+function AdminStudentsPageInner() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<Student[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [groupFilter, setGroupFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);

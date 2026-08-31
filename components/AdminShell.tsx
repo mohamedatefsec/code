@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { UnpaidAlertBell } from "./UnpaidAlertBell";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "لوحة التحكم", icon: "▤" },
@@ -185,6 +186,7 @@ export function AdminShell({
           </div>
           <div className="hidden md:block" />
           <div className="flex items-center gap-3">
+            <UnpaidAlertBell />
             <ThemeToggle />
             <span className="text-sm text-ink-soft hidden sm:inline">
               مرحبًا، <span className="text-ink font-medium">{adminName}</span>
