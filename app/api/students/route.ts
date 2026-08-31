@@ -35,7 +35,32 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ students });
+  // إجمالي المدفوع وعدد الحصص اللي حضرها كل طالب (present أو late، مش
+  // absent) - بنجيبهم بـ groupBy على مستوى القاعدة كله بدل استعلام منفصل
+  // لكل طالب (N+1)، وبعدين نربطهم بالقايمة في الذاكرة.
+  const studentIds = students.map((s) => s.id);
+  const [paymentTotals, attendanceCounts] = await Promise.all([
+    db.payment.groupBy({
+      by: ["studentId"],
+      where: { studentId: { in: studentIds } },
+      _sum: { amount: true },
+    }),
+    db.attendanceRecord.groupBy({
+      by: ["studentId"],
+      where: { studentId: { in: studentIds }, status: { in: ["present", "late"] } },
+      _count: { _all: true },
+    }),
+  ]);
+  const totalPaidByStudent = new Map(paymentTotals.map((p) => [p.studentId, p._sum.amount ?? 0]));
+  const attendedByStudent = new Map(attendanceCounts.map((a) => [a.studentId, a._count._all]));
+
+  const result = students.map((s) => ({
+    ...s,
+    totalPaid: totalPaidByStudent.get(s.id) ?? 0,
+    attendedSessionsCount: attendedByStudent.get(s.id) ?? 0,
+  }));
+
+  return NextResponse.json({ students: result });
 }
 
 export async function POST(req: NextRequest) {

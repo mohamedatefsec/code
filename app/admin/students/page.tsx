@@ -14,6 +14,9 @@ type Student = {
   group: { id: string; name: string } | null;
   user: { status: "active" | "disabled"; loginIdentifier: string };
   payments: { id: string; amount: number; paidAt: string; note: string | null }[];
+  attendanceStartDate: string | null;
+  attendedSessionsCount: number;
+  totalPaid: number;
 };
 
 type Group = { id: string; name: string };
@@ -119,6 +122,7 @@ function AdminStudentsPageInner() {
               <th className="text-start px-4 py-3 font-medium">الاسم</th>
               <th className="text-start px-4 py-3 font-medium">الكود</th>
               <th className="text-start px-4 py-3 font-medium">المجموعة</th>
+              <th className="text-start px-4 py-3 font-medium">الحضور</th>
               <th className="text-start px-4 py-3 font-medium">الاشتراك</th>
               <th className="text-start px-4 py-3 font-medium">الحالة</th>
               <th className="px-4 py-3"></th>
@@ -127,14 +131,14 @@ function AdminStudentsPageInner() {
           <tbody>
             {students === null && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
                   جارٍ التحميل...
                 </td>
               </tr>
             )}
             {students?.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
                   لا يوجد طلاب مطابقون.
                 </td>
               </tr>
@@ -146,6 +150,14 @@ function AdminStudentsPageInner() {
                 <td className="px-4 py-3 font-medium text-ink">{s.fullName}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-soft">{s.studentCode}</td>
                 <td className="px-4 py-3 text-ink-soft">{s.group?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-ink-soft whitespace-nowrap">
+                  <span className="stat-figure">{s.attendedSessionsCount}</span> حصة
+                  {s.attendanceStartDate && (
+                    <span className="block text-xs text-ink-soft/80 mt-0.5">
+                      من {new Date(s.attendanceStartDate).toLocaleDateString("ar-EG")}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => setPaymentStudent(s)}
@@ -155,9 +167,16 @@ function AdminStudentsPageInner() {
                         : "border border-warn/40 bg-warn-soft text-warn"
                     }`}
                   >
-                    {lastPayment
-                      ? `${lastPayment.amount} جنيه · ${new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}`
-                      : "لسه ما دفعش"}
+                    {lastPayment ? (
+                      <>
+                        إجمالي {s.totalPaid} جنيه
+                        <span className="block text-[10px] font-normal opacity-80">
+                          آخر دفعة {new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}
+                        </span>
+                      </>
+                    ) : (
+                      "لسه ما دفعش"
+                    )}
                   </button>
                 </td>
                 <td className="px-4 py-3">
