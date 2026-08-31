@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { PaymentModal } from "@/components/PaymentModal";
 
 type Student = {
   id: string;
@@ -11,6 +12,7 @@ type Student = {
   grade: string | null;
   group: { id: string; name: string } | null;
   user: { status: "active" | "disabled"; loginIdentifier: string };
+  payments: { id: string; amount: number; paidAt: string; note: string | null }[];
 };
 
 type Group = { id: string; name: string };
@@ -21,6 +23,7 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
 
   const loadStudents = useCallback(async () => {
     const params = new URLSearchParams();
@@ -106,6 +109,7 @@ export default function AdminStudentsPage() {
               <th className="text-start px-4 py-3 font-medium">الاسم</th>
               <th className="text-start px-4 py-3 font-medium">الكود</th>
               <th className="text-start px-4 py-3 font-medium">المجموعة</th>
+              <th className="text-start px-4 py-3 font-medium">الاشتراك</th>
               <th className="text-start px-4 py-3 font-medium">الحالة</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -113,23 +117,39 @@ export default function AdminStudentsPage() {
           <tbody>
             {students === null && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={6} className="px-4 py-6 text-center text-ink-soft">
                   جارٍ التحميل...
                 </td>
               </tr>
             )}
             {students?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={6} className="px-4 py-6 text-center text-ink-soft">
                   لا يوجد طلاب مطابقون.
                 </td>
               </tr>
             )}
-            {students?.map((s) => (
+            {students?.map((s) => {
+              const lastPayment = s.payments[0] ?? null;
+              return (
               <tr key={s.id} className="border-t border-border">
                 <td className="px-4 py-3 font-medium text-ink">{s.fullName}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-soft">{s.studentCode}</td>
                 <td className="px-4 py-3 text-ink-soft">{s.group?.name ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => setPaymentStudent(s)}
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition hover:opacity-80 ${
+                      lastPayment
+                        ? "border border-accent/40 bg-accent/10 text-accent"
+                        : "border border-warn/40 bg-warn-soft text-warn"
+                    }`}
+                  >
+                    {lastPayment
+                      ? `${lastPayment.amount} جنيه · ${new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}`
+                      : "لسه ما دفعش"}
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -155,10 +175,20 @@ export default function AdminStudentsPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {paymentStudent && (
+        <PaymentModal
+          studentId={paymentStudent.id}
+          studentName={paymentStudent.fullName}
+          onClose={() => setPaymentStudent(null)}
+          onChanged={loadStudents}
+        />
+      )}
     </div>
   );
 }

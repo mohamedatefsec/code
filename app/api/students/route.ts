@@ -27,7 +27,11 @@ export async function GET(req: NextRequest) {
         : {}),
       ...(status ? { user: { status: status as "active" | "disabled" } } : {}),
     },
-    include: { group: true, user: { select: { status: true, loginIdentifier: true } } },
+    include: {
+      group: true,
+      user: { select: { status: true, loginIdentifier: true } },
+      payments: { orderBy: { paidAt: "desc" }, take: 1 },
+    },
     orderBy: { createdAt: "desc" },
   });
 

@@ -70,6 +70,7 @@ model StudentProfile {
   attendanceRecords AttendanceRecord[]
   notificationReads NotificationRead[]
   studentBadges StudentBadge[]
+  payments Payment[]
 
   @@index([groupId])
   @@map("student_profiles")
@@ -508,6 +509,26 @@ model StudentBadge {
 
   @@unique([studentId, badgeId])
   @@map("student_badges")
+}
+
+/// سجل دفعة اشتراك لطالب - المدرّس/الأدمن بيسجّلها يدويًا (مفيش دفع
+/// إلكتروني مربوط بالمنصة). طالب ممكن يكون له أكتر من دفعة عبر الوقت
+/// (اشتراك شهري متجدّد مثلًا)، فده سجل تاريخي مش قيمة واحدة بس.
+model Payment {
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  amount    Float
+  /// تاريخ الدفعة الفعلي (ممكن يختلف عن تاريخ إدخالها في النظام - مثلًا
+  /// المدرّس بيسجّل دفعة حصلت الأسبوع اللي فات).
+  paidAt    DateTime @default(now()) @map("paid_at")
+  note      String?
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("payments")
 }
 
 /// صف واحد فقط (Singleton) - هوية المنصة القابلة للتعديل من لوحة الأدمن دون تعديل الكود.

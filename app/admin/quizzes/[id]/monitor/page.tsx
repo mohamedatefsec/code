@@ -47,6 +47,8 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [clearingId, setClearingId] = useState<string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [resettingAll, setResettingAll] = useState(false);
 
   const load = useCallback(() => {
     fetch(`/api/quizzes/${quizId}/monitor`)
@@ -154,6 +156,48 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function handleResetCounters(studentId: string, studentName: string) {
+    if (
+      !confirm(
+        `هل تريد تصفير عدّادَي "المنح" و"المسح" لـ "${studentName}" في هذا الاختبار؟ ده هيرجّع حساب عدد المحاولات المتاحة له لقيمة الاختبار الأساسية (من غير أي منح أو خصم سابق) - يعني ممكن يغيّر عدد المحاولات المتاحة له فعليًا، مش بس شكل الأرقام. مش هيمسّ أي محاولة حقيقية اتسجّلت.`
+      )
+    ) {
+      return;
+    }
+    setResettingId(studentId);
+    const res = await fetch(`/api/quizzes/${quizId}/reset-counters`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    });
+    setResettingId(null);
+    if (res.ok) {
+      load();
+    } else {
+      const d = await res.json().catch(() => null);
+      alert(d?.error ?? "تعذّر تصفير العدّادات.");
+    }
+  }
+
+  async function handleResetAllCounters() {
+    if (
+      !confirm(
+        'هل تريد تصفير عدّادَي "المنح" و"المسح" لكل الطلاب في هذا الاختبار؟ ده هيرجّع حساب عدد المحاولات المتاحة لكل طالب لقيمة الاختبار الأساسية (من غير أي منح أو خصم سابق) - يعني ممكن يغيّر عدد المحاولات المتاحة فعليًا لبعض الطلاب، مش بس شكل الأرقام. مش هيمسّ أي محاولة حقيقية اتسجّلت.'
+      )
+    ) {
+      return;
+    }
+    setResettingAll(true);
+    const res = await fetch(`/api/quizzes/${quizId}/reset-all-counters`, { method: "POST" });
+    setResettingAll(false);
+    if (res.ok) {
+      load();
+    } else {
+      const d = await res.json().catch(() => null);
+      alert(d?.error ?? "تعذّر تصفير العدّادات.");
+    }
+  }
+
   if (error) {
     return <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>;
   }
@@ -173,13 +217,22 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
             مدة الاختبار {data.quiz.durationMinutes} دقيقة · الصفحة تتحدّث تلقائيًا كل 10 ثوانٍ.
           </p>
         </div>
-        <button
-          onClick={handleClearAllAttempts}
-          disabled={clearingAll}
-          className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
-        >
-          {clearingAll ? "جارٍ المسح..." : "مسح محاولات كل الطلاب"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetAllCounters}
+            disabled={resettingAll}
+            className="rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-ink-soft hover:bg-border/40 transition disabled:opacity-50"
+          >
+            {resettingAll ? "جارٍ التصفير..." : "تصفير عدّادات كل الطلاب"}
+          </button>
+          <button
+            onClick={handleClearAllAttempts}
+            disabled={clearingAll}
+            className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
+          >
+            {clearingAll ? "جارٍ المسح..." : "مسح محاولات كل الطلاب"}
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-surface overflow-hidden overflow-x-auto shadow-elevated">
@@ -275,6 +328,15 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                           {grantingId === s.id ? "جارٍ المنح..." : "منح محاولة إضافية"}
                         </button>
                       )}
+                      {(s.extraGrants > 0 || s.clearedAttempts > 0) && (
+                        <button
+                          onClick={() => handleResetCounters(s.id, s.fullName)}
+                          disabled={resettingId === s.id}
+                          className="rounded-lg border border-border bg-canvas px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-border/40 transition disabled:opacity-50"
+                        >
+                          {resettingId === s.id ? "جارٍ التصفير..." : "تصفير العدّادات"}
+                        </button>
+                      )}
                       {s.attemptsUsed > 0 && (
                         <button
                           onClick={() => handleClearAttempts(s.id, s.fullName)}
@@ -299,7 +361,12 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
         للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته السابقة المحفوظة ولا على عدد المحاولات
         المسموح به لباقي الطلاب. &quot;مسح المحاولات&quot; (لطالب واحد) و&quot;مسح محاولات كل الطلاب&quot;
         (للكل دفعة واحدة) يحذفان نهائيًا سجل المحاولات (الدرجات والإجابات) - ده إجراء لا يمكن التراجع
-        عنه، ولا يمنح أي طالب فرصة دخول جديدة نتيجة المسح.
+        عنه، ولا يمنح أي طالب فرصة دخول جديدة نتيجة المسح. &quot;تصفير العدّادات&quot; بيرجّع الرقمين
+        &quot;(+N)&quot; و&quot;(مسح N)&quot; الظاهرين في عمود المحاولات للصفر، وده بيرجّع حساب عدد
+        المحاولات المتاحة للطالب لقيمة الاختبار الأساسية (بدون أي منح أو خصم سابق) - يعني ممكن يزوّد
+        أو يقلّل عدد المحاولات المتاحة فعليًا له حسب اللي كان مسجّل قبل التصفير، فاستخدمه بس لو الأرقام
+        دي ناتجة من تجربة/اختبار وعايز ترجّعها زي ما كانت، مش لو فيه محاولات حقيقية لطلاب فعليين
+        اتبنت عليها.
       </p>
     </div>
   );

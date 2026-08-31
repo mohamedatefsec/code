@@ -304,3 +304,12 @@ export const gradeEssaysSchema = z.object({
     )
     .min(1),
 });
+
+// ===== دفعات الاشتراك =====
+
+export const paymentCreateSchema = z.object({
+  studentId: z.string().min(1, "الطالب مطلوب"),
+  amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
+  note: z.string().max(200).optional().nullable(),
+  paidAt: z.string().datetime().optional(),
+});
