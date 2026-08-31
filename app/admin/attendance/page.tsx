@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Group = { id: string; name: string };
 type RosterRow = {
@@ -8,6 +8,13 @@ type RosterRow = {
   fullName: string;
   studentCode: string;
   status: "present" | "absent" | "late";
+};
+type PastSession = {
+  id: string;
+  sessionDate: string;
+  sessionLabel: string | null;
+  group: { name: string };
+  _count: { records: number };
 };
 
 const STATUS_OPTIONS: { value: RosterRow["status"]; label: string; activeClass: string }[] = [
@@ -27,17 +34,54 @@ export default function AdminAttendancePage() {
   const [label, setLabel] = useState("");
 
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<{ sessionDate: string; sessionLabel: string | null; group: { name: string } } | null>(null);
   const [roster, setRoster] = useState<RosterRow[] | null>(null);
   const [opening, setOpening] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // سجل الحصص السابقة - عشان الأدمن يقدر يرجع لأي حصة قديمة يعدّل فيها
+  // أو يحذفها لو سجّلها غلط، بدل ما يفتكر التاريخ بالظبط ويكتبه يدويًا.
+  const [pastSessions, setPastSessions] = useState<PastSession[] | null>(null);
+  const [logGroupFilter, setLogGroupFilter] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadLog = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (logGroupFilter) params.set("groupId", logGroupFilter);
+    const res = await fetch(`/api/attendance/sessions?${params.toString()}`);
+    const data = await res.json();
+    setPastSessions(data.sessions);
+  }, [logGroupFilter]);
+
   useEffect(() => {
     fetch("/api/groups")
       .then((r) => r.json())
       .then((d) => setGroups(d.groups));
   }, []);
+
+  useEffect(() => {
+    loadLog();
+  }, [loadLog]);
+
+  async function loadSessionIntoEditor(id: string) {
+    setError(null);
+    setMessage(null);
+    const detailRes = await fetch(`/api/attendance/sessions/${id}`);
+    if (!detailRes.ok) {
+      setError("تعذّر تحميل الحصة.");
+      return;
+    }
+    const detail = await detailRes.json();
+    setSessionId(id);
+    setSessionInfo(detail.session);
+    setRoster(detail.roster);
+    // نظبط حقول الفورم فوق كمان عشان تبقى متسقة لو ضغط "فتح الحصة" تاني بالغلط
+    setGroupId(detail.session.group?.id ?? "");
+    setDate(new Date(detail.session.sessionDate).toISOString().slice(0, 10));
+    setLabel(detail.session.sessionLabel ?? "");
+  }
 
   async function openSession() {
     if (!groupId || !date) return;
@@ -56,11 +100,9 @@ export default function AdminAttendancePage() {
       return;
     }
     const { session } = await res.json();
-    const detailRes = await fetch(`/api/attendance/sessions/${session.id}`);
-    const detail = await detailRes.json();
-    setSessionId(session.id);
-    setRoster(detail.roster);
+    await loadSessionIntoEditor(session.id);
     setOpening(false);
+    loadLog();
   }
 
   function setStatus(studentId: string, status: RosterRow["status"]) {
@@ -80,8 +122,37 @@ export default function AdminAttendancePage() {
       }),
     });
     setSaving(false);
-    if (res.ok) setMessage("تم حفظ الحضور بنجاح.");
-    else setError("تعذّر حفظ الحضور.");
+    if (res.ok) {
+      setMessage("تم حفظ الحضور بنجاح.");
+      loadLog();
+    } else {
+      setError("تعذّر حفظ الحضور.");
+    }
+  }
+
+  async function handleDeleteSession(id: string, s: PastSession) {
+    const dateLabel = new Date(s.sessionDate).toLocaleDateString("ar-EG");
+    if (
+      !confirm(
+        `هل تريد حذف حصة "${s.group.name}" بتاريخ ${dateLabel}${s.sessionLabel ? ` (${s.sessionLabel})` : ""} نهائيًا؟ سيُحذف كل سجل الحضور المسجّل فيها (${s._count.records} طالب) ولا يمكن التراجع عن هذا.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(id);
+    const res = await fetch(`/api/attendance/sessions/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (res.ok) {
+      if (sessionId === id) {
+        // لو كانت الحصة المحذوفة هي نفسها المفتوحة في المحرّر فوق، نقفل المحرر
+        setSessionId(null);
+        setSessionInfo(null);
+        setRoster(null);
+      }
+      loadLog();
+    } else {
+      alert("تعذّر حذف الحصة.");
+    }
   }
 
   const presentCount = roster?.filter((r) => r.status !== "absent").length ?? 0;
@@ -146,8 +217,16 @@ export default function AdminAttendancePage() {
 
       {roster && (
         <div className="rounded-xl border border-border bg-surface p-5 space-y-4 shadow-elevated">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-ink">قائمة الطلاب ({roster.length})</h2>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="font-semibold text-ink">قائمة الطلاب ({roster.length})</h2>
+              {sessionInfo && (
+                <p className="text-xs text-ink-soft mt-0.5">
+                  {sessionInfo.group.name} · {new Date(sessionInfo.sessionDate).toLocaleDateString("ar-EG")}
+                  {sessionInfo.sessionLabel ? ` · ${sessionInfo.sessionLabel}` : ""}
+                </p>
+              )}
+            </div>
             <span className="text-sm text-ink-soft">
               {presentCount} من {roster.length} متوقع حضورهم
             </span>
@@ -195,6 +274,61 @@ export default function AdminAttendancePage() {
           </button>
         </div>
       )}
+
+      {/* سجل الحصص السابقة - للرجوع لأي حصة اتسجّلت قبل كده وتعديلها أو
+          حذفها، بدل ما يفتكر التاريخ بالظبط ويكتبه من الفورم فوق. */}
+      <div className="rounded-xl border border-border bg-surface p-5 space-y-3 shadow-elevated">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-semibold text-ink">سجل الحصص</h2>
+          <select
+            value={logGroupFilter}
+            onChange={(e) => setLogGroupFilter(e.target.value)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs"
+          >
+            <option value="">كل المجموعات</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {pastSessions === null && <p className="text-sm text-ink-soft">جارٍ التحميل...</p>}
+        {pastSessions?.length === 0 && (
+          <p className="text-sm text-ink-soft">لا توجد حصص مسجّلة بعد.</p>
+        )}
+        <div className="space-y-2">
+          {pastSessions?.map((s) => (
+            <div
+              key={s.id}
+              className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-sm ${
+                sessionId === s.id ? "border-primary bg-primary-soft/40" : "border-border"
+              }`}
+            >
+              <div>
+                <p className="font-medium text-ink">
+                  {s.group.name} · {new Date(s.sessionDate).toLocaleDateString("ar-EG")}
+                  {s.sessionLabel ? ` · ${s.sessionLabel}` : ""}
+                </p>
+                <p className="text-xs text-ink-soft mt-0.5">{s._count.records} طالب مسجَّل</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button onClick={() => loadSessionIntoEditor(s.id)} className="text-primary hover:underline text-xs">
+                  تعديل
+                </button>
+                <button
+                  onClick={() => handleDeleteSession(s.id, s)}
+                  disabled={deletingId === s.id}
+                  className="text-danger hover:underline text-xs disabled:opacity-50"
+                >
+                  {deletingId === s.id ? "جارٍ الحذف..." : "حذف"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
