@@ -11,6 +11,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const subjectId = searchParams.get("subjectId");
   const unitId = searchParams.get("unitId");
+  const lessonId = searchParams.get("lessonId");
+  // فلترة بعدة دروس مرة واحدة (مفصولة بفاصلة) - مستخدمة في صفحة إعداد
+  // الاختبار عشان الأدمن يقدر يخلط أسئلة من كذا درس مع بعض.
+  const lessonIdsParam = searchParams.get("lessonIds");
+  const lessonIds = lessonIdsParam ? lessonIdsParam.split(",").filter(Boolean) : null;
   const type = searchParams.get("type");
   const difficulty = searchParams.get("difficulty");
   const status = searchParams.get("status");
@@ -20,6 +25,8 @@ export async function GET(req: NextRequest) {
     where: {
       ...(subjectId ? { subjectId } : {}),
       ...(unitId ? { unitId } : {}),
+      ...(lessonId ? { lessonId } : {}),
+      ...(lessonIds ? { lessonId: { in: lessonIds } } : {}),
       ...(type ? { type: type as never } : {}),
       ...(difficulty ? { difficulty: difficulty as never } : {}),
       ...(status ? { status: status as never } : {}),
@@ -28,6 +35,7 @@ export async function GET(req: NextRequest) {
     include: {
       subject: { select: { name: true } },
       unit: { select: { title: true } },
+      lesson: { select: { id: true, title: true } },
       _count: { select: { options: true } },
     },
     orderBy: { createdAt: "desc" },

@@ -12,11 +12,13 @@ type Question = {
   status: "draft" | "published";
   subject: { name: string };
   unit: { title: string } | null;
+  lesson: { id: string; title: string } | null;
   _count: { options: number };
 };
 
 type Subject = { id: string; name: string };
 type Unit = { id: string; title: string };
+type Lesson = { id: string; title: string };
 
 const TYPE_LABELS: Record<string, string> = {
   mcq: "اختيار من متعدد",
@@ -37,9 +39,11 @@ export default function QuestionBankPage() {
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [search, setSearch] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [unitId, setUnitId] = useState("");
+  const [lessonId, setLessonId] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -48,10 +52,11 @@ export default function QuestionBankPage() {
     if (search) params.set("q", search);
     if (subjectId) params.set("subjectId", subjectId);
     if (unitId) params.set("unitId", unitId);
+    if (lessonId) params.set("lessonId", lessonId);
     if (typeFilter) params.set("type", typeFilter);
     if (statusFilter) params.set("status", statusFilter);
     return params;
-  }, [search, subjectId, unitId, typeFilter, statusFilter]);
+  }, [search, subjectId, unitId, lessonId, typeFilter, statusFilter]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/questions?${buildParams().toString()}`);
@@ -75,6 +80,17 @@ export default function QuestionBankPage() {
       .then((r) => r.json())
       .then((d) => setUnits(d.units));
   }, [subjectId]);
+
+  useEffect(() => {
+    setLessonId("");
+    if (!unitId) {
+      setLessons([]);
+      return;
+    }
+    fetch(`/api/lessons?unitId=${unitId}`)
+      .then((r) => r.json())
+      .then((d) => setLessons(d.lessons));
+  }, [unitId]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -143,6 +159,19 @@ export default function QuestionBankPage() {
           ))}
         </select>
         <select
+          value={lessonId}
+          onChange={(e) => setLessonId(e.target.value)}
+          disabled={!unitId}
+          className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-50"
+        >
+          <option value="">كل الدروس</option>
+          {lessons.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.title}
+            </option>
+          ))}
+        </select>
+        <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded-lg border border-border px-3 py-2 text-sm"
@@ -172,6 +201,7 @@ export default function QuestionBankPage() {
               <th className="text-start px-4 py-3 font-medium">السؤال</th>
               <th className="text-start px-4 py-3 font-medium">النوع</th>
               <th className="text-start px-4 py-3 font-medium">المادة</th>
+              <th className="text-start px-4 py-3 font-medium">الدرس</th>
               <th className="text-start px-4 py-3 font-medium">الصعوبة</th>
               <th className="text-start px-4 py-3 font-medium">الدرجة</th>
               <th className="text-start px-4 py-3 font-medium">الحالة</th>
@@ -181,14 +211,14 @@ export default function QuestionBankPage() {
           <tbody>
             {questions === null && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink-soft">
                   جارٍ التحميل...
                 </td>
               </tr>
             )}
             {questions?.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink-soft">
                   لا توجد أسئلة مطابقة.
                 </td>
               </tr>
@@ -198,6 +228,7 @@ export default function QuestionBankPage() {
                 <td className="px-4 py-3 text-ink max-w-xs truncate">{q.text}</td>
                 <td className="px-4 py-3 text-ink-soft">{TYPE_LABELS[q.type]}</td>
                 <td className="px-4 py-3 text-ink-soft">{q.subject.name}</td>
+                <td className="px-4 py-3 text-ink-soft">{q.lesson?.title ?? "—"}</td>
                 <td className="px-4 py-3 text-ink-soft">{DIFFICULTY_LABELS[q.difficulty]}</td>
                 <td className="px-4 py-3 stat-figure text-primary">{q.points}</td>
                 <td className="px-4 py-3">

@@ -30,8 +30,19 @@ function toLocalInputValue(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-type BankQuestion = { id: string; text: string; type: string; points: number; status: string };
+type BankQuestion = {
+  id: string;
+  text: string;
+  type: string;
+  points: number;
+  status: string;
+  difficulty?: "easy" | "medium" | "hard";
+  lesson?: { id: string; title: string } | null;
+};
 type Group = { id: string; name: string };
+type Lesson = { id: string; title: string; unit: { title: string } };
+
+const DIFFICULTY_LABELS: Record<string, string> = { easy: "سهل", medium: "متوسط", hard: "صعب" };
 
 const STATUS_LABELS: Record<QuizStatus, string> = {
   draft: "مسودة",
@@ -56,8 +67,15 @@ export default function QuizBuilderPage({
   const { id } = use(params);
   const [quiz, setQuiz] = useState<QuizDetail | null>(null);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
+  // خريطة تراكمية لكل الأسئلة اللي اتحمّلت (من الاختبار نفسه أو من أي
+  // فلترة سابقة لبنك الأسئلة) - مش بس القائمة المفلترة حاليًا. من غيرها،
+  // لو الأدمن غيّر فلتر الدرس بعد ما اختار سؤال من درس تاني، السؤال ده
+  // كان هيختفي بصمت من "الأسئلة المختارة" لأنه مش موجود في bankQuestions
+  // بعد الفلترة الجديدة.
+  const [questionsById, setQuestionsById] = useState<Record<string, BankQuestion>>({});
   const [groups, setGroups] = useState<Group[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [targetMode, setTargetMode] = useState<"all" | "groups">("all");
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
@@ -66,6 +84,21 @@ export default function QuizBuilderPage({
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [savingTargets, setSavingTargets] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
+
+  // فلاتر بنك الأسئلة (اختيار درس واحد أو أكتر مع مستوى صعوبة) - بتتحكم
+  // في القائمة القابلة للتصفح جوّه "+ إضافة أسئلة من بنك المادة".
+  const [filterLessonIds, setFilterLessonIds] = useState<string[]>([]);
+  const [filterDifficulty, setFilterDifficulty] = useState("");
+
+  // التوليد التلقائي: صفوف "درس + مستوى صعوبة + عدد" - كل صف بيتحوّل
+  // لمتطلب واحد في طلب /api/questions/auto-select.
+  const [autoRows, setAutoRows] = useState<{ lessonId: string; difficulty: string; count: number }[]>([
+    { lessonId: "", difficulty: "any", count: 5 },
+  ]);
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoShortfalls, setAutoShortfalls] = useState<
+    { lessonId: string; difficulty: string; requested: number; found: number }[]
+  >([]);
 
   // فورم "بيانات الاختبار الأساسية" - نسخة منفصلة قابلة للتعديل، بتتزامن
   // مع quiz لما يتحمّل أو يتحدّث من السيرفر.
@@ -83,6 +116,14 @@ export default function QuizBuilderPage({
     const q: QuizDetail = data.quiz;
     setQuiz(q);
     setSelectedIds(q.questions.map((qq) => qq.question.id));
+    // نضيف بيانات أسئلة الاختبار المحفوظة فعليًا لخريطة البحث التراكمية،
+    // عشان تظهر في "الأسئلة المختارة" حتى لو مش موجودة في فلتر بنك
+    // الأسئلة الحالي.
+    setQuestionsById((prev) => {
+      const next = { ...prev };
+      for (const qq of q.questions) next[qq.question.id] = qq.question;
+      return next;
+    });
     const groupTargets = q.targets.filter((t) => t.targetType === "group" && t.group);
     if (groupTargets.length > 0) {
       setTargetMode("groups");
@@ -114,13 +155,82 @@ export default function QuizBuilderPage({
 
   useEffect(() => {
     if (!quiz?.subjectId) return;
-    fetch(`/api/questions?subjectId=${quiz.subjectId}`)
+    fetch(`/api/lessons?subjectId=${quiz.subjectId}`)
       .then((r) => r.json())
-      .then((d) => setBankQuestions(d.questions));
+      .then((d) => setLessons(d.lessons));
   }, [quiz?.subjectId]);
+
+  useEffect(() => {
+    if (!quiz?.subjectId) return;
+    const params = new URLSearchParams({ subjectId: quiz.subjectId, status: "published" });
+    if (filterLessonIds.length > 0) params.set("lessonIds", filterLessonIds.join(","));
+    if (filterDifficulty) params.set("difficulty", filterDifficulty);
+    fetch(`/api/questions?${params.toString()}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setBankQuestions(d.questions);
+        setQuestionsById((prev) => {
+          const next = { ...prev };
+          for (const q of d.questions as BankQuestion[]) next[q.id] = q;
+          return next;
+        });
+      });
+  }, [quiz?.subjectId, filterLessonIds, filterDifficulty]);
 
   function toggleQuestion(qid: string) {
     setSelectedIds((ids) => (ids.includes(qid) ? ids.filter((x) => x !== qid) : [...ids, qid]));
+  }
+
+  function toggleFilterLesson(lessonId: string) {
+    setFilterLessonIds((ids) => (ids.includes(lessonId) ? ids.filter((x) => x !== lessonId) : [...ids, lessonId]));
+  }
+
+  function addAutoRow() {
+    setAutoRows((rows) => [...rows, { lessonId: "", difficulty: "any", count: 5 }]);
+  }
+
+  function removeAutoRow(index: number) {
+    setAutoRows((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  function updateAutoRow(index: number, patch: Partial<{ lessonId: string; difficulty: string; count: number }>) {
+    setAutoRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  async function runAutoSelect() {
+    const requirements = autoRows.filter((r) => r.lessonId && r.count > 0);
+    if (requirements.length === 0) {
+      setError("حدّد درس وعدد أسئلة صحيح في سطر واحد على الأقل قبل التوليد.");
+      return;
+    }
+    setAutoRunning(true);
+    setError(null);
+    setMessage(null);
+    setAutoShortfalls([]);
+    const res = await fetch("/api/questions/auto-select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requirements }),
+    });
+    setAutoRunning(false);
+    if (!res.ok) {
+      setError("تعذّر توليد الأسئلة تلقائيًا.");
+      return;
+    }
+    const data = await res.json();
+    const picked: BankQuestion[] = data.questions;
+    setQuestionsById((prev) => {
+      const next = { ...prev };
+      for (const q of picked) next[q.id] = q;
+      return next;
+    });
+    setSelectedIds((ids) => [...ids, ...picked.map((q) => q.id).filter((qid) => !ids.includes(qid))]);
+    setAutoShortfalls(data.shortfalls ?? []);
+    if (data.shortfalls?.length > 0) {
+      setMessage(`تمت إضافة ${picked.length} سؤال. لاحظ إن بعض الأسطر ملقتش عدد الأسئلة الكافي (موضّح تحت).`);
+    } else {
+      setMessage(`تمت إضافة ${picked.length} سؤال تلقائيًا. راجعهم في "الأسئلة المختارة" فوق واحفظ لما تجهّز.`);
+    }
   }
 
   function moveSelected(index: number, dir: -1 | 1) {
@@ -212,7 +322,7 @@ export default function QuizBuilderPage({
   if (!quiz) return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
 
   const selectedQuestions = selectedIds
-    .map((qid) => bankQuestions.find((q) => q.id === qid))
+    .map((qid) => questionsById[qid])
     .filter((q): q is BankQuestion => !!q);
   const totalPoints = selectedQuestions.reduce((sum, q) => sum + q.points, 0);
 
@@ -381,22 +491,140 @@ export default function QuizBuilderPage({
         )}
 
         <details className="pt-2 border-t border-border">
-          <summary className="text-sm text-primary cursor-pointer">+ إضافة أسئلة من بنك المادة</summary>
-          <div className="mt-3 space-y-2 max-h-72 overflow-y-auto">
-            {bankQuestions.length === 0 && (
-              <p className="text-sm text-ink-soft">لا توجد أسئلة في بنك هذه المادة.</p>
+          <summary className="text-sm text-primary cursor-pointer">+ إضافة أسئلة من بنك المادة يدويًا</summary>
+          <div className="mt-3 space-y-3">
+            <div>
+              <p className="text-xs font-medium text-ink-soft mb-1.5">فلترة حسب الدرس (تقدر تختار أكتر من درس عشان تخلط بينهم)</p>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto rounded-lg border border-border p-2">
+                {lessons.length === 0 && <p className="text-xs text-ink-soft px-1">لا توجد دروس لهذه المادة.</p>}
+                {lessons.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => toggleFilterLesson(l.id)}
+                    title={l.unit.title}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                      filterLessonIds.includes(l.id)
+                        ? "border-primary bg-primary-soft text-primary"
+                        : "border-border text-ink-soft hover:bg-canvas"
+                    }`}
+                  >
+                    {l.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <select
+              value={filterDifficulty}
+              onChange={(e) => setFilterDifficulty(e.target.value)}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs"
+            >
+              <option value="">كل مستويات الصعوبة</option>
+              <option value="easy">سهل</option>
+              <option value="medium">متوسط</option>
+              <option value="hard">صعب</option>
+            </select>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {bankQuestions.length === 0 && (
+                <p className="text-sm text-ink-soft">لا توجد أسئلة منشورة مطابقة لهذه الفلترة.</p>
+              )}
+              {bankQuestions.map((q) => (
+                <label key={q.id} className="flex items-center gap-2 text-sm px-1 py-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(q.id)}
+                    onChange={() => toggleQuestion(q.id)}
+                  />
+                  <span className="flex-1 truncate">{q.text}</span>
+                  {q.lesson && <span className="text-ink-soft text-xs shrink-0">{q.lesson.title}</span>}
+                  {q.difficulty && (
+                    <span className="text-ink-soft text-xs shrink-0">{DIFFICULTY_LABELS[q.difficulty]}</span>
+                  )}
+                  <span className="text-ink-soft text-xs shrink-0">{TYPE_LABELS[q.type]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </details>
+
+        <details className="pt-2 border-t border-border">
+          <summary className="text-sm text-primary cursor-pointer">🎲 توليد تلقائي من مجموعة دروس</summary>
+          <div className="mt-3 space-y-3">
+            <p className="text-xs text-ink-soft">
+              حدّد لكل درس عدد الأسئلة المطلوبة (ومستوى صعوبة اختياري)، والموقع هيختار الأسئلة عشوائيًا من الأسئلة
+              المنشورة بدون تكرار، ويضيفها لـ&quot;الأسئلة المختارة&quot; فوق - تقدر تراجعها أو تحذف أي سؤال قبل الحفظ.
+            </p>
+            <div className="space-y-2">
+              {autoRows.map((row, i) => (
+                <div key={i} className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={row.lessonId}
+                    onChange={(e) => updateAutoRow(i, { lessonId: e.target.value })}
+                    className="flex-1 min-w-[140px] rounded-lg border border-border px-3 py-1.5 text-xs"
+                  >
+                    <option value="">اختر درسًا</option>
+                    {lessons.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.unit.title} - {l.title}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={row.difficulty}
+                    onChange={(e) => updateAutoRow(i, { difficulty: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs"
+                  >
+                    <option value="any">أي مستوى</option>
+                    <option value="easy">سهل</option>
+                    <option value="medium">متوسط</option>
+                    <option value="hard">صعب</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={row.count}
+                    onChange={(e) => updateAutoRow(i, { count: Number(e.target.value) })}
+                    className="w-16 rounded-lg border border-border px-2 py-1.5 text-xs"
+                  />
+                  <span className="text-xs text-ink-soft">سؤال</span>
+                  {autoRows.length > 1 && (
+                    <button onClick={() => removeAutoRow(i)} className="text-danger hover:underline text-xs">
+                      حذف السطر
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={addAutoRow}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-canvas transition"
+              >
+                + إضافة سطر
+              </button>
+              <button
+                type="button"
+                onClick={runAutoSelect}
+                disabled={autoRunning}
+                className="rounded-lg bg-gradient-brand px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                {autoRunning ? "جارٍ التوليد..." : "توليد الأسئلة"}
+              </button>
+            </div>
+            {autoShortfalls.length > 0 && (
+              <div className="rounded-lg border border-warn/40 bg-warn-soft px-3 py-2 text-xs text-warn space-y-1">
+                {autoShortfalls.map((s, i) => (
+                  <p key={i}>
+                    {lessons.find((l) => l.id === s.lessonId)?.title ?? "درس"} (
+                    {s.difficulty === "any" ? "أي مستوى" : DIFFICULTY_LABELS[s.difficulty]}): طلبت {s.requested} ولقينا
+                    بس {s.found} سؤال منشور متاح.
+                  </p>
+                ))}
+              </div>
             )}
-            {bankQuestions.map((q) => (
-              <label key={q.id} className="flex items-center gap-2 text-sm px-1 py-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(q.id)}
-                  onChange={() => toggleQuestion(q.id)}
-                />
-                <span className="flex-1 truncate">{q.text}</span>
-                <span className="text-ink-soft text-xs">{TYPE_LABELS[q.type]}</span>
-              </label>
-            ))}
           </div>
         </details>
 

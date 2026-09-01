@@ -11,16 +11,19 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const unitId = searchParams.get("unitId");
-  if (!unitId) {
-    return NextResponse.json({ error: "unitId مطلوب." }, { status: 400 });
+  const subjectId = searchParams.get("subjectId");
+  if (!unitId && !subjectId) {
+    return NextResponse.json({ error: "unitId أو subjectId مطلوب." }, { status: 400 });
   }
 
   const lessons = await db.lesson.findMany({
     where: {
-      unitId,
+      ...(unitId ? { unitId } : {}),
+      ...(subjectId ? { unit: { subjectId } } : {}),
       ...(session.role === "student" ? { status: "published" } : {}),
     },
-    orderBy: { order: "asc" },
+    include: { unit: { select: { title: true } } },
+    orderBy: [{ unit: { order: "asc" } }, { order: "asc" }],
   });
 
   return NextResponse.json({ lessons });
