@@ -35,7 +35,7 @@ type BankQuestion = {
   text: string;
   type: string;
   points: number;
-  status: string;
+  status?: string;
   difficulty?: "easy" | "medium" | "hard";
   lesson?: { id: string; title: string } | null;
 };
