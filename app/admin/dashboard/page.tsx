@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { StatGrid } from "@/components/StatGrid";
+import { DashboardHub } from "@/components/DashboardHub";
 
 export default async function AdminDashboardPage() {
   const [
@@ -29,32 +30,39 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div className="animate-fade-in-up">
-        <h1 className="text-xl font-bold text-ink">لوحة التحكم</h1>
-        <p className="text-sm text-ink-soft mt-1">نظرة عامة على المنصة.</p>
+        <h1 className="text-xl font-bold text-ink">لوحة تحكم المنصة</h1>
+        <p className="text-sm text-ink-soft mt-1">كل أقسام الإدارة في شاشة واحدة.</p>
       </div>
 
-      <StatGrid
-        stats={[
-          { label: "إجمالي الطلاب", value: totalStudents },
-          { label: "الطلاب النشطون", value: activeStudents, accent: "accent" },
-          { label: "المجموعات", value: totalGroups },
-          { label: "الدروس المنشورة", value: publishedLessons, accent: "accent" },
-        ]}
-      />
-      <StatGrid
-        stats={[
-          { label: "إجمالي الأسئلة", value: totalQuestions },
-          { label: "اختبارات منشورة", value: publishedQuizzes, accent: "accent" },
-          { label: "محاولات مُسلَّمة", value: totalAttempts },
-          { label: "حصص حضور مُسجَّلة", value: totalSessions, accent: "accent" },
-        ]}
-      />
-      <StatGrid
-        stats={[
-          { label: "إشعارات مُرسَلة", value: totalNotifications },
-          { label: "شارات مُمنوحة", value: totalBadgesAwarded, accent: "accent" },
-        ]}
-      />
+      <DashboardHub />
+
+      <div>
+        <h2 className="text-sm font-semibold text-ink-soft mb-3">نظرة عامة سريعة</h2>
+        <div className="space-y-4">
+          <StatGrid
+            stats={[
+              { label: "إجمالي الطلاب", value: totalStudents },
+              { label: "الطلاب النشطون", value: activeStudents, accent: "accent" },
+              { label: "المجموعات", value: totalGroups },
+              { label: "الدروس المنشورة", value: publishedLessons, accent: "accent" },
+            ]}
+          />
+          <StatGrid
+            stats={[
+              { label: "إجمالي الأسئلة", value: totalQuestions },
+              { label: "اختبارات منشورة", value: publishedQuizzes, accent: "accent" },
+              { label: "محاولات مُسلَّمة", value: totalAttempts },
+              { label: "حصص حضور مُسجَّلة", value: totalSessions, accent: "accent" },
+            ]}
+          />
+          <StatGrid
+            stats={[
+              { label: "إشعارات مُرسَلة", value: totalNotifications },
+              { label: "شارات مُمنوحة", value: totalBadgesAwarded, accent: "accent" },
+            ]}
+          />
+        </div>
+      </div>
     </div>
   );
 }

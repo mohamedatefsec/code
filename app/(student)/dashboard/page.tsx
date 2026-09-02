@@ -6,6 +6,9 @@ import { StatGrid } from "@/components/StatGrid";
 import { SubjectGlyph } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
 import { CodeTypewriterLine } from "@/components/CodeTypewriter";
+import { computeStreak } from "@/lib/streak";
+import { StreakCard } from "@/components/StreakCard";
+import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -140,7 +143,7 @@ export default async function StudentDashboardPage() {
   const submittedAttempts = profile
     ? await db.quizAttempt.findMany({
         where: { studentId: profile.id, status: "submitted" },
-        select: { percentage: true },
+        select: { percentage: true, submittedAt: true },
       })
     : [];
   const averagePercentage =
@@ -156,7 +159,7 @@ export default async function StudentDashboardPage() {
   const attendanceRecords = profile
     ? await db.attendanceRecord.findMany({
         where: { studentId: profile.id },
-        select: { status: true },
+        select: { status: true, session: { select: { sessionDate: true } } },
       })
     : [];
   const attendancePercentage =
@@ -167,6 +170,41 @@ export default async function StudentDashboardPage() {
             1000
         ) / 10
       : null;
+
+  // سلسلة النشاط المتتالية: أي يوم فيه حضور فعلي أو تسليم اختبار يُحتسب
+  // "يوم نشاط" - بنجمع التواريخ من المصدرين ونحسب أطول سلسلة متصلة بآخر
+  // يوم نشاط (النهاردة أو أمس) عشان السلسلة متتصفرش لمجرد إن الطالب لسه
+  // مادخلش النهاردة.
+  const activityDates = [
+    ...attendanceRecords.filter((r) => r.status !== "absent").map((r) => r.session.sessionDate),
+    ...submittedAttempts.map((a) => a.submittedAt).filter((d): d is Date => d !== null),
+  ];
+  const streak = computeStreak(activityDates);
+
+  // لوحة الصدارة: أعلى 5 طلاب في نفس مجموعة الطالب بعدد الشارات، مع تمييز
+  // ترتيب الطالب الحالي حتى لو مش ضمن الخمسة الأوائل.
+  let leaderboard: LeaderboardEntry[] = [];
+  if (profile?.groupId) {
+    const groupmates = await db.studentProfile.findMany({
+      where: { groupId: profile.groupId },
+      select: { id: true, fullName: true, _count: { select: { studentBadges: true } } },
+      orderBy: { studentBadges: { _count: "desc" } },
+    });
+    leaderboard = groupmates.slice(0, 5).map((s) => ({
+      id: s.id,
+      name: s.fullName,
+      badgeCount: s._count.studentBadges,
+      isMe: s.id === profile.id,
+    }));
+    const meIncluded = leaderboard.some((e) => e.isMe);
+    if (!meIncluded) {
+      const meIndex = groupmates.findIndex((s) => s.id === profile.id);
+      if (meIndex !== -1) {
+        const me = groupmates[meIndex];
+        leaderboard.push({ id: me.id, name: me.fullName, badgeCount: me._count.studentBadges, isMe: true });
+      }
+    }
+  }
 
   const allBadges = await db.badge.findMany();
   const earnedBadgeIds = profile
@@ -239,6 +277,11 @@ export default async function StudentDashboardPage() {
           { label: "الدروس", value: lessonsCount, icon: <LessonIcon /> },
         ]}
       />
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <StreakCard streak={streak} />
+        <LeaderboardCard entries={leaderboard} groupName={profile?.group?.name ?? null} />
+      </div>
 
       <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
         <div
@@ -344,9 +387,9 @@ export default async function StudentDashboardPage() {
         <div className="relative">
           <h3 className="font-semibold text-ink">استمر في التعلم كل يوم</h3>
           <p className="text-sm text-ink-soft mt-1">
-            {attendancePercentage !== null
-              ? `سُجّل حضورك في ${attendanceRecords.length} حصة حتى الآن — كل خطوة صغيرة تقرّبك من هدفك الأكبر.`
-              : "لم يُسجَّل حضورك في أي حصة بعد — كل خطوة صغيرة تقرّبك من هدفك الأكبر."}
+            {streak > 0
+              ? `سلسلتك الحالية ${streak} ${streak === 1 ? "يوم" : "أيام"} متتالية — كل خطوة صغيرة تقرّبك من هدفك الأكبر.`
+              : "ابدأ سلسلتك النهاردة — كل خطوة صغيرة تقرّبك من هدفك الأكبر."}
           </p>
         </div>
         <Link

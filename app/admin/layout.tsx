@@ -18,7 +18,7 @@ export default async function AdminLayout({
   ]);
 
   return (
-    <AdminShell adminName={profile?.fullName ?? "المدير"} platformName={platformName}>
+    <AdminShell adminName={profile?.fullName ?? "المدير"} avatarUrl={profile?.avatarUrl ?? null} platformName={platformName}>
       {children}
     </AdminShell>
   );

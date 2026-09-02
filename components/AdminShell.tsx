@@ -7,21 +7,10 @@ import { motion } from "framer-motion";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { UnpaidAlertBell } from "./UnpaidAlertBell";
-
-const NAV_ITEMS = [
-  { href: "/admin/dashboard", label: "لوحة التحكم", icon: "▤" },
-  { href: "/admin/students", label: "الطلاب", icon: "🎓" },
-  { href: "/admin/groups", label: "المجموعات", icon: "👥" },
-  { href: "/admin/attendance", label: "الحضور والغياب", icon: "📅" },
-  { href: "/admin/content", label: "المحتوى التعليمي", icon: "📚" },
-  { href: "/admin/question-bank", label: "بنك الأسئلة", icon: "❓" },
-  { href: "/admin/ai-generator", label: "توليد بالذكاء الاصطناعي", icon: "✨" },
-  { href: "/admin/quizzes", label: "الاختبارات", icon: "📝" },
-  { href: "/admin/grading", label: "التصحيح اليدوي", icon: "✍️" },
-  { href: "/admin/notifications", label: "الإشعارات", icon: "🔔" },
-  { href: "/admin/badges", label: "الشارات", icon: "🏆" },
-  { href: "/admin/settings", label: "الإعدادات", icon: "⚙️" },
-];
+import { AdminIcons } from "./AdminIcons";
+import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav";
+import { Avatar } from "./Avatar";
+import { CommandPalette } from "./CommandPalette";
 
 /// قائمة التنقل نفسها تُستخدم في الشريط الجانبي الثابت (ديسكتوب) وفي
 /// القائمة المنسدلة (موبايل)، فصلناها في دالة واحدة لتفادي تكرار المنطق.
@@ -39,8 +28,9 @@ function AdminNavLinks({
 }) {
   return (
     <nav className="flex flex-col gap-0.5 text-sm">
-      {NAV_ITEMS.map((item) => {
+      {ADMIN_NAV_ITEMS.map((item) => {
         const active = pathname === item.href || pathname?.startsWith(item.href + "/");
+        const Icon = AdminIcons[item.icon];
         return (
           <Link
             key={item.href}
@@ -60,7 +50,7 @@ function AdminNavLinks({
                 transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
               />
             )}
-            <span className="relative w-4 text-center z-10">{item.icon}</span>
+            <Icon className="relative w-4.5 h-4.5 shrink-0 z-10" />
             <span className="relative z-10">{item.label}</span>
           </Link>
         );
@@ -69,19 +59,25 @@ function AdminNavLinks({
   );
 }
 
-function SidebarBrand({ platformName }: { platformName: string }) {
+function SidebarBrand({
+  platformName,
+  adminName,
+  avatarUrl,
+}: {
+  platformName: string;
+  adminName: string;
+  avatarUrl?: string | null;
+}) {
   return (
-    <div className="flex items-start gap-2 text-white mb-8 px-1">
-      <span className="font-mono text-accent shrink-0 leading-6">{">"}_</span>
-      <span className="font-bold tracking-tight leading-snug break-words flex-1 min-w-0">
-        {platformName}
-      </span>
-      <span
-        className="text-[10px] font-mono rounded px-1.5 py-0.5 border shrink-0 mt-0.5"
-        style={{ borderColor: "var(--color-sidebar-border)", color: "var(--color-sidebar-text)" }}
-      >
-        أدمن
-      </span>
+    <div
+      className="flex items-center gap-3 rounded-xl px-3 py-3 mb-6 border"
+      style={{ borderColor: "var(--color-sidebar-border)", background: "rgba(255,255,255,0.03)" }}
+    >
+      <Avatar name={adminName} avatarUrl={avatarUrl} size={38} />
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-white leading-snug break-words">{platformName}</p>
+        <p className="text-[11px] text-accent font-mono">{adminName}</p>
+      </div>
     </div>
   );
 }
@@ -89,10 +85,12 @@ function SidebarBrand({ platformName }: { platformName: string }) {
 export function AdminShell({
   children,
   adminName,
+  avatarUrl,
   platformName,
 }: {
   children: React.ReactNode;
   adminName: string;
+  avatarUrl?: string | null;
   platformName: string;
 }) {
   const pathname = usePathname();
@@ -126,7 +124,7 @@ export function AdminShell({
           color: "var(--color-sidebar-text)",
         }}
       >
-        <SidebarBrand platformName={platformName} />
+        <SidebarBrand platformName={platformName} adminName={adminName} avatarUrl={avatarUrl} />
         <AdminNavLinks pathname={pathname} animated />
       </aside>
 
@@ -151,7 +149,7 @@ export function AdminShell({
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <SidebarBrand platformName={platformName} />
+            <SidebarBrand platformName={platformName} adminName={adminName} avatarUrl={avatarUrl} />
           </div>
           <button
             onClick={() => setNavOpen(false)}
@@ -182,15 +180,21 @@ export function AdminShell({
               </svg>
             </button>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="font-mono text-primary shrink-0">{">"}_</span>
+              <Avatar name={adminName} avatarUrl={avatarUrl} size={30} />
               <span className="font-bold leading-tight break-words">{platformName}</span>
             </div>
           </div>
-          <div className="hidden md:block" />
+          <div className="hidden md:block">
+            <CommandPalette trigger="button" />
+          </div>
           <div className="flex items-center gap-3">
+            <div className="md:hidden">
+              <CommandPalette trigger="icon" />
+            </div>
             <UnpaidAlertBell />
             <ThemeToggle />
-            <span className="text-sm text-ink-soft hidden sm:inline">
+            <span className="hidden sm:flex items-center gap-2 text-sm text-ink-soft">
+              <Avatar name={adminName} avatarUrl={avatarUrl} size={28} />
               مرحبًا، <span className="text-ink font-medium">{adminName}</span>
             </span>
             <LogoutButton />
