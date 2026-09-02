@@ -27,6 +27,7 @@ export default async function QuizPrintPage({
         orderBy: { order: "asc" },
         select: {
           order: true,
+          pointsOverride: true,
           question: {
             select: {
               id: true,
