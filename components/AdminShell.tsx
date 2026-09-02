@@ -115,9 +115,11 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen">
-      {/* الشريط الجانبي الثابت - يظهر على الشاشات المتوسطة فأكبر فقط */}
+      {/* الشريط الجانبي الثابت - يظهر على الشاشات المتوسطة فأكبر فقط.
+          print:hidden عشان يختفي تلقائيًا في أي صفحة أدمن بتتطبع (مش
+          مقصورة على صفحة طباعة الاختبار بس). */}
       <aside
-        className="hidden md:flex w-64 shrink-0 flex-col p-5 border-e"
+        className="hidden md:flex w-64 shrink-0 flex-col p-5 border-e print:hidden"
         style={{
           background: "var(--color-sidebar)",
           borderColor: "var(--color-sidebar-border)",
@@ -132,7 +134,7 @@ export function AdminShell({
           اللي كان ناقصًا تمامًا، وكان سبب عدم قدرة الأدمن على التنقل
           بين الصفحات على الموبايل. */}
       <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 md:hidden print:hidden transition-opacity duration-300 ${
           navOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         role="dialog"
@@ -163,7 +165,7 @@ export function AdminShell({
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-20 flex items-center justify-between glass-surface border-b border-border px-6 py-3.5">
+        <header className="sticky top-0 z-20 flex items-center justify-between glass-surface border-b border-border px-6 py-3.5 print:hidden">
           <div className="md:hidden flex items-center gap-3">
             <button
               onClick={() => setNavOpen(true)}
@@ -194,7 +196,7 @@ export function AdminShell({
             <LogoutButton />
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 print:p-0">{children}</main>
       </div>
     </div>
   );
