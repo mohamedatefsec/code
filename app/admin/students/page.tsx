@@ -76,7 +76,7 @@ function AdminStudentsPageInner() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-ink">الطلاب</h1>
-          <p className="text-sm text-ink-soft mt-1">إدارة حسابات الطلاب — الإنشاء يكون من هنا فقط.</p>
+          <p className="text-sm text-ink-soft mt-1">إدارة حسابات الطلاب.</p>
         </div>
         <Link
           href="/admin/students/new"

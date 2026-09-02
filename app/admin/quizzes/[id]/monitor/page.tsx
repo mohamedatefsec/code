@@ -43,12 +43,7 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
   const [data, setData] = useState<MonitorData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [reopeningId, setReopeningId] = useState<string | null>(null);
   const [grantingId, setGrantingId] = useState<string | null>(null);
-  const [clearingId, setClearingId] = useState<string | null>(null);
-  const [clearingAll, setClearingAll] = useState(false);
-  const [resettingId, setResettingId] = useState<string | null>(null);
-  const [resettingAll, setResettingAll] = useState(false);
 
   const load = useCallback(() => {
     fetch(`/api/quizzes/${quizId}/monitor`)
@@ -77,18 +72,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     return () => clearInterval(tick);
   }, []);
 
-  async function handleReopen(attemptId: string) {
-    setReopeningId(attemptId);
-    const res = await fetch(`/api/attempts/${attemptId}/reopen`, { method: "POST" });
-    setReopeningId(null);
-    if (res.ok) {
-      load();
-    } else {
-      const d = await res.json().catch(() => null);
-      alert(d?.error ?? "تعذّر فتح المحاولة من جديد.");
-    }
-  }
-
   async function handleGrantAttempt(studentId: string, studentName: string) {
     if (!confirm(`هل تريد منح "${studentName}" محاولة إضافية لهذا الاختبار؟ نتائجه السابقة ستبقى محفوظة كما هي.`)) {
       return;
@@ -105,96 +88,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
     } else {
       const d = await res.json().catch(() => null);
       alert(d?.error ?? "تعذّر منح المحاولة الإضافية.");
-    }
-  }
-
-  async function handleClearAttempts(studentId: string, studentName: string) {
-    if (
-      !confirm(
-        `هل تريد مسح كل محاولات "${studentName}" في هذا الاختبار نهائيًا؟ سيُحذف السجل بالكامل (الدرجات والإجابات) ولا يمكن التراجع، ولن يحصل الطالب على فرصة دخول جديدة نتيجة المسح.`
-      )
-    ) {
-      return;
-    }
-    setClearingId(studentId);
-    const res = await fetch(`/api/quizzes/${quizId}/clear-attempts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId }),
-    });
-    setClearingId(null);
-    if (res.ok) {
-      load();
-    } else {
-      const d = await res.json().catch(() => null);
-      alert(d?.error ?? "تعذّر مسح المحاولات.");
-    }
-  }
-
-  async function handleClearAllAttempts() {
-    if (!data) return;
-    const studentsWithAttempts = data.students.filter((s) => s.attemptsUsed > 0).length;
-    if (studentsWithAttempts === 0) {
-      alert("لا توجد أي محاولات على هذا الاختبار لمسحها.");
-      return;
-    }
-    if (
-      !confirm(
-        `هل تريد مسح كل محاولات كل الطلاب (${studentsWithAttempts} طالب) في هذا الاختبار نهائيًا؟ سيُحذف السجل بالكامل (الدرجات والإجابات) لكل الطلاب ولا يمكن التراجع، ولن يحصل أي طالب على فرصة دخول جديدة نتيجة المسح.`
-      )
-    ) {
-      return;
-    }
-    setClearingAll(true);
-    const res = await fetch(`/api/quizzes/${quizId}/clear-all-attempts`, { method: "POST" });
-    setClearingAll(false);
-    if (res.ok) {
-      load();
-    } else {
-      const d = await res.json().catch(() => null);
-      alert(d?.error ?? "تعذّر مسح المحاولات.");
-    }
-  }
-
-  async function handleResetCounters(studentId: string, studentName: string) {
-    if (
-      !confirm(
-        `هل تريد تصفير عدّادَي "المنح" و"المسح" لـ "${studentName}" في هذا الاختبار؟ ده هيرجّع حساب عدد المحاولات المتاحة له لقيمة الاختبار الأساسية (من غير أي منح أو خصم سابق) - يعني ممكن يغيّر عدد المحاولات المتاحة له فعليًا، مش بس شكل الأرقام. مش هيمسّ أي محاولة حقيقية اتسجّلت.`
-      )
-    ) {
-      return;
-    }
-    setResettingId(studentId);
-    const res = await fetch(`/api/quizzes/${quizId}/reset-counters`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId }),
-    });
-    setResettingId(null);
-    if (res.ok) {
-      load();
-    } else {
-      const d = await res.json().catch(() => null);
-      alert(d?.error ?? "تعذّر تصفير العدّادات.");
-    }
-  }
-
-  async function handleResetAllCounters() {
-    if (
-      !confirm(
-        'هل تريد تصفير عدّادَي "المنح" و"المسح" لكل الطلاب في هذا الاختبار؟ ده هيرجّع حساب عدد المحاولات المتاحة لكل طالب لقيمة الاختبار الأساسية (من غير أي منح أو خصم سابق) - يعني ممكن يغيّر عدد المحاولات المتاحة فعليًا لبعض الطلاب، مش بس شكل الأرقام. مش هيمسّ أي محاولة حقيقية اتسجّلت.'
-      )
-    ) {
-      return;
-    }
-    setResettingAll(true);
-    const res = await fetch(`/api/quizzes/${quizId}/reset-all-counters`, { method: "POST" });
-    setResettingAll(false);
-    if (res.ok) {
-      load();
-    } else {
-      const d = await res.json().catch(() => null);
-      alert(d?.error ?? "تعذّر تصفير العدّادات.");
     }
   }
 
@@ -216,22 +109,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
           <p className="text-sm text-ink-soft mt-1">
             مدة الاختبار {data.quiz.durationMinutes} دقيقة · الصفحة تتحدّث تلقائيًا كل 10 ثوانٍ.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleResetAllCounters}
-            disabled={resettingAll}
-            className="rounded-lg border border-border bg-canvas px-4 py-2 text-sm font-medium text-ink-soft hover:bg-border/40 transition disabled:opacity-50"
-          >
-            {resettingAll ? "جارٍ التصفير..." : "تصفير عدّادات كل الطلاب"}
-          </button>
-          <button
-            onClick={handleClearAllAttempts}
-            disabled={clearingAll}
-            className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
-          >
-            {clearingAll ? "جارٍ المسح..." : "مسح محاولات كل الطلاب"}
-          </button>
         </div>
       </div>
 
@@ -257,7 +134,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
             {data.students.map((s) => {
               const attempt = s.latestAttempt;
               let statusNode: React.ReactNode;
-              let showReopen = false;
 
               if (!attempt) {
                 statusNode = <span className="text-ink-soft">لم يبدأ بعد</span>;
@@ -287,7 +163,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                   );
                 } else {
                   statusNode = <span className="text-danger">انتهى الوقت ولم يُسلَّم بعد</span>;
-                  showReopen = true;
                 }
               }
 
@@ -310,15 +185,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                   </td>
                   <td className="px-4 py-3 text-end whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
-                      {showReopen && attempt && (
-                        <button
-                          onClick={() => handleReopen(attempt.id)}
-                          disabled={reopeningId === attempt.id}
-                          className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:opacity-90 transition disabled:opacity-50"
-                        >
-                          {reopeningId === attempt.id ? "جارٍ الفتح..." : "منح وقت جديد للدخول"}
-                        </button>
-                      )}
                       {attempt?.status === "submitted" && (
                         <button
                           onClick={() => handleGrantAttempt(s.id, s.fullName)}
@@ -326,24 +192,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
                           className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:opacity-90 transition disabled:opacity-50"
                         >
                           {grantingId === s.id ? "جارٍ المنح..." : "منح محاولة إضافية"}
-                        </button>
-                      )}
-                      {(s.extraGrants > 0 || s.clearedAttempts > 0) && (
-                        <button
-                          onClick={() => handleResetCounters(s.id, s.fullName)}
-                          disabled={resettingId === s.id}
-                          className="rounded-lg border border-border bg-canvas px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-border/40 transition disabled:opacity-50"
-                        >
-                          {resettingId === s.id ? "جارٍ التصفير..." : "تصفير العدّادات"}
-                        </button>
-                      )}
-                      {s.attemptsUsed > 0 && (
-                        <button
-                          onClick={() => handleClearAttempts(s.id, s.fullName)}
-                          disabled={clearingId === s.id}
-                          className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger hover:opacity-90 transition disabled:opacity-50"
-                        >
-                          {clearingId === s.id ? "جارٍ المسح..." : "مسح المحاولات"}
                         </button>
                       )}
                     </div>
@@ -355,19 +203,6 @@ export default function QuizMonitorPage({ params }: { params: Promise<{ id: stri
         </table>
       </div>
 
-      <p className="text-xs text-ink-soft">
-        &quot;منح وقت جديد للدخول&quot; يعيد فتح نفس المحاولة العالقة من جديد (بدون احتساب محاولة إضافية)،
-        والعدّاد ما بيبدأش إلا لما الطالب نفسه يدخل ويضغط زر البدء. &quot;منح محاولة إضافية&quot; يفتح
-        للطالب فرصة إضافية بعد التسليم دون التأثير على نتيجته السابقة المحفوظة ولا على عدد المحاولات
-        المسموح به لباقي الطلاب. &quot;مسح المحاولات&quot; (لطالب واحد) و&quot;مسح محاولات كل الطلاب&quot;
-        (للكل دفعة واحدة) يحذفان نهائيًا سجل المحاولات (الدرجات والإجابات) - ده إجراء لا يمكن التراجع
-        عنه، ولا يمنح أي طالب فرصة دخول جديدة نتيجة المسح. &quot;تصفير العدّادات&quot; بيرجّع الرقمين
-        &quot;(+N)&quot; و&quot;(مسح N)&quot; الظاهرين في عمود المحاولات للصفر، وده بيرجّع حساب عدد
-        المحاولات المتاحة للطالب لقيمة الاختبار الأساسية (بدون أي منح أو خصم سابق) - يعني ممكن يزوّد
-        أو يقلّل عدد المحاولات المتاحة فعليًا له حسب اللي كان مسجّل قبل التصفير، فاستخدمه بس لو الأرقام
-        دي ناتجة من تجربة/اختبار وعايز ترجّعها زي ما كانت، مش لو فيه محاولات حقيقية لطلاب فعليين
-        اتبنت عليها.
-      </p>
     </div>
   );
 }
