@@ -21,6 +21,7 @@ const DEFAULT_FEATURES: Feature[] = [
 type Settings = {
   id: string;
   platformName: string;
+  tagline: string | null;
   teacherName: string | null;
   teacherPhotoUrl: string | null;
   teacherPhotoUrl2: string | null;
@@ -75,6 +76,7 @@ export default function AdminSettingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         platformName: settings.platformName,
+        tagline: settings.tagline,
         teacherName: settings.teacherName,
         teacherPhotoUrl: settings.teacherPhotoUrl || null,
         teacherPhotoUrl2: settings.teacherPhotoUrl2 || null,
@@ -185,6 +187,20 @@ export default function AdminSettingsPage() {
           <div>
             <label className="block text-sm font-medium text-ink mb-1.5">اسم المنصة</label>
             <input {...field("platformName")} className={inputClass} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">
+              العبارة تحت اسم المنصة
+            </label>
+            <input
+              {...field("tagline")}
+              placeholder="للتعلم الذكي"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-ink-soft">
+              بتظهر تحت اسم المنصة في شريط الطالب الجانبي.
+            </p>
           </div>
 
           <div>

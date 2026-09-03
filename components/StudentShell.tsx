@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScreenshotGuard } from "./ScreenshotGuard";
+import { Avatar } from "./Avatar";
 
 const NAV_ITEMS = [
   {
@@ -61,28 +62,42 @@ const NAV_ITEMS = [
   },
 ];
 
-/// شعار المنصة: أيقونة قبعة تخرّج داخل دائرة متدرّجة، بنفس هوية المنصة
-/// اللونية (gradient-brand) - نفس التدرّج المستخدم في كل مكان آخر بالموقع.
-function SidebarBrand({ platformName }: { platformName: string }) {
+/// شعار المنصة: صورة الأدمن (المدرّس) لو موجودة، وإلا أيقونة قبعة تخرّج
+/// داخل دائرة متدرّجة بنفس هوية المنصة اللونية (gradient-brand).
+function SidebarBrand({
+  platformName,
+  tagline,
+  adminAvatarUrl,
+  adminName,
+}: {
+  platformName: string;
+  tagline: string;
+  adminAvatarUrl?: string | null;
+  adminName?: string | null;
+}) {
   return (
     <div className="flex items-center gap-2.5 px-2 mb-2">
-      <span
-        className="grid place-items-center w-9 h-9 rounded-xl shrink-0 text-white shadow-glow"
-        style={{ background: "var(--gradient-brand)" }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-          <path
-            d="M12 4 2 8.5 12 13l10-4.5L12 4Z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-          <path d="M6 10.5V15c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      </span>
+      {adminAvatarUrl ? (
+        <Avatar name={adminName || platformName} avatarUrl={adminAvatarUrl} size={36} />
+      ) : (
+        <span
+          className="grid place-items-center w-9 h-9 rounded-xl shrink-0 text-white shadow-glow"
+          style={{ background: "var(--gradient-brand)" }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+            <path
+              d="M12 4 2 8.5 12 13l10-4.5L12 4Z"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            <path d="M6 10.5V15c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </span>
+      )}
       <div className="min-w-0 leading-tight">
         <p className="font-bold text-ink break-words">{platformName}</p>
-        <p className="text-[11px] text-ink-soft">للتعلم الذكي</p>
+        <p className="text-[11px] text-ink-soft">{tagline}</p>
       </div>
     </div>
   );
@@ -135,10 +150,16 @@ export function StudentShell({
   children,
   studentName,
   platformName,
+  tagline = "للتعلم الذكي",
+  adminAvatarUrl,
+  adminName,
 }: {
   children: React.ReactNode;
   studentName: string;
   platformName: string;
+  tagline?: string;
+  adminAvatarUrl?: string | null;
+  adminName?: string | null;
 }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
@@ -162,7 +183,7 @@ export function StudentShell({
       <div className="min-h-screen flex">
         {/* الشريط الجانبي الثابت - على اليمين في واجهة RTL */}
         <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-s border-border bg-surface p-5">
-          <SidebarBrand platformName={platformName} />
+          <SidebarBrand platformName={platformName} tagline={tagline} adminAvatarUrl={adminAvatarUrl} adminName={adminName} />
           <div className="mt-4 flex-1">
           <NavLinks pathname={pathname} animated />
         </div>
@@ -199,7 +220,7 @@ export function StudentShell({
           style={{ transform: navOpen ? "translateX(0)" : "translateX(100%)" }}
         >
           <div className="flex items-center justify-between mb-2">
-            <SidebarBrand platformName={platformName} />
+            <SidebarBrand platformName={platformName} tagline={tagline} adminAvatarUrl={adminAvatarUrl} adminName={adminName} />
             <button
               onClick={() => setNavOpen(false)}
               aria-label="إغلاق القائمة"

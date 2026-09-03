@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Avatar } from "@/components/Avatar";
 
 const CODE_LINES = [
   { indent: 0, text: "class Student:" },
@@ -19,15 +20,31 @@ const CODE_LINES = [
   { indent: 0, text: "# model.predict(next_lesson)" },
 ];
 
-export function LoginForm({ platformName }: { platformName: string }) {
+export function LoginForm({
+  platformName,
+  adminAvatarUrl,
+  adminName,
+}: {
+  platformName: string;
+  adminAvatarUrl?: string | null;
+  adminName?: string | null;
+}) {
   return (
     <Suspense fallback={null}>
-      <LoginFormInner platformName={platformName} />
+      <LoginFormInner platformName={platformName} adminAvatarUrl={adminAvatarUrl} adminName={adminName} />
     </Suspense>
   );
 }
 
-function LoginFormInner({ platformName }: { platformName: string }) {
+function LoginFormInner({
+  platformName,
+  adminAvatarUrl,
+  adminName,
+}: {
+  platformName: string;
+  adminAvatarUrl?: string | null;
+  adminName?: string | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionEnded = searchParams.get("reason") === "session-ended";
@@ -90,9 +107,13 @@ function LoginFormInner({ platformName }: { platformName: string }) {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative flex items-center gap-2 text-white min-w-0"
+          className="relative flex items-center gap-2.5 text-white min-w-0"
         >
-          <span className="font-mono text-accent text-lg shrink-0">{">"}_</span>
+          {adminAvatarUrl ? (
+            <Avatar name={adminName || platformName} avatarUrl={adminAvatarUrl} size={32} />
+          ) : (
+            <span className="font-mono text-accent text-lg shrink-0">{">"}_</span>
+          )}
           <span className="font-bold text-xl truncate">{platformName}</span>
         </motion.div>
 
@@ -146,9 +167,13 @@ function LoginFormInner({ platformName }: { platformName: string }) {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-sm"
         >
-          <div className="mb-8 text-center lg:hidden">
-            <span className="font-mono text-primary text-lg">{">"}_</span>
-            <span className="font-bold text-xl ms-2">{platformName}</span>
+          <div className="mb-8 flex items-center justify-center gap-2.5 lg:hidden">
+            {adminAvatarUrl ? (
+              <Avatar name={adminName || platformName} avatarUrl={adminAvatarUrl} size={32} />
+            ) : (
+              <span className="font-mono text-primary text-lg">{">"}_</span>
+            )}
+            <span className="font-bold text-xl">{platformName}</span>
           </div>
 
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-ink-soft hover:text-ink mb-6 transition-colors">

@@ -85,6 +85,7 @@ const imagePathSchema = z
 
 export const settingsUpdateSchema = z.object({
   platformName: z.string().min(1).max(100).optional(),
+  tagline: z.string().max(100).nullable().optional(),
   logoUrl: imagePathSchema,
   faviconUrl: imagePathSchema,
   teacherName: z.string().max(100).nullable().optional(),

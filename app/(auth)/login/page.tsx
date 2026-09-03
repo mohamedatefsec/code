@@ -1,7 +1,16 @@
 import { LoginForm } from "@/components/LoginForm";
-import { getPlatformName } from "@/lib/settings";
+import { getPlatformName, getPrimaryAdminBrand } from "@/lib/settings";
 
 export default async function LoginPage() {
-  const platformName = await getPlatformName();
-  return <LoginForm platformName={platformName} />;
+  const [platformName, adminBrand] = await Promise.all([
+    getPlatformName(),
+    getPrimaryAdminBrand(),
+  ]);
+  return (
+    <LoginForm
+      platformName={platformName}
+      adminAvatarUrl={adminBrand.avatarUrl}
+      adminName={adminBrand.fullName}
+    />
+  );
 }

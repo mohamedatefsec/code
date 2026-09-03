@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TeacherPhoto } from "@/components/TeacherPhoto";
+import { normalizeWhatsappLink } from "@/lib/social-links";
 
 async function getLandingData() {
   const [settings, studentCount, lessonCount, quizCount, subjects] = await Promise.all([
@@ -349,8 +350,13 @@ export default async function LandingPage() {
                     يوتيوب
                   </a>
                 )}
-                {socialLinks.whatsapp && (
-                  <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                {normalizeWhatsappLink(socialLinks.whatsapp) && (
+                  <a
+                    href={normalizeWhatsappLink(socialLinks.whatsapp)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
                     واتساب
                   </a>
                 )}

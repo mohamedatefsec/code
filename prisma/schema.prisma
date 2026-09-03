@@ -535,6 +535,9 @@ model Payment {
 model Settings {
   id              String   @id @default(cuid())
   platformName    String   @default("Code AI") @map("platform_name")
+  /// العبارة الصغيرة اللي بتظهر تحت اسم المنصة في شريط الطالب الجانبي
+  /// (افتراضيًا "للتعلم الذكي") - قابلة للتعديل من صفحة إعدادات الأدمن.
+  tagline         String?  @map("tagline")
   logoUrl         String?  @map("logo_url")
   faviconUrl      String?  @map("favicon_url")
   teacherName     String?  @map("teacher_name")
