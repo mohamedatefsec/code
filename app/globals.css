@@ -118,6 +118,24 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+/* عناصر <select> الأصلية (native) بيرسم قائمة اختياراتها المنسدلة
+   المتصفح نفسه بصريًا، ومش دايمًا بتاخد ألوان الموقع تلقائيًا لو محدّدنالهاش
+   خلفية/لون نص صريح - فبتفضل بيضا في الوضع الداكن وتبقى الخيارات مش واضحة.
+   بنحدّد الخلفية واللون صراحة هنا (مرة واحدة، لكل select في المشروع) عشان
+   الصندوق نفسه وقائمة الخيارات لما تتفتح يتبعوا ثيم الموقع في الوضعين. */
+select {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  color-scheme: inherit;
+}
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+select:disabled {
+  opacity: 0.6;
+}
+
 /* أرقام الإحصائيات تُعرض بخط Mono — توقيع بصري يذكّر بمخرجات الأكواد الحية */
 .stat-figure {
   font-family: var(--font-mono);
