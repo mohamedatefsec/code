@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cairo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { db } from "@/lib/db";
+import { ensureReadableOnDark } from "@/lib/color";
 
 const cairo = Cairo({
   variable: "--font-cairo",
@@ -43,8 +44,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const primary = settings?.primaryColor && HEX_RE.test(settings.primaryColor) ? settings.primaryColor : null;
   const accent = settings?.secondaryColor && HEX_RE.test(settings.secondaryColor) ? settings.secondaryColor : null;
 
+  // في الوضع الداكن، لون غامق جدًا (زي أسود تقريبًا) يختفي على خلفية
+  // داكنة. بنولّد نسخة أفتح تلقائيًا (نفس اللون، إضاءة أعلى) تُستخدم في
+  // ".dark" بس، عشان النصوص والأرقام بتاعة الإحصائيات تفضل واضحة مهما
+  // كان اللون اللي اختاره الأدمن في الإعدادات.
+  const primaryDark = primary ? ensureReadableOnDark(primary, 0.62) : null;
+  const accentDark = accent ? ensureReadableOnDark(accent, 0.55) : null;
+
   const dynamicThemeCss = (primary || accent)
-    ? `:root, .dark {
+    ? `:root {
         ${primary ? `--color-primary: ${primary};
         --color-primary-dim: color-mix(in srgb, ${primary} 80%, black);
         --color-primary-soft: color-mix(in srgb, ${primary} 12%, white);
@@ -54,8 +62,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         --color-accent-glow: color-mix(in srgb, ${accent} 24%, transparent);` : ""}
       }
       .dark {
-        ${primary ? `--color-primary-soft: color-mix(in srgb, ${primary} 20%, black);` : ""}
-        ${accent ? `--color-accent-soft: color-mix(in srgb, ${accent} 16%, black);` : ""}
+        ${primaryDark ? `--color-primary: ${primaryDark};
+        --color-primary-dim: color-mix(in srgb, ${primaryDark} 85%, white);
+        --color-primary-soft: color-mix(in srgb, ${primaryDark} 20%, black);
+        --color-primary-glow: color-mix(in srgb, ${primaryDark} 28%, transparent);` : ""}
+        ${accentDark ? `--color-accent: ${accentDark};
+        --color-accent-soft: color-mix(in srgb, ${accentDark} 16%, black);
+        --color-accent-glow: color-mix(in srgb, ${accentDark} 24%, transparent);` : ""}
       }`
     : null;
 
