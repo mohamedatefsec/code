@@ -218,6 +218,19 @@ body {
   50% { opacity: 1; }
 }
 
+/* انفجار كونفيتي بسيط (نقطة واحدة) لبطاقة "إنجاز جديد" - كل نقطة بتتحرك
+   بزاوية/مدى مختلف عبر --tx/--ty/--rot، وبتتلاشى مع الحركة. */
+@keyframes confettiBurst {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
 /* مؤشر كتابة نابض (٠/١ صريحة) - يُستخدم في السطر الحي داخل بانر لوحة
    التحكم، بيحاكي مؤشر الكتابة في محرر أكواد. */
 @keyframes blink {

@@ -9,6 +9,7 @@ import { CodeTypewriterLine } from "@/components/CodeTypewriter";
 import { computeStreak } from "@/lib/streak";
 import { StreakCard } from "@/components/StreakCard";
 import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
+import { BadgeCelebration } from "@/components/BadgeCelebration";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -207,21 +208,31 @@ export default async function StudentDashboardPage() {
   }
 
   const allBadges = await db.badge.findMany();
-  const earnedBadgeIds = profile
-    ? new Set(
-        (
-          await db.studentBadge.findMany({
-            where: { studentId: profile.id },
-            select: { badgeId: true },
-          })
-        ).map((b) => b.badgeId)
-      )
-    : new Set<string>();
+  const earnedBadgeRecords = profile
+    ? await db.studentBadge.findMany({
+        where: { studentId: profile.id },
+        select: { badgeId: true, awardedAt: true },
+      })
+    : [];
+  const earnedBadgeIds = new Set(earnedBadgeRecords.map((b) => b.badgeId));
+
+  // الاحتفال (صوت + حركة) يقتصر على شارات اتحصلت عليها الأيام الأخيرة -
+  // عشان طالب قديم عنده شارات كتير من زمان متتقفلش عليه كل الاحتفالات
+  // مرة واحدة أول ما الميزة دي تتفعّل على حسابه.
+  const RECENT_DAYS = 3;
+  const recentCutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+  const recentlyEarnedIds = new Set(
+    earnedBadgeRecords.filter((b) => b.awardedAt >= recentCutoff).map((b) => b.badgeId)
+  );
+  const earnedBadgesForCelebration = allBadges
+    .filter((b) => recentlyEarnedIds.has(b.id))
+    .map((b) => ({ id: b.id, name: b.name, description: b.description, icon: b.icon }));
 
   const firstName = profile?.fullName?.split(" ")[0] ?? "طالبنا";
 
   return (
     <div className="space-y-6">
+      {profile && <BadgeCelebration studentId={profile.id} earnedBadges={earnedBadgesForCelebration} />}
       {/* البانر الترحيبي */}
       <div
         className="relative overflow-hidden rounded-2xl px-6 sm:px-8 py-7 sm:py-9 shadow-glow animate-fade-in-up"
