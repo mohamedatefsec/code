@@ -8,6 +8,7 @@ import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScreenshotGuard } from "./ScreenshotGuard";
 import { Avatar } from "./Avatar";
+import { PushPermissionPrompt } from "./PushPermissionPrompt";
 
 const NAV_ITEMS = [
   {
@@ -295,6 +296,7 @@ export function StudentShell({
         </div>
       </nav>
       </div>
+      <PushPermissionPrompt />
     </ScreenshotGuard>
   );
 }

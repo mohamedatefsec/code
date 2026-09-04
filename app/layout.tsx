@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { db } from "@/lib/db";
@@ -26,11 +26,36 @@ async function getSiteSettings() {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
+  const platformName = settings?.platformName ?? "Code AI";
   return {
-    title: settings?.platformName ?? "Code AI",
+    title: platformName,
     description:
       settings?.description ??
       "منصة تعليمية لتدريس البرمجة والذكاء الاصطناعي لطلاب المرحلة الثانوية",
+    icons: {
+      icon: "/icons/icon-192.png",
+      apple: "/icons/apple-touch-icon.png",
+    },
+    // PWA: بيخلّي شكل المنصة لما تتفتح من أيقونة الشاشة الرئيسية شبه
+    // تطبيق حقيقي (بدون شريط عنوان المتصفح) على آيفون/آيباد تحديدًا.
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: platformName,
+    },
+  };
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const settings = await getSiteSettings();
+  const themeColor =
+    settings?.primaryColor && /^#[0-9a-fA-F]{6}$/.test(settings.primaryColor)
+      ? settings.primaryColor
+      : "#4f46e5";
+  return {
+    themeColor,
+    width: "device-width",
+    initialScale: 1,
   };
 }
 

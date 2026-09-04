@@ -71,9 +71,28 @@ model StudentProfile {
   notificationReads NotificationRead[]
   studentBadges StudentBadge[]
   payments Payment[]
+  pushSubscriptions PushSubscription[]
 
   @@index([groupId])
   @@map("student_profiles")
+}
+
+/// اشتراك إشعار Push لجهاز/متصفح واحد للطالب (Web Push API). الطالب ممكن
+/// يكون عنده أكتر من اشتراك لو فعّل الإشعارات من أكتر من جهاز أو متصفح.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  /// رابط الاشتراك الفريد من المتصفح - المفتاح الأساسي لإرسال push له
+  endpoint  String   @unique
+  /// مفاتيح التشفير المطلوبة لإرسال push (p256dh, auth) - JSON string
+  keys      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("push_subscriptions")
 }
 
 model AdminProfile {

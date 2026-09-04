@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdminSession, getCurrentSession } from "@/lib/auth";
 import { lessonUpdateSchema } from "@/lib/validation";
+import { sendPushToAllStudents } from "@/lib/push";
 
 export async function GET(
   _req: NextRequest,
@@ -75,6 +76,18 @@ export async function PATCH(
       });
     } catch {
       // فشل إرسال الإشعار لا يجب أن يفشّل عملية النشر نفسها
+    }
+
+    // إشعار Push فوري لكل طالب فعّل الإشعارات - بيوصله حتى لو المنصة
+    // مقفولة تمامًا (مش مجرد إشعار داخلي محتاج يفتح المنصة عشان يشوفه).
+    try {
+      await sendPushToAllStudents({
+        title: `📘 درس جديد: ${lesson.title}`,
+        body: `${lesson.unit.subject.name} - ${lesson.unit.title}`,
+        url: "/lessons",
+      });
+    } catch {
+      // فشل إرسال Push لا يجب أن يفشّل عملية النشر نفسها
     }
   }
 

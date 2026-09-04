@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdminSession } from "@/lib/auth";
 import { notificationCreateSchema } from "@/lib/validation";
+import { sendPushToStudents, sendPushToAllStudents } from "@/lib/push";
+import { resolveAudienceStudentIds } from "@/lib/notification-audience";
 
 export async function GET() {
   if (!(await requireAdminSession())) {
@@ -57,6 +59,27 @@ export async function POST(req: NextRequest) {
       createdBy: session.userId,
     },
   });
+
+  // Push فوري بنفس استهداف الإشعار - يوصل الطالب حتى لو المنصة مقفولة.
+  try {
+    if (notification.targetType === "all") {
+      await sendPushToAllStudents({ title: notification.title, body: notification.body, url: "/dashboard" });
+    } else if (notification.targetType === "group" && notification.targetGroupId) {
+      const studentIds = await resolveAudienceStudentIds({
+        targetType: "group",
+        targetGroupId: notification.targetGroupId,
+      });
+      await sendPushToStudents(studentIds, { title: notification.title, body: notification.body, url: "/dashboard" });
+    } else if (notification.targetType === "student" && notification.targetStudentId) {
+      await sendPushToStudents([notification.targetStudentId], {
+        title: notification.title,
+        body: notification.body,
+        url: "/dashboard",
+      });
+    }
+  } catch {
+    // فشل إرسال Push لا يجب أن يفشّل عملية إرسال الإشعار نفسها
+  }
 
   return NextResponse.json({ notification }, { status: 201 });
 }
