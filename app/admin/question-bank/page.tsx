@@ -46,6 +46,9 @@ export default function QuestionBankPage() {
   const [lessonId, setLessonId] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [publishingAll, setPublishingAll] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   const buildParams = useCallback(() => {
     const params = new URLSearchParams();
@@ -103,6 +106,36 @@ export default function QuestionBankPage() {
     if (res.ok) load();
   }
 
+  async function toggleStatus(q: Question) {
+    const nextStatus = q.status === "published" ? "draft" : "published";
+    setTogglingId(q.id);
+    setMessage(null);
+    const res = await fetch(`/api/questions/${q.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    setTogglingId(null);
+    if (res.ok) {
+      setQuestions((prev) => prev?.map((x) => (x.id === q.id ? { ...x, status: nextStatus } : x)) ?? prev);
+    }
+  }
+
+  async function publishAllDrafts() {
+    if (!confirm("هيتم نشر كل الأسئلة المطابقة للفلترة الحالية واللي حالتها مسودة. تكمل؟")) return;
+    setPublishingAll(true);
+    setMessage(null);
+    const res = await fetch(`/api/questions/publish-all?${buildParams().toString()}`, { method: "POST" });
+    setPublishingAll(false);
+    if (res.ok) {
+      const data = await res.json();
+      setMessage(data.count > 0 ? `تم نشر ${data.count} سؤال.` : "مفيش أسئلة مسودة مطابقة للفلترة الحالية.");
+      load();
+    } else {
+      setMessage("تعذّر نشر الأسئلة.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -117,6 +150,13 @@ export default function QuestionBankPage() {
           >
             ⬇️ تحميل Excel
           </a>
+          <button
+            onClick={publishAllDrafts}
+            disabled={publishingAll}
+            className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20 transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            {publishingAll ? "جارٍ النشر..." : "📢 نشر كل المسودات"}
+          </button>
           <Link
             href="/admin/question-bank/new"
             className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
@@ -125,6 +165,10 @@ export default function QuestionBankPage() {
           </Link>
         </div>
       </div>
+
+      {message && (
+        <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-accent">{message}</div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <input
@@ -242,6 +286,17 @@ export default function QuestionBankPage() {
                 </td>
                 <td className="px-4 py-3 text-end whitespace-nowrap">
                   <div className="flex items-center gap-3 justify-end text-sm">
+                    <button
+                      onClick={() => toggleStatus(q)}
+                      disabled={togglingId === q.id}
+                      className="text-accent hover:underline disabled:opacity-60"
+                    >
+                      {togglingId === q.id
+                        ? "..."
+                        : q.status === "published"
+                        ? "إرجاع لمسودة"
+                        : "نشر"}
+                    </button>
                     <Link href={`/admin/question-bank/${q.id}/edit`} className="text-primary hover:underline">
                       تعديل
                     </Link>
