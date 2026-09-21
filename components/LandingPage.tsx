@@ -2,12 +2,15 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TeacherPhoto } from "@/components/TeacherPhoto";
+import { Avatar } from "@/components/Avatar";
+import { getPrimaryAdminBrand } from "@/lib/settings";
 import { normalizeWhatsappLink } from "@/lib/social-links";
 import { safeHttpUrl } from "@/lib/safe-url";
 
 async function getLandingData() {
-  const [settings, studentCount, lessonCount, quizCount, subjects] = await Promise.all([
+  const [settings, adminBrand, studentCount, lessonCount, quizCount, subjects] = await Promise.all([
     db.settings.findFirst(),
+    getPrimaryAdminBrand(),
     db.studentProfile.count(),
     db.lesson.count({ where: { status: "published" } }),
     db.quiz.count({ where: { status: "published" } }),
@@ -27,7 +30,7 @@ async function getLandingData() {
     }),
   ]);
 
-  return { settings, studentCount, lessonCount, quizCount, subjects };
+  return { settings, adminBrand, studentCount, lessonCount, quizCount, subjects };
 }
 
 type Feature = { icon: string; title: string; desc: string };
@@ -40,7 +43,12 @@ const DEFAULT_FEATURES: Feature[] = [
 ];
 
 export default async function LandingPage() {
-  const { settings, studentCount, lessonCount, quizCount, subjects } = await getLandingData();
+  const { settings, adminBrand, studentCount, lessonCount, quizCount, subjects } = await getLandingData();
+
+  // صورة صاحب المنصة بدل علامة ">_" في الهيدر: نفس صورة الأدمن المستخدمة في صفحة
+  // تسجيل الدخول وشريط الطالب، وإلا صورة المدرّس من الإعدادات، وإلا العلامة الأصلية.
+  const ownerPhotoUrl = adminBrand.avatarUrl || settings?.teacherPhotoUrl || null;
+  const ownerName = adminBrand.fullName || settings?.teacherName || settings?.platformName || "Code AI";
 
   const platformName = settings?.platformName ?? "Code AI";
   const headline = settings?.heroHeadline ?? "تعلم البرمجة والذكاء الاصطناعي";
@@ -78,7 +86,11 @@ export default async function LandingPage() {
       <header className="sticky top-0 z-30 glass-surface border-b border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-primary text-xl">{">"}_</span>
+            {ownerPhotoUrl ? (
+              <Avatar name={ownerName} avatarUrl={ownerPhotoUrl} size={40} />
+            ) : (
+              <span className="font-mono text-primary text-xl">{">"}_</span>
+            )}
             <span className="font-bold text-xl">{platformName}</span>
           </div>
           <nav className="hidden md:flex items-center gap-7 text-base text-ink-soft">
