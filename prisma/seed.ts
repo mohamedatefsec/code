@@ -1,11 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
 const db = new PrismaClient();
 
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@codeai.local";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
+  // لو مفيش SEED_ADMIN_PASSWORD بنولّد كلمة مرور عشوائية قوية (بدل كلمة ثابتة
+  // معروفة للجميع زي ChangeMe123! كانت تخلّي أي حد يدخل كأدمن لو الـ seed اتشغّل
+  // على قاعدة الإنتاج ونُسي تغييرها).
+  const generatedPassword = process.env.SEED_ADMIN_PASSWORD ? null : randomBytes(12).toString("base64url");
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? (generatedPassword as string);
 
   const existing = await db.user.findUnique({
     where: { loginIdentifier: adminEmail },
@@ -26,8 +31,11 @@ async function main() {
         },
       },
     });
-    console.log(`تم إنشاء حساب أدمن: ${adminEmail} / ${adminPassword}`);
-    console.log("⚠️  غيّر كلمة المرور فورًا بعد أول تسجيل دخول.");
+    console.log(`تم إنشاء حساب أدمن: ${adminEmail}`);
+    if (generatedPassword) {
+      console.log(`كلمة المرور (اتولّدت عشوائيًا، احفظها الآن): ${generatedPassword}`);
+    }
+    console.log("⚠️  غيّر كلمة المرور من صفحة الإعدادات بعد أول تسجيل دخول.");
   }
 
   const settingsExists = await db.settings.findFirst();

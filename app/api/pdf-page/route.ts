@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import path from "node:path";
+import { getCurrentSession } from "@/lib/auth";
 import { createCanvas, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
 
 /**
@@ -49,7 +50,16 @@ class NodeCanvasFactory {
   }
 }
 
+/// أقصى حجم PDF نقبل نحوّله لصورة (تحويل ملفات ضخمة بيستهلك ذاكرة ووقت)
+const MAX_PDF_BYTES = 30 * 1024 * 1024;
+
 export async function GET(request: NextRequest) {
+  // تحويل PDF لصورة عملية تقيلة على السيرفر: للمسجّلين بس، وإلا أي حد على
+  // الإنترنت كان يقدر يستنزف موارد المنصة.
+  if (!(await getCurrentSession())) {
+    return new Response("غير مصرّح.", { status: 401 });
+  }
+
   const fileUrl = request.nextUrl.searchParams.get("url");
   const metaOnly = request.nextUrl.searchParams.get("meta") === "1";
   const pageParam = request.nextUrl.searchParams.get("page");
@@ -64,11 +74,19 @@ export async function GET(request: NextRequest) {
     return new Response("مصدر ملف غير مسموح به.", { status: 400 });
   }
 
-  const upstream = await fetch(parsed.toString());
-  if (!upstream.ok) {
+  // redirect: "error" - ممنوع نتّبع أي تحويل لمكان تاني (ممكن يكسر قائمة السماح)
+  const upstream = await fetch(parsed.toString(), { redirect: "error" }).catch(() => null);
+  if (!upstream || !upstream.ok) {
     return new Response("تعذّر جلب الملف.", { status: 502 });
   }
-  const bytes = new Uint8Array(await upstream.arrayBuffer());
+  if (Number(upstream.headers.get("content-length") ?? 0) > MAX_PDF_BYTES) {
+    return new Response("الملف كبير جدًا.", { status: 413 });
+  }
+  const buffer0 = await upstream.arrayBuffer();
+  if (buffer0.byteLength > MAX_PDF_BYTES) {
+    return new Response("الملف كبير جدًا.", { status: 413 });
+  }
+  const bytes = new Uint8Array(buffer0);
 
   try {
     // نسخة pdfjs-dist المخصصة لبيئة Node (legacy build): تعمل بدون DOM أو
@@ -133,7 +151,9 @@ export async function GET(request: NextRequest) {
         "Content-Type": "image/png",
         // الرابط الأصلي يحمل لاحقة عشوائية فريدة عند كل رفع، فمن الآمن
         // تخزين الصورة الناتجة في الكاش لمدة طويلة دون قلق من تغيّر المحتوى.
-        "Cache-Control": "public, max-age=31536000, immutable",
+        // private: الصورة ناتجة من ملف للمسجّلين فقط، فمنسمحش لكاش عام (CDN) يقدّمها لغير المسجّلين
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, max-age=31536000, immutable",
       },
     });
   } catch (err) {

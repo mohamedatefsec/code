@@ -5,6 +5,9 @@ import { submitAttemptSchema } from "@/lib/validation";
 import { gradeAnswer } from "@/lib/grading";
 import { evaluateQuizBadges } from "@/lib/badges";
 
+/// مهلة السماح بعد نهاية مدة الاختبار (بالثواني) قبل ما نرفض التسليم
+const SUBMIT_GRACE_SECONDS = 180;
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -51,6 +54,17 @@ export async function POST(
   if (attempt.status === "pending" || !attempt.startedAt) {
     return NextResponse.json(
       { error: "لازم تضغط زر (ابدأ الاختبار) أولًا قبل التسليم." },
+      { status: 400 }
+    );
+  }
+
+  // الوقت لازم يتفرض على السيرفر: عدّاد المتصفح ممكن يتوقف أو يتلاعب بيه الطالب.
+  // بنسمح بمهلة قصيرة (3 دقايق) لتأخير الشبكة عند التسليم التلقائي في آخر ثانية.
+  // بعد كده الاختبار مايتسلّمش، والمدرّس يقدر يعيد فتح المحاولة لو فيه عذر حقيقي.
+  const allowedMs = (attempt.quiz.durationMinutes * 60 + SUBMIT_GRACE_SECONDS) * 1000;
+  if (Date.now() - attempt.startedAt.getTime() > allowedMs) {
+    return NextResponse.json(
+      { error: "انتهى وقت الاختبار ولم يعد ممكنًا تسليمه. تواصل مع المدرّس." },
       { status: 400 }
     );
   }

@@ -51,6 +51,25 @@ export async function GET(
     return copy;
   }
 
+  // قبل ما الطالب يضغط "ابدأ الاختبار" (pending) مبنرجّعش الأسئلة نفسها، وإلا كان
+  // ممكن يقراها من الـ API قبل ما عدّاده يبدأ. بنرجّع بس عددها.
+  if (attempt.status === "pending") {
+    return NextResponse.json({
+      attempt: {
+        id: attempt.id,
+        status: attempt.status,
+        startedAt: attempt.startedAt,
+        quiz: {
+          id: attempt.quiz.id,
+          title: attempt.quiz.title,
+          durationMinutes: attempt.quiz.durationMinutes,
+        },
+        questionsCount: attempt.quiz.questions.length,
+        questions: [],
+      },
+    });
+  }
+
   const sanitizedQuestions = attempt.quiz.questions.map((qq) => {
     const rawOptions =
       qq.question.type === "code_output"
@@ -77,6 +96,7 @@ export async function GET(
         title: attempt.quiz.title,
         durationMinutes: attempt.quiz.durationMinutes,
       },
+      questionsCount: sanitizedQuestions.length,
       questions: sanitizedQuestions,
     },
   });

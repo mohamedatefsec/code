@@ -26,7 +26,7 @@ export async function proxy(req: NextRequest) {
   const session = await readSession(req);
 
   const isAdminArea = pathname.startsWith("/admin");
-  const isStudentArea = pathname.startsWith("/dashboard") || pathname.startsWith("/lessons") || pathname.startsWith("/quizzes") || pathname.startsWith("/results") || pathname.startsWith("/profile");
+  const isStudentArea = pathname.startsWith("/dashboard") || pathname.startsWith("/lessons") || pathname.startsWith("/quizzes") || pathname.startsWith("/results") || pathname.startsWith("/review") || pathname.startsWith("/profile");
 
   // منطقة الأدمن: تتطلب دور admin
   if (isAdminArea) {
@@ -62,6 +62,7 @@ export const config = {
     "/lessons/:path*",
     "/quizzes/:path*",
     "/results/:path*",
+    "/review/:path*",
     "/profile/:path*",
     "/login",
   ],

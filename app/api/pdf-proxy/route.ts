@@ -1,4 +1,8 @@
 import { NextRequest } from "next/server";
+import { getCurrentSession } from "@/lib/auth";
+
+/// أقصى حجم PDF نقبله (حماية من استهلاك الباندويث)
+const MAX_PDF_BYTES = 30 * 1024 * 1024;
 
 /**
  * يمرّر (يبروكسي) ملف PDF من Vercel Blob عبر نفس نطاق الموقع (same-origin).
@@ -13,6 +17,12 @@ import { NextRequest } from "next/server";
  * (4.5 ميجابايت) المفروض على دوال Vercel للاستجابات غير المُبثّة.
  */
 export async function GET(request: NextRequest) {
+  // المسار ده بيتصل بسيرفرات خارجية ويبثّ ملفات: لازم يبقى للمسجّلين بس، وإلا
+  // أي حد على الإنترنت كان يقدر يستهلك باندويث المنصة.
+  if (!(await getCurrentSession())) {
+    return new Response("غير مصرّح.", { status: 401 });
+  }
+
   const fileUrl = request.nextUrl.searchParams.get("url");
 
   if (!fileUrl) {
@@ -34,16 +44,21 @@ export async function GET(request: NextRequest) {
     return new Response("مصدر ملف غير مسموح به.", { status: 400 });
   }
 
-  const upstream = await fetch(parsed.toString());
-  if (!upstream.ok || !upstream.body) {
+  // redirect: "error" - ممنوع نتّبع أي تحويل لمكان تاني (ممكن يكسر قائمة السماح)
+  const upstream = await fetch(parsed.toString(), { redirect: "error" }).catch(() => null);
+  if (!upstream || !upstream.ok || !upstream.body) {
     return new Response("تعذّر جلب الملف.", { status: 502 });
+  }
+  if (Number(upstream.headers.get("content-length") ?? 0) > MAX_PDF_BYTES) {
+    return new Response("الملف كبير جدًا.", { status: 413 });
   }
 
   return new Response(upstream.body, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Cache-Control": "public, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "private, max-age=3600",
     },
   });
 }

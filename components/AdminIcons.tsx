@@ -103,6 +103,26 @@ export function QuizIcon({ className }: IconProps) {
   );
 }
 
+export function PaymentsReportIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className={base(className)}>
+      <rect x="3.5" y="6" width="17" height="12" rx="2.2" stroke="currentColor" />
+      <circle cx="12" cy="12" r="2.6" stroke="currentColor" />
+      <path d="M6.5 9.5v.01M17.5 14.5v.01" stroke="currentColor" strokeLinecap="round" strokeWidth={2.2} />
+    </svg>
+  );
+}
+
+export function ReviewIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className={base(className)}>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" stroke="currentColor" strokeLinecap="round" />
+      <path d="M20 4.5v4h-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m9 12.2 2.1 2.1L15.2 10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function GradingIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className={base(className)}>
@@ -159,10 +179,12 @@ export const AdminIcons = {
   students: StudentsIcon,
   groups: GroupsIcon,
   attendance: AttendanceIcon,
+  "payments-report": PaymentsReportIcon,
   content: ContentIcon,
   "question-bank": QuestionBankIcon,
   "ai-generator": AiGeneratorIcon,
   quizzes: QuizIcon,
+  review: ReviewIcon,
   grading: GradingIcon,
   notifications: NotificationsIcon,
   badges: BadgesIcon,

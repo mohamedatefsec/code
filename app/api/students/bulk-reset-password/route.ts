@@ -27,7 +27,8 @@ export async function POST(req: Request) {
   const passwordHash = await hashPassword(parsed.data.password);
   const result = await db.user.updateMany({
     where: { role: "student" },
-    data: { passwordHash },
+    // currentSessionId=null بيلغي كل جلسات الطلاب الشغّالة فورًا
+    data: { passwordHash, currentSessionId: null },
   });
 
   return NextResponse.json({ ok: true, count: result.count });

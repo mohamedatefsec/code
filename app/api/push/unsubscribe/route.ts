@@ -19,7 +19,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "بيانات غير صالحة." }, { status: 400 });
   }
 
-  await db.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint } });
+  const student = await db.studentProfile.findUnique({ where: { userId: session.userId } });
+  if (!student) {
+    return NextResponse.json({ error: "الملف الشخصي غير موجود." }, { status: 404 });
+  }
+
+  // بنمسح اشتراك الطالب نفسه فقط (مش أي اشتراك بنفس الـ endpoint)
+  await db.pushSubscription.deleteMany({
+    where: { endpoint: parsed.data.endpoint, studentId: student.id },
+  });
 
   return NextResponse.json({ ok: true });
 }

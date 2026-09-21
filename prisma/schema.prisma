@@ -72,6 +72,7 @@ model StudentProfile {
   studentBadges StudentBadge[]
   payments Payment[]
   pushSubscriptions PushSubscription[]
+  reviewAnswers ReviewAnswer[]
 
   @@index([groupId])
   @@map("student_profiles")
@@ -144,6 +145,7 @@ model Subject {
   units Unit[]
   questions Question[]
   quizzes Quiz[]
+  reviewQuestions ReviewQuestion[]
 
   @@map("subjects")
 }
@@ -419,6 +421,72 @@ model QuizAttemptAnswer {
   @@map("quiz_attempt_answers")
 }
 
+/// ===== أسئلة المراجعة =====
+/// سؤال مراجعة قصير مستقل تمامًا عن بنك الأسئلة والاختبارات (لا درجات ولا وقت
+/// ولا محاولات متعددة). الطالب يجاوب عليه مرة واحدة فقط، وبعدها يتقفل عليه
+/// ويفضل ظاهر له بإجابته والإجابة الصحيحة والشرح. الأدمن يضيف/يعدّل/يحذف.
+/// الأنواع المدعومة: mcq / true_false / multiple_answer / code_output / essay
+/// (المقالي بلا خيارات ولا تصحيح آلي: الأدمن بيراجعه يدويًا).
+model ReviewQuestion {
+  id          String        @id @default(cuid())
+  subjectId   String?       @map("subject_id")
+  type        QuestionType
+  text        String
+  /// كود اختياري يُعرض مع السؤال (لأي نوع، مش بس code_output)
+  codeSnippet String?       @map("code_snippet")
+  /// شرح يظهر للطالب بعد ما يجاوب فقط
+  explanation String?
+  status      ContentStatus @default(draft)
+  createdBy   String        @map("created_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  subject Subject?         @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  options ReviewOption[]
+  answers ReviewAnswer[]
+
+  @@index([status, createdAt])
+  @@map("review_questions")
+}
+
+/// خيارات سؤال المراجعة. في code_output: خيار واحد فقط isCorrect=true يمثّل
+/// الناتج المتوقع (ولا يُرسل للطالب إلا بعد ما يجاوب).
+model ReviewOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @default(0)
+
+  question ReviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("review_options")
+}
+
+/// إجابة طالب على سؤال مراجعة. القيد الفريد (questionId, studentId) هو اللي
+/// بيضمن "مرة واحدة فقط" على مستوى قاعدة البيانات (حتى لو ضغط الزر مرتين أو
+/// فتح المنصة من تابين). مسح الصف = إعادة فتح السؤال لهذا الطالب.
+model ReviewAnswer {
+  id                String   @id @default(cuid())
+  questionId        String   @map("question_id")
+  studentId         String   @map("student_id")
+  /// إجابة الأسئلة القائمة على خيارات (مصفوفة IDs)
+  selectedOptionIds Json?    @map("selected_option_ids")
+  /// إجابة "توقع ناتج الكود" أو نص السؤال المقالي
+  textAnswer        String?  @map("text_answer")
+  /// null = سؤال مقالي بانتظار مراجعة الأدمن (باقي الأنواع بتتصحح آليًا فورًا)
+  isCorrect         Boolean? @map("is_correct")
+  answeredAt        DateTime @default(now()) @map("answered_at")
+
+  question ReviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, studentId])
+  @@index([studentId])
+  @@map("review_answers")
+}
+
 enum AttendanceStatus {
   present
   absent
@@ -582,4 +650,17 @@ model Settings {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
+}
+
+/// عدّاد محاولات تسجيل الدخول المخزّن في قاعدة البيانات (بدل الذاكرة): على
+/// Vercel كل Serverless Function لها ذاكرة منفصلة، فعدّاد الذاكرة كان بيتصفّر
+/// وبيتجاوزه أي مهاجم ببساطة. key مثل "ip:1.2.3.4" أو "pair:<الحساب>|<ip>".
+model LoginThrottle {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime @map("reset_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([resetAt])
+  @@map("login_throttles")
 }

@@ -13,7 +13,10 @@ const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
  * توكن مؤقّت من هذا المسار، فلا يمر الملف على السيرفر إطلاقًا.
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as HandleUploadBody;
+  const body = (await request.json().catch(() => null)) as HandleUploadBody | null;
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "بيانات غير صالحة." }, { status: 400 });
+  }
 
   try {
     const jsonResponse = await handleUpload({

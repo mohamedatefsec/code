@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TeacherPhoto } from "@/components/TeacherPhoto";
 import { normalizeWhatsappLink } from "@/lib/social-links";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 async function getLandingData() {
   const [settings, studentCount, lessonCount, quizCount, subjects] = await Promise.all([
@@ -335,18 +336,18 @@ export default async function LandingPage() {
             </div>
             {socialLinks && (
               <div className="mt-4 flex justify-center gap-5 text-base">
-                {socialLinks.facebook && (
-                  <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                {safeHttpUrl(socialLinks.facebook) && (
+                  <a href={safeHttpUrl(socialLinks.facebook)!} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     فيسبوك
                   </a>
                 )}
-                {socialLinks.instagram && (
-                  <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                {safeHttpUrl(socialLinks.instagram) && (
+                  <a href={safeHttpUrl(socialLinks.instagram)!} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     إنستجرام
                   </a>
                 )}
-                {socialLinks.youtube && (
-                  <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                {safeHttpUrl(socialLinks.youtube) && (
+                  <a href={safeHttpUrl(socialLinks.youtube)!} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     يوتيوب
                   </a>
                 )}

@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  identifier: z.string().min(1, "أدخل اسم المستخدم أو كود الطالب"),
-  password: z.string().min(1, "أدخل كلمة المرور"),
+  identifier: z.string().min(1, "أدخل اسم المستخدم أو كود الطالب").max(100),
+  password: z.string().min(1, "أدخل كلمة المرور").max(200),
 });
 
 export const groupCreateSchema = z.object({
@@ -218,9 +218,17 @@ export const quizCreateSchema = z.object({
   maxAttempts: z.number().int().min(1).max(20).default(1),
 });
 
-export const quizUpdateSchema = quizCreateSchema.partial().extend({
-  status: z.enum(["draft", "published", "closed"]).optional(),
-});
+// ملاحظة مهمة: .partial() في zod 4 مبيشيلش الـ default() من الحقول، فلو استخدمنا
+// quizCreateSchema.partial() مباشرة، أي PATCH فيه { status } بس (زرار نشر/إغلاق
+// الاختبار) كان بيرجّع maxAttempts لـ 1 بصمت ويضيّع عدد المحاولات اللي ضبطه
+// المدرّس. عشان كده maxAttempts هنا اختياري بدون default.
+export const quizUpdateSchema = quizCreateSchema
+  .omit({ maxAttempts: true })
+  .partial()
+  .extend({
+    maxAttempts: z.number().int().min(1).max(20).optional(),
+    status: z.enum(["draft", "published", "closed"]).optional(),
+  });
 
 export const quizQuestionsUpdateSchema = z.object({
   questionIds: z.array(z.string().min(1)).max(200),

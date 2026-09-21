@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { db } from "@/lib/db";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 
 let configured = false;
 
@@ -39,6 +40,11 @@ export async function sendPushToStudents(studentIds: string[], payload: PushPayl
 
   await Promise.all(
     subscriptions.map(async (sub) => {
+      // اشتراكات قديمة اتسجّلت قبل قائمة السماح: نمسحها ومنبعتلهاش أبدًا
+      if (!isAllowedPushEndpoint(sub.endpoint)) {
+        staleIds.push(sub.id);
+        return;
+      }
       try {
         const keys = JSON.parse(sub.keys) as { p256dh: string; auth: string };
         await webpush.sendNotification(

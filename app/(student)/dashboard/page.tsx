@@ -10,6 +10,7 @@ import { computeStreak } from "@/lib/streak";
 import { StreakCard } from "@/components/StreakCard";
 import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
 import { BadgeCelebration } from "@/components/BadgeCelebration";
+import { ReviewPromptCard } from "@/components/ReviewPromptCard";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -157,6 +158,26 @@ export default async function StudentDashboardPage() {
       : null;
   const publishedQuizzesCount = await db.quiz.count({ where: { status: "published" } });
 
+  // أسئلة المراجعة: كام سؤال منشور، وكام منهم لسه الطالب ما جاوبش عليه. مغلّفة
+  // بـ try/catch عشان لو جداول الميزة لسه ما اتعملتش في قاعدة البيانات (قبل
+  // npm run db:push) الداشبورد يفضل شغّال عادي بدل ما يقع.
+  let reviewTotal = 0;
+  let reviewPending = 0;
+  if (profile) {
+    try {
+      const [total, answered] = await Promise.all([
+        db.reviewQuestion.count({ where: { status: "published" } }),
+        db.reviewAnswer.count({
+          where: { studentId: profile.id, question: { status: "published" } },
+        }),
+      ]);
+      reviewTotal = total;
+      reviewPending = Math.max(total - answered, 0);
+    } catch {
+      // تجاهل بهدوء - البطاقة ببساطة مش هتظهر
+    }
+  }
+
   const attendanceRecords = profile
     ? await db.attendanceRecord.findMany({
         where: { studentId: profile.id },
@@ -288,6 +309,8 @@ export default async function StudentDashboardPage() {
           { label: "الدروس", value: lessonsCount, icon: <LessonIcon /> },
         ]}
       />
+
+      {reviewTotal > 0 && <ReviewPromptCard total={reviewTotal} pending={reviewPending} />}
 
       <div className="grid sm:grid-cols-2 gap-4">
         <StreakCard streak={streak} />

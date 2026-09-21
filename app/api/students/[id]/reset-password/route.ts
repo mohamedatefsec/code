@@ -29,7 +29,8 @@ export async function POST(
   const passwordHash = await hashPassword(parsed.data.password);
   await db.user.update({
     where: { id: student.userId },
-    data: { passwordHash },
+    // currentSessionId=null بيلغي أي جلسة شغّالة للطالب فورًا (لازم يدخل بالباسورد الجديد)
+    data: { passwordHash, currentSessionId: null },
   });
 
   return NextResponse.json({ ok: true });

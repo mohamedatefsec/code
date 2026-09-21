@@ -6,6 +6,23 @@ const nextConfig: NextConfig = {
   // ما يفشل لأن ملف الربط الأصلي غير قابل للوضع داخل حزمة كهذه)، ويتركها
   // تُحل بشكل طبيعي من node_modules وقت التشغيل على السيرفر.
   serverExternalPackages: ["@napi-rs/canvas"],
+  // ترويسات أمان أساسية على كل الصفحات. (مفيش CSP صارم هنا عمدًا: المنصة بتستخدم
+  // سكريبت inline لتطبيق الثيم قبل أول رسم، وCSP ملزم بيحتاج nonce لكل طلب.)
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // منع فتح المنصة داخل iframe في موقع تاني (Clickjacking)
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

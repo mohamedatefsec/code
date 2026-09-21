@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth";
 import { z } from "zod";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 
 const subscribeSchema = z.object({
-  endpoint: z.string().url(),
+  endpoint: z
+    .string()
+    .max(1000)
+    .url()
+    .refine(isAllowedPushEndpoint, { message: "خدمة إشعارات غير مدعومة." }),
   keys: z.object({
-    p256dh: z.string().min(1),
-    auth: z.string().min(1),
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
   }),
   userAgent: z.string().max(300).optional(),
 });

@@ -18,6 +18,8 @@ type AttemptData = {
   status: string;
   startedAt: string | null;
   quiz: { id: string; title: string; durationMinutes: number };
+  /// عدد الأسئلة (الأسئلة نفسها مبتوصلش إلا بعد ما الطالب يضغط "ابدأ الاختبار")
+  questionsCount: number;
   questions: AttemptQuestion[];
 };
 
@@ -111,16 +113,31 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
     if (!attempt) return;
     setBeginning(true);
     setError(null);
-    const res = await fetch(`/api/attempts/${attempt.id}/begin`, { method: "POST" });
-    const data = await res.json().catch(() => null);
-    setBeginning(false);
-    if (!res.ok) {
-      setError(data?.error ?? "تعذّر بدء الاختبار.");
-      return;
+    try {
+      const res = await fetch(`/api/attempts/${attempt.id}/begin`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.error ?? "تعذّر بدء الاختبار.");
+        return;
+      }
+      // الأسئلة مبتتبعتش وهي pending - نجيبها دلوقتي بعد ما العدّاد بدأ فعلًا
+      const refreshed = await fetch(`/api/attempts/${attempt.id}`)
+        .then((r) => r.json())
+        .catch(() => null);
+      if (!refreshed?.attempt) {
+        setError("تعذّر تحميل أسئلة الاختبار، حدّث الصفحة.");
+        return;
+      }
+      const a: AttemptData = refreshed.attempt;
+      setAttempt(a);
+      const initialOrder: Record<string, Option[]> = {};
+      a.questions.forEach((q) => {
+        if (q.type === "ordering") initialOrder[q.id] = q.options;
+      });
+      setOrderState(initialOrder);
+    } finally {
+      setBeginning(false);
     }
-    setAttempt((prev) =>
-      prev ? { ...prev, status: data.attempt.status, startedAt: data.attempt.startedAt } : prev
-    );
   }
 
   // العدّاد التنازلي - بيشتغل بس لما المحاولة "in_progress" وليها startedAt فعلي
@@ -193,7 +210,7 @@ export default function AttemptPage({ params }: { params: Promise<{ id: string }
         <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated text-center space-y-4 animate-fade-in-up">
           <h1 className="text-xl font-bold text-ink">{attempt.quiz.title}</h1>
           <p className="text-sm text-ink-soft">
-            الاختبار يحتوي على {attempt.questions.length} سؤال، ومدته {attempt.quiz.durationMinutes} دقيقة.
+            الاختبار يحتوي على {attempt.questionsCount} سؤال، ومدته {attempt.quiz.durationMinutes} دقيقة.
             العدّاد التنازلي هيبدأ فور ما تضغط الزر تحت - خُد وقتك وجهّز نفسك الأول.
           </p>
           {error && (

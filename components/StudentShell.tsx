@@ -38,6 +38,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/review",
+    label: "المراجعة",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5">
+        <path d="M20 12a8 8 0 1 1-2.6-5.9" stroke="currentColor" strokeLinecap="round" />
+        <path d="M20 4.5v4h-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="m9 12.2 2.1 2.1L15.2 10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
     href: "/quizzes",
     label: "الاختبارات",
     icon: (
@@ -277,7 +288,7 @@ export function StudentShell({
 
       {/* شريط تنقّل سفلي للموبايل فقط */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-surface border-t border-border">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname?.startsWith(item.href + "/");
             return (

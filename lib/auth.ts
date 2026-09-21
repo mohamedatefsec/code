@@ -94,13 +94,20 @@ export async function getCurrentSession(): Promise<SessionPayload | null> {
   // سجّل دخول من جهاز تاني، فالجلسة القديمة دي بقت لاغية تلقائيًا.
   // هذا التحقق هنا فقط (نقطة مركزية واحدة) بدل تكراره في كل route، لأن
   // كل الصفحات والـ API الخاصة بالطالب بتمر من هنا أصلًا.
+  //
+  // وكمان (للأدمن والطالب): الحساب لازم يكون لسه موجود وstatus=active، وإلا
+  // الجلسة (JWT بيعيش 8 ساعات) كانت هتفضل شغّالة على الـ API حتى بعد ما
+  // الحساب يتعطّل أو يتمسح.
+  const { db } = await import("./db");
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { status: true, role: true, currentSessionId: true },
+  });
+  if (!user || user.status !== "active" || user.role !== session.role) {
+    return null;
+  }
   if (session.role === "student") {
-    const { db } = await import("./db");
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { currentSessionId: true },
-    });
-    if (!user || !session.sessionId || user.currentSessionId !== session.sessionId) {
+    if (!session.sessionId || user.currentSessionId !== session.sessionId) {
       return null;
     }
   }

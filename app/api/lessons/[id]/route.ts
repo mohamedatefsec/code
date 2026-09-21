@@ -22,7 +22,7 @@ export async function GET(
   if (!lesson) {
     return NextResponse.json({ error: "الدرس غير موجود." }, { status: 404 });
   }
-  if (session.role === "student" && lesson.status !== "published") {
+  if (session.role === "student" && (lesson.status !== "published" || lesson.unit.status !== "published")) {
     return NextResponse.json({ error: "الدرس غير متاح." }, { status: 403 });
   }
 

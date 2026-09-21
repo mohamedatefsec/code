@@ -7,6 +7,7 @@ import { requireActiveUser } from "@/lib/auth";
 import { awardBadge } from "@/lib/badges";
 import { SubjectCoverArt } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 export default async function StudentLessonDetailPage({
   params,
@@ -87,7 +88,7 @@ export default async function StudentLessonDetailPage({
                 />
               ) : (
                 <a
-                  href={m.url}
+                  href={safeHttpUrl(m.url) ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center h-full text-white"
@@ -136,11 +137,11 @@ export default async function StudentLessonDetailPage({
       {lesson.media.filter((m) => m.type === "link").length > 0 && (
         <div className="rounded-xl border border-border bg-surface p-4 space-y-2 shadow-elevated">
           {lesson.media
-            .filter((m) => m.type === "link")
+            .filter((m) => m.type === "link" && safeHttpUrl(m.url))
             .map((m) => (
               <a
                 key={m.id}
-                href={m.url}
+                href={safeHttpUrl(m.url)!}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-primary hover:underline text-sm"
