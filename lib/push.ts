@@ -9,8 +9,17 @@ function ensureConfigured() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@example.com";
-  if (!publicKey || !privateKey) return false;
-  webpush.setVapidDetails(subject, publicKey, privateKey);
+  if (!publicKey || !privateKey) {
+    console.error("[push] مفاتيح VAPID ناقصة (NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY) - الإشعارات متوقفة.");
+    return false;
+  }
+  try {
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+  } catch (err) {
+    // مثلًا: VAPID_SUBJECT من غير mailto: أو مفتاح بصيغة غلط. لازم نعرف السبب من اللوج.
+    console.error("[push] إعداد VAPID غير صالح:", (err as Error).message);
+    return false;
+  }
   configured = true;
   return true;
 }
@@ -37,6 +46,8 @@ export async function sendPushToStudents(studentIds: string[], payload: PushPayl
 
   const body = JSON.stringify(payload);
   const staleIds: string[] = [];
+  let sent = 0;
+  let failed = 0;
 
   await Promise.all(
     subscriptions.map(async (sub) => {
@@ -51,7 +62,22 @@ export async function sendPushToStudents(studentIds: string[], payload: PushPayl
           { endpoint: sub.endpoint, keys },
           body
         );
+        sent++;
       } catch (err: unknown) {
+        failed++;
+        // بنسجّل سبب الفشل في لوج Vercel (الـ host بس، من غير الـ endpoint الكامل)
+        // عشان أي مشكلة (مفاتيح غير متطابقة 403، اشتراك منتهي 410...) تبان.
+        const e = err as { statusCode?: number; body?: string; message?: string };
+        let host = "?";
+        try {
+          host = new URL(sub.endpoint).host;
+        } catch {}
+        console.error("[push] فشل الإرسال", {
+          host,
+          statusCode: e?.statusCode,
+          body: typeof e?.body === "string" ? e.body.slice(0, 200) : undefined,
+          message: e?.message,
+        });
         // 404/410 يعني الاشتراك انتهى أو الطالب سحب الإذن من متصفحه -
         // نمسحه من قاعدة البيانات عشان منفضلش نحاول نبعتله في المستقبل.
         const statusCode = (err as { statusCode?: number })?.statusCode;
@@ -61,6 +87,8 @@ export async function sendPushToStudents(studentIds: string[], payload: PushPayl
       }
     })
   );
+
+  console.log(`[push] تم الإرسال: ${sent} نجح، ${failed} فشل (من ${subscriptions.length} اشتراك)`);
 
   if (staleIds.length > 0) {
     await db.pushSubscription.deleteMany({ where: { id: { in: staleIds } } });
