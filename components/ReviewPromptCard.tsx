@@ -35,7 +35,7 @@ export function ReviewPromptCard({ total, pending }: { total: number; pending: n
         <p className="text-sm text-ink-soft mt-0.5">
           {allDone
             ? `حلّيت ${total} ${total === 1 ? "سؤال" : "أسئلة"} — تقدر ترجع تراجع إجاباتك في أي وقت.`
-            : "جاوب عليها مرة واحدة، وبعدها تقدر تراجع الإجابة الصحيحة والشرح."}
+            : "الإجابة لمرة واحدة فقط."}
         </p>
       </div>
 
