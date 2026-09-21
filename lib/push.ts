@@ -10,7 +10,16 @@ function ensureConfigured() {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@example.com";
   if (!publicKey || !privateKey) {
-    console.error("[push] مفاتيح VAPID ناقصة (NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY) - الإشعارات متوقفة.");
+    // بنطبع مين الناقص بالظبط + أسماء متغيرات VAPID اللي السيرفر شايفها (أسماء بس،
+    // من غير أي قيمة). JSON.stringify بيكشف أي مسافة زيادة أو غلطة كتابة في الاسم.
+    console.error("[push] مفاتيح VAPID ناقصة - الإشعارات متوقفة.", {
+      hasPublicKey: Boolean(publicKey),
+      hasPrivateKey: Boolean(privateKey),
+      vercelEnv: process.env.VERCEL_ENV,
+      vapidLikeNames: Object.keys(process.env)
+        .filter((k) => /vapid|pavid/i.test(k))
+        .map((k) => JSON.stringify(k)),
+    });
     return false;
   }
   try {
