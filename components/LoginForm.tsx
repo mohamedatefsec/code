@@ -199,7 +199,7 @@ function LoginFormInner({
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-ink placeholder:text-ink-soft/60 transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
-                placeholder="اكتب اسم المستخدم"
+                placeholder="اكتب بيانات الدخول"
               />
             </div>
 
