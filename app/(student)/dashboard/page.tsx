@@ -11,6 +11,9 @@ import { StreakCard } from "@/components/StreakCard";
 import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
 import { BadgeCelebration } from "@/components/BadgeCelebration";
 import { ReviewPromptCard } from "@/components/ReviewPromptCard";
+import { getStudentSubscriptionStatus } from "@/lib/subscription";
+import { getContactWhatsappLink } from "@/lib/settings";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -130,6 +133,8 @@ export default async function StudentDashboardPage() {
     : null;
 
   const lessonsCount = await db.lesson.count({ where: { status: "published" } });
+  const subscription = profile ? await getStudentSubscriptionStatus(profile.id) : null;
+  const whatsappLink = subscription && !subscription.active ? await getContactWhatsappLink() : null;
   const recentLessons = await db.lesson.findMany({
     where: { status: "published" },
     orderBy: { createdAt: "desc" },
@@ -254,6 +259,9 @@ export default async function StudentDashboardPage() {
   return (
     <div className="space-y-6">
       {profile && <BadgeCelebration studentId={profile.id} earnedBadges={earnedBadgesForCelebration} />}
+      {subscription && !subscription.active && (
+        <SubscriptionBanner paidUntil={subscription.paidUntil} whatsappLink={whatsappLink} />
+      )}
       {/* البانر الترحيبي */}
       <div
         className="relative overflow-hidden rounded-2xl px-6 sm:px-8 py-7 sm:py-9 shadow-glow animate-fade-in-up"

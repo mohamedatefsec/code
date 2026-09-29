@@ -13,11 +13,13 @@ type Student = {
   grade: string | null;
   group: { id: string; name: string } | null;
   user: { status: "active" | "disabled"; loginIdentifier: string };
-  payments: { id: string; amount: number; paidAt: string; note: string | null }[];
+  payments: { id: string; amount: number; paidAt: string; forMonth: string | null; note: string | null }[];
   attendanceStartDate: string | null;
   attendedSessionsCount: number;
   totalSessionsCount: number;
   totalPaid: number;
+  subscriptionActive: boolean;
+  subscriptionPaidUntil: string | null;
 };
 
 type Group = { id: string; name: string };
@@ -175,13 +177,27 @@ function AdminStudentsPageInner() {
                       <>
                         إجمالي {s.totalPaid} جنيه
                         <span className="block text-[10px] font-normal opacity-80">
-                          آخر دفعة {new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}
+                          {lastPayment.forMonth
+                            ? `عن شهر ${new Date(lastPayment.forMonth).toLocaleDateString("ar-EG", { month: "long", year: "numeric" })}`
+                            : `آخر دفعة ${new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}`}
                         </span>
                       </>
                     ) : (
                       "لسه ما دفعش"
                     )}
                   </button>
+                  {/* حالة الاشتراك الشهري الفعلية (بتتحكم في قفل/فتح الدروس
+                      للطالب) - محسوبة في السيرفر من أبعد شهر مدفوع فعليًا،
+                      منفصلة عن إجمالي المدفوع اللي هو مجرد سجل تاريخي. */}
+                  <span
+                    className={`block mt-1 text-[10px] font-medium ${
+                      s.subscriptionActive ? "text-accent" : "text-danger"
+                    }`}
+                  >
+                    {s.subscriptionActive && s.subscriptionPaidUntil
+                      ? `🔓 الدروس مفتوحة لحد ${new Date(s.subscriptionPaidUntil).toLocaleDateString("ar-EG")}`
+                      : "🔒 الدروس مقفولة (اشتراك منتهي)"}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <span

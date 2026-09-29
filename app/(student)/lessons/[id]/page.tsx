@@ -8,6 +8,9 @@ import { awardBadge } from "@/lib/badges";
 import { SubjectCoverArt } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
 import { safeHttpUrl } from "@/lib/safe-url";
+import { getStudentSubscriptionStatus } from "@/lib/subscription";
+import { getContactWhatsappLink } from "@/lib/settings";
+import { PaywallLock } from "@/components/PaywallLock";
 
 export default async function StudentLessonDetailPage({
   params,
@@ -15,6 +18,24 @@ export default async function StudentLessonDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const user = await requireActiveUser("student");
+  const profile = user ? await db.studentProfile.findUnique({ where: { userId: user.id } }) : null;
+
+  if (profile) {
+    const subscription = await getStudentSubscriptionStatus(profile.id);
+    if (!subscription.active) {
+      const whatsappLink = await getContactWhatsappLink();
+      return (
+        <div className="max-w-2xl space-y-6">
+          <Link href="/lessons" className="text-sm text-ink-soft hover:text-ink inline-block">
+            ← رجوع للدروس
+          </Link>
+          <PaywallLock paidUntil={subscription.paidUntil} whatsappLink={whatsappLink} />
+        </div>
+      );
+    }
+  }
 
   const lesson = await db.lesson.findUnique({
     where: { id },
@@ -31,15 +52,11 @@ export default async function StudentLessonDetailPage({
   // منح شارة "أول درس" - آمنة للتكرار، ومعزولة حتى لا تكسر عرض الدرس لو فشلت.
   // نستخدم await صراحة (لا "fire and forget") لأن السيرفرات بدون حالة قد
   // توقف تنفيذ أي Promise معلّق فور إرسال الاستجابة.
-  const user = await requireActiveUser("student");
-  if (user) {
-    const profile = await db.studentProfile.findUnique({ where: { userId: user.id } });
-    if (profile) {
-      try {
-        await awardBadge(profile.id, "first_lesson");
-      } catch {
-        // تجاهل بهدوء
-      }
+  if (profile) {
+    try {
+      await awardBadge(profile.id, "first_lesson");
+    } catch {
+      // تجاهل بهدوء
     }
   }
 

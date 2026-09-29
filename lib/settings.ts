@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { normalizeWhatsappLink } from "@/lib/social-links";
 
 /// اسم المنصة الفعلي من الإعدادات (الهوية العامة) - يُستخدم بدل أي اسم
 /// ثابت مكتوب يدويًا في الكود، عشان تغيير الاسم من صفحة الإعدادات ينعكس
@@ -20,6 +21,19 @@ export async function getPlatformTagline(): Promise<string> {
     return settings?.tagline?.trim() || "للتعلم الذكي";
   } catch {
     return "للتعلم الذكي";
+  }
+}
+
+/// رابط واتساب التواصل (من الإعدادات) بعد تطبيعه لرابط صحيح دايمًا - نفس
+/// المنطق المستخدم في الصفحة الرئيسية، بنعيد استخدامه هنا لعرض رابط
+/// "تواصل لتسديد الاشتراك" في شاشة قفل الدروس.
+export async function getContactWhatsappLink(): Promise<string | null> {
+  try {
+    const settings = await db.settings.findFirst({ select: { socialLinks: true } });
+    const socialLinks = settings?.socialLinks as { whatsapp?: string } | null;
+    return normalizeWhatsappLink(socialLinks?.whatsapp);
+  } catch {
+    return null;
   }
 }
 

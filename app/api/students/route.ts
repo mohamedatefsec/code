@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdminSession, hashPassword } from "@/lib/auth";
 import { studentCreateSchema } from "@/lib/validation";
 import { Prisma } from "@prisma/client";
+import { getLatestCoverageEnd } from "@/lib/subscription-shared";
 
 export async function GET(req: NextRequest) {
   if (!(await requireAdminSession())) {
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
   // لكل طالب (N+1)، وبعدين نربطهم بالقايمة في الذاكرة.
   const studentIds = students.map((s) => s.id);
   const groupIds = [...new Set(students.map((s) => s.groupId).filter((g): g is string => !!g))];
-  const [paymentTotals, attendanceCounts, groupSessions] = await Promise.all([
+  const [paymentTotals, attendanceCounts, groupSessions, allPayments] = await Promise.all([
     db.payment.groupBy({
       by: ["studentId"],
       where: { studentId: { in: studentIds } },
@@ -55,9 +56,21 @@ export async function GET(req: NextRequest) {
       where: { groupId: { in: groupIds } },
       select: { groupId: true, sessionDate: true },
     }),
+    // كل دفعات الطلاب دول (مش آخر واحدة بس) عشان نحسب أبعد شهر مدفوع
+    // فعليًا - الأدمن ممكن يسجّل دفعة مقدّمة لشهر لاحق قبل شهر أقرب.
+    db.payment.findMany({
+      where: { studentId: { in: studentIds } },
+      select: { studentId: true, paidAt: true, forMonth: true },
+    }),
   ]);
   const totalPaidByStudent = new Map(paymentTotals.map((p) => [p.studentId, p._sum.amount ?? 0]));
   const attendedByStudent = new Map(attendanceCounts.map((a) => [a.studentId, a._count._all]));
+  const paymentsByStudent = new Map<string, { paidAt: Date; forMonth: Date | null }[]>();
+  for (const p of allPayments) {
+    const list = paymentsByStudent.get(p.studentId) ?? [];
+    list.push({ paidAt: p.paidAt, forMonth: p.forMonth });
+    paymentsByStudent.set(p.studentId, list);
+  }
 
   // تواريخ الحصص مجمّعة حسب المجموعة، عشان نحسب لكل طالب "إجمالي عدد
   // الحصص من مجموعة اللي حصلت منذ بداية حضوره تحديدًا" - نفس منطق استبعاد
@@ -74,11 +87,14 @@ export async function GET(req: NextRequest) {
     const totalSessionsCount = s.attendanceStartDate
       ? groupSessionDates.filter((d) => d >= s.attendanceStartDate!).length
       : groupSessionDates.length;
+    const subscriptionPaidUntil = getLatestCoverageEnd(paymentsByStudent.get(s.id) ?? []);
     return {
       ...s,
       totalPaid: totalPaidByStudent.get(s.id) ?? 0,
       attendedSessionsCount: attendedByStudent.get(s.id) ?? 0,
       totalSessionsCount,
+      subscriptionActive: subscriptionPaidUntil !== null && subscriptionPaidUntil.getTime() >= Date.now(),
+      subscriptionPaidUntil,
     };
   });
 

@@ -608,6 +608,11 @@ model Payment {
   /// تاريخ الدفعة الفعلي (ممكن يختلف عن تاريخ إدخالها في النظام - مثلًا
   /// المدرّس بيسجّل دفعة حصلت الأسبوع اللي فات).
   paidAt    DateTime @default(now()) @map("paid_at")
+  /// الشهر اللي الدفعة دي بتغطّيه (أول يوم في الشهر - مثلًا 2026-09-01
+  /// لدفعة شهر سبتمبر)، بغضّ النظر عن تاريخ تسجيلها الفعلي. ده اللي
+  /// بيتحكم في فتح/قفل الدروس، مش paidAt. Nullable عشان الدفعات القديمة
+  /// المسجّلة قبل إضافة الحقل ده (بنرجع فيها لشهر paidAt كحل بديل).
+  forMonth  DateTime? @map("for_month") @db.Date
   note      String?
   createdBy String   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")

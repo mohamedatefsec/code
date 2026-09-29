@@ -1,8 +1,31 @@
 import { db } from "@/lib/db";
 import { SubjectHero } from "@/components/SubjectHero";
 import { LessonCard } from "@/components/LessonCard";
+import { requireActiveUser } from "@/lib/auth";
+import { getStudentSubscriptionStatus } from "@/lib/subscription";
+import { getContactWhatsappLink } from "@/lib/settings";
+import { PaywallLock } from "@/components/PaywallLock";
 
 export default async function StudentLessonsPage() {
+  const user = await requireActiveUser("student");
+  const profile = user ? await db.studentProfile.findUnique({ where: { userId: user.id } }) : null;
+
+  if (profile) {
+    const subscription = await getStudentSubscriptionStatus(profile.id);
+    if (!subscription.active) {
+      const whatsappLink = await getContactWhatsappLink();
+      return (
+        <div className="space-y-10">
+          <div>
+            <h1 className="text-xl font-bold text-ink">الدروس</h1>
+            <p className="text-sm text-ink-soft mt-1">تصفّح المواد والوحدات والدروس المتاحة لك.</p>
+          </div>
+          <PaywallLock paidUntil={subscription.paidUntil} whatsappLink={whatsappLink} />
+        </div>
+      );
+    }
+  }
+
   const subjects = await db.subject.findMany({
     orderBy: { order: "asc" },
     include: {
