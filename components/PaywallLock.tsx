@@ -9,8 +9,6 @@ export function PaywallLock({
   paidUntil: Date | null;
   whatsappLink?: string | null;
 }) {
-  const expired = paidUntil !== null;
-
   return (
     <div className="max-w-md mx-auto text-center rounded-2xl border border-warn/30 bg-warn-soft/40 p-8 shadow-elevated space-y-4">
       <div className="grid place-items-center w-16 h-16 rounded-2xl mx-auto bg-warn/15 text-warn">
@@ -22,14 +20,8 @@ export function PaywallLock({
       </div>
 
       <div>
-        <h2 className="font-bold text-ink text-lg">
-          {expired ? "اشتراكك الشهري انتهى" : "لازم تسدّد الاشتراك أولًا"}
-        </h2>
-        <p className="text-sm text-ink-soft mt-2 leading-relaxed">
-          {expired
-            ? "الدروس ومحتوى المنهج بيتقفلوا تلقائيًا بعد شهر من آخر دفعة. سدّد اشتراك الشهر ده وهتتفتح لك فورًا."
-            : "الدروس ومحتوى المنهج بتتفتح بعد ما تسدّد اشتراك أول شهر. باقي المنصة (لوحتك وملفك الشخصي) متاحة عادي."}
-        </p>
+        <h2 className="font-bold text-ink text-lg">يجب تسديد الاشتراك أولًا</h2>
+        <p className="text-sm text-ink-soft mt-2 leading-relaxed">وذلك لفتح محتويات الدروس لك</p>
         {paidUntil && (
           <p className="text-xs text-ink-soft mt-2">
             آخر اشتراك ساري كان لحد {paidUntil.toLocaleDateString("ar-EG")}

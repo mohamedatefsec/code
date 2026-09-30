@@ -3,12 +3,31 @@ import { db } from "@/lib/db";
 import { toStudentReviewCard } from "@/lib/review";
 import type { ReviewCardData } from "@/lib/review-shared";
 import { ReviewQuestionList } from "@/components/ReviewQuestionList";
+import { getStudentSubscriptionStatus } from "@/lib/subscription";
+import { getContactWhatsappLink } from "@/lib/settings";
+import { PaywallLock } from "@/components/PaywallLock";
 
 export default async function StudentReviewPage() {
   const user = await requireActiveUser("student");
   const profile = user
     ? await db.studentProfile.findUnique({ where: { userId: user.id } })
     : null;
+
+  // أسئلة المراجعة من محتوى المنهج زي الدروس بالظبط - نفس القفل.
+  if (profile) {
+    const subscription = await getStudentSubscriptionStatus(profile.id);
+    if (!subscription.active) {
+      const whatsappLink = await getContactWhatsappLink();
+      return (
+        <div className="max-w-2xl space-y-6">
+          <div>
+            <h1 className="text-xl font-bold text-ink">أسئلة المراجعة</h1>
+          </div>
+          <PaywallLock paidUntil={subscription.paidUntil} whatsappLink={whatsappLink} />
+        </div>
+      );
+    }
+  }
 
   const rows = profile
     ? await db.reviewQuestion.findMany({
