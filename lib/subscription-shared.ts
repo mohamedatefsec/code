@@ -11,11 +11,12 @@ export function computePaidUntil(from: Date): Date {
 
 export type PaymentCoverageInput = { paidAt: Date; forMonth: Date | null };
 
-/// نهاية الفترة اللي الدفعة دي بتغطّيها: لو الأدمن حدّد "الدفعة دي عن شهر
-/// إيه" (forMonth) بنحسب من أول الشهر ده + شهر، وإلا (دفعات قديمة قبل
-/// إضافة الخاصية دي) بنرجع لتاريخ الدفعة الفعلي (paidAt) + شهر زي ما كان.
+/// نهاية الفترة اللي الدفعة دي بتغطّيها: نفس يوم الدفع (paidAt) + شهر
+/// بالتقويم بالظبط - يعني لو دفع يوم 10، الاشتراك بيفضل ساري لحد يوم 10
+/// الشهر اللي بعده. (forMonth لسه متسجّل لأغراض العرض بس، مش بيتحكم في
+/// حساب الفتح/القفل).
 export function computeCoverageEnd(payment: PaymentCoverageInput): Date {
-  return computePaidUntil(payment.forMonth ?? payment.paidAt);
+  return computePaidUntil(payment.paidAt);
 }
 
 /// من بين كل دفعات الطالب، بنلاقي أبعد تغطية (مش أحدث دفعة اتسجّلت) -

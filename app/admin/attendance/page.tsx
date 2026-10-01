@@ -123,17 +123,7 @@ export default function AdminAttendancePage() {
     });
     setSaving(false);
     if (res.ok) {
-      const data = await res.json().catch(() => null);
-      const warned: number = data?.warnedStudentIds?.length ?? 0;
-      const disabled: number = data?.disabledStudentIds?.length ?? 0;
-      let msg = "تم حفظ الحضور بنجاح.";
-      if (disabled > 0) {
-        msg += ` تم إيقاف حساب ${disabled} ${disabled === 1 ? "طالب" : "طلاب"} تلقائيًا بسبب الغياب عن حصتين متتاليتين (يمكنك إعادة تفعيله من صفحة الطلاب).`;
-      }
-      if (warned > 0) {
-        msg += ` وتم إرسال تحذير غياب أول لـ ${warned} ${warned === 1 ? "طالب" : "طلاب"}.`;
-      }
-      setMessage(msg);
+      setMessage("تم حفظ الحضور بنجاح.");
       loadLog();
     } else {
       setError("تعذّر حفظ الحضور.");

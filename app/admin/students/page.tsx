@@ -20,6 +20,8 @@ type Student = {
   totalPaid: number;
   subscriptionActive: boolean;
   subscriptionPaidUntil: string | null;
+  subscriptionOverride: boolean;
+  effectiveAccessActive: boolean;
 };
 
 type Group = { id: string; name: string };
@@ -64,6 +66,17 @@ function AdminStudentsPageInner() {
 
   async function handleToggleStatus(id: string) {
     const res = await fetch(`/api/students/${id}/toggle-status`, { method: "POST" });
+    if (res.ok) loadStudents();
+  }
+
+  async function handleToggleOverride(id: string, name: string, currentlyOn: boolean) {
+    if (
+      !currentlyOn &&
+      !confirm(`هتفتح الدروس لـ "${name}" يدويًا بغضّ النظر عن حالة الدفع - هيفضل يشوف تنبيه بسيط إنه لسه ما سدّدش. متابعة؟`)
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/students/${id}/toggle-override`, { method: "POST" });
     if (res.ok) loadStudents();
   }
 
@@ -178,7 +191,7 @@ function AdminStudentsPageInner() {
                         إجمالي {s.totalPaid} جنيه
                         <span className="block text-[10px] font-normal opacity-80">
                           {lastPayment.forMonth
-                            ? `عن شهر ${new Date(lastPayment.forMonth).toLocaleDateString("ar-EG", { month: "long", year: "numeric" })}`
+                            ? `بداية من ${new Date(lastPayment.forMonth).toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" })}`
                             : `آخر دفعة ${new Date(lastPayment.paidAt).toLocaleDateString("ar-EG")}`}
                         </span>
                       </>
@@ -191,13 +204,23 @@ function AdminStudentsPageInner() {
                       منفصلة عن إجمالي المدفوع اللي هو مجرد سجل تاريخي. */}
                   <span
                     className={`block mt-1 text-[10px] font-medium ${
-                      s.subscriptionActive ? "text-accent" : "text-danger"
+                      s.effectiveAccessActive ? "text-accent" : "text-danger"
                     }`}
                   >
-                    {s.subscriptionActive && s.subscriptionPaidUntil
-                      ? `🔓 الدروس مفتوحة لحد ${new Date(s.subscriptionPaidUntil).toLocaleDateString("ar-EG")}`
-                      : "🔒 الدروس مقفولة (اشتراك منتهي)"}
+                    {s.subscriptionOverride
+                      ? "🔓 مفتوحة يدويًا من الإدارة"
+                      : s.subscriptionActive && s.subscriptionPaidUntil
+                        ? `🔓 الدروس مفتوحة لحد ${new Date(s.subscriptionPaidUntil).toLocaleDateString("ar-EG")}`
+                        : "🔒 الدروس مقفولة (اشتراك منتهي)"}
                   </span>
+                  <button
+                    onClick={() => handleToggleOverride(s.id, s.fullName, s.subscriptionOverride)}
+                    className={`block mt-1 text-[10px] font-medium underline decoration-dotted hover:opacity-80 ${
+                      s.subscriptionOverride ? "text-danger" : "text-primary"
+                    }`}
+                  >
+                    {s.subscriptionOverride ? "إلغاء الفتح اليدوي" : "افتح الدروس يدويًا (بدون دفع)"}
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <span

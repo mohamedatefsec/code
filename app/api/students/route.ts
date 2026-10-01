@@ -88,13 +88,17 @@ export async function GET(req: NextRequest) {
       ? groupSessionDates.filter((d) => d >= s.attendanceStartDate!).length
       : groupSessionDates.length;
     const subscriptionPaidUntil = getLatestCoverageEnd(paymentsByStudent.get(s.id) ?? []);
+    const subscriptionActive = subscriptionPaidUntil !== null && subscriptionPaidUntil.getTime() >= Date.now();
     return {
       ...s,
       totalPaid: totalPaidByStudent.get(s.id) ?? 0,
       attendedSessionsCount: attendedByStudent.get(s.id) ?? 0,
       totalSessionsCount,
-      subscriptionActive: subscriptionPaidUntil !== null && subscriptionPaidUntil.getTime() >= Date.now(),
+      subscriptionActive,
       subscriptionPaidUntil,
+      // هل الطالب فعليًا واصل للدروس دلوقتي (سواء بدفع ساري أو بفتح يدوي
+      // من الأدمن) - ده اللي بيتعرض كـ🔓/🔒 في قائمة الأدمن.
+      effectiveAccessActive: subscriptionActive || s.subscriptionOverride,
     };
   });
 

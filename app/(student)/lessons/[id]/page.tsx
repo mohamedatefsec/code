@@ -11,6 +11,7 @@ import { safeHttpUrl } from "@/lib/safe-url";
 import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { PaywallLock } from "@/components/PaywallLock";
+import { UnpaidNotice } from "@/components/UnpaidNotice";
 
 export default async function StudentLessonDetailPage({
   params,
@@ -22,6 +23,7 @@ export default async function StudentLessonDetailPage({
   const user = await requireActiveUser("student");
   const profile = user ? await db.studentProfile.findUnique({ where: { userId: user.id } }) : null;
 
+  let showUnpaidNotice = false;
   if (profile) {
     const subscription = await getStudentSubscriptionStatus(profile.id);
     if (!subscription.active) {
@@ -35,6 +37,7 @@ export default async function StudentLessonDetailPage({
         </div>
       );
     }
+    showUnpaidNotice = subscription.unpaidNotice;
   }
 
   const lesson = await db.lesson.findUnique({
@@ -68,6 +71,8 @@ export default async function StudentLessonDetailPage({
       <Link href="/lessons" className="text-sm text-ink-soft hover:text-ink inline-block">
         ← رجوع للدروس
       </Link>
+
+      {showUnpaidNotice && <UnpaidNotice />}
 
       <div className="relative rounded-2xl overflow-hidden shadow-glow animate-fade-in-up">
         <SubjectCoverArt subject={lesson.unit.subject} className="h-40 sm:h-48 w-full" />

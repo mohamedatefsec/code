@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
       amount: parsed.data.amount,
       note: parsed.data.note || null,
       paidAt: parsed.data.paidAt ? new Date(parsed.data.paidAt) : new Date(),
-      // "YYYY-MM" -> أول يوم في الشهر ده، بمعزل عن التوقيت المحلي (UTC)
-      // عشان مايتزحلقش ليوم قبله أو بعده حسب منطقة السيرفر.
+      // "YYYY-MM-DD" -> نفس اليوم بالظبط (UTC) عشان الاشتراك يتجدد في نفس
+      // يوم الدفع من الشهر الجاي، مش يتزحلق لأول الشهر.
       forMonth: parsed.data.forMonth
-        ? new Date(`${parsed.data.forMonth}-01T00:00:00.000Z`)
+        ? new Date(`${parsed.data.forMonth}T00:00:00.000Z`)
         : null,
       createdBy: session.userId,
     },

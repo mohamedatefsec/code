@@ -16,16 +16,21 @@ function todayInputValue() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function currentMonthInputValue() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+function currentDateInputValue() {
+  return todayInputValue();
 }
 
-/// اسم الشهر بالعربي (مثلًا "سبتمبر 2026") من تاريخ كامل - نستخدمها لعرض
-/// forMonth القادم من قاعدة البيانات (ISO string) ومن قيمة input[type=month]
-/// المُدخلة حاليًا (بعد تحويلها لأول يوم في الشهر).
-function formatMonthLabel(date: Date) {
-  return date.toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+/// تاريخ عربي كامل (مثلًا "15 سبتمبر 2026").
+function formatDateLabel(date: Date) {
+  return date.toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/// نفس اليوم من الشهر اللي بعده - لعرض معاينة حيّة لتاريخ التجديد وهو
+/// بيكتب، بنفس منطق computePaidUntil في lib/subscription-shared.ts.
+function addOneMonth(dateStr: string): Date {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setMonth(d.getMonth() + 1);
+  return d;
 }
 
 export function PaymentModal({
@@ -45,7 +50,7 @@ export function PaymentModal({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [paidAt, setPaidAt] = useState(todayInputValue());
-  const [forMonth, setForMonth] = useState(currentMonthInputValue());
+  const [forMonth, setForMonth] = useState(currentDateInputValue());
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -87,7 +92,7 @@ export function PaymentModal({
       setAmount("");
       setNote("");
       setPaidAt(todayInputValue());
-      setForMonth(currentMonthInputValue());
+      setForMonth(currentDateInputValue());
       load();
       onChanged();
     } else {
@@ -135,16 +140,16 @@ export function PaymentModal({
         <form onSubmit={handleAdd} className="space-y-3 mb-5 rounded-lg border border-border p-3">
           <p className="text-xs font-medium text-ink-soft">تسجيل دفعة جديدة</p>
           <div>
-            <label className="block text-xs text-ink-soft mb-1">الدفعة دي عن شهر إيه؟</label>
+            <label className="block text-xs text-ink-soft mb-1">الاشتراك ساري من تاريخ</label>
             <input
-              type="month"
+              type="date"
               required
               value={forMonth}
               onChange={(e) => setForMonth(e.target.value)}
               className="w-full rounded-lg border border-primary/40 bg-primary-soft/40 px-3 py-2 text-sm"
             />
             <p className="text-[11px] text-ink-soft mt-1">
-              الدروس هتتفتح للطالب لشهر {formatMonthLabel(new Date(`${forMonth}-01`))} كامل بناءً على الشهر ده.
+              الدروس هتتفتح للطالب شهر كامل، وهيحتاج يجدّد يوم {formatDateLabel(addOneMonth(forMonth))}.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -203,9 +208,9 @@ export function PaymentModal({
                 <p className="stat-figure font-semibold text-ink">{p.amount} جنيه</p>
                 <p className="text-xs text-ink-soft">
                   {p.forMonth ? (
-                    <>عن شهر {formatMonthLabel(new Date(p.forMonth))}</>
+                    <>من {formatDateLabel(new Date(p.forMonth))} لحد {formatDateLabel(addOneMonth(p.forMonth.slice(0, 10)))}</>
                   ) : (
-                    <>سُجّلت {new Date(p.paidAt).toLocaleDateString("ar-EG")} (شهر غير محدَّد)</>
+                    <>سُجّلت {new Date(p.paidAt).toLocaleDateString("ar-EG")} (بدون تاريخ بداية محدَّد)</>
                   )}
                   {p.note && ` · ${p.note}`}
                 </p>

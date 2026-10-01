@@ -59,6 +59,10 @@ model StudentProfile {
   /// قائمة "افتح الحصة" لتسجيل حضور قديم قبل ما ينضم، ومش هيتحسبله غياب
   /// على حصص فاتت قبل انضمامه.
   attendanceStartDate DateTime? @map("attendance_start_date") @db.Date
+  /// فتح يدوي من الأدمن: لو true، الدروس ومحتوى المنهج بيبقوا مفتوحين
+  /// للطالب ده بغضّ النظر عن حالة الاشتراك الفعلية - مع إظهار إشعار صغير
+  /// للطالب إنه لسه ما سدّدش (unpaidNotice في lib/subscription.ts).
+  subscriptionOverride Boolean @default(false) @map("subscription_override")
   createdAt   DateTime @default(now()) @map("created_at")
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)

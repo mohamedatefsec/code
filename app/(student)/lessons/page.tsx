@@ -5,11 +5,13 @@ import { requireActiveUser } from "@/lib/auth";
 import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { PaywallLock } from "@/components/PaywallLock";
+import { UnpaidNotice } from "@/components/UnpaidNotice";
 
 export default async function StudentLessonsPage() {
   const user = await requireActiveUser("student");
   const profile = user ? await db.studentProfile.findUnique({ where: { userId: user.id } }) : null;
 
+  let showUnpaidNotice = false;
   if (profile) {
     const subscription = await getStudentSubscriptionStatus(profile.id);
     if (!subscription.active) {
@@ -24,6 +26,7 @@ export default async function StudentLessonsPage() {
         </div>
       );
     }
+    showUnpaidNotice = subscription.unpaidNotice;
   }
 
   const subjects = await db.subject.findMany({
@@ -47,6 +50,7 @@ export default async function StudentLessonsPage() {
 
   return (
     <div className="space-y-10">
+      {showUnpaidNotice && <UnpaidNotice />}
       <div>
         <h1 className="text-xl font-bold text-ink">الدروس</h1>
         <p className="text-sm text-ink-soft mt-1">تصفّح المواد والوحدات والدروس المتاحة لك.</p>

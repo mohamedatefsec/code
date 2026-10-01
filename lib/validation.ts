@@ -321,10 +321,11 @@ export const paymentCreateSchema = z.object({
   amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
   note: z.string().max(200).optional().nullable(),
   paidAt: z.string().datetime().optional(),
-  // بصيغة input[type=month]: "YYYY-MM" - الشهر اللي الدفعة دي بتغطّيه.
+  // بصيغة input[type=date]: "YYYY-MM-DD" - اليوم اللي الاشتراك بيبدأ
+  // يُحسب منه (بيتجدد في نفس اليوم من الشهر اللي بعده).
   forMonth: z
     .string()
-    .regex(/^\d{4}-\d{2}$/, "صيغة الشهر غير صحيحة")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "صيغة التاريخ غير صحيحة")
     .optional()
     .nullable(),
 });

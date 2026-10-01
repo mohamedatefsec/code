@@ -6,6 +6,7 @@ import { ReviewQuestionList } from "@/components/ReviewQuestionList";
 import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { PaywallLock } from "@/components/PaywallLock";
+import { UnpaidNotice } from "@/components/UnpaidNotice";
 
 export default async function StudentReviewPage() {
   const user = await requireActiveUser("student");
@@ -14,6 +15,7 @@ export default async function StudentReviewPage() {
     : null;
 
   // أسئلة المراجعة من محتوى المنهج زي الدروس بالظبط - نفس القفل.
+  let showUnpaidNotice = false;
   if (profile) {
     const subscription = await getStudentSubscriptionStatus(profile.id);
     if (!subscription.active) {
@@ -27,6 +29,7 @@ export default async function StudentReviewPage() {
         </div>
       );
     }
+    showUnpaidNotice = subscription.unpaidNotice;
   }
 
   const rows = profile
@@ -52,6 +55,7 @@ export default async function StudentReviewPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
+      {showUnpaidNotice && <UnpaidNotice />}
       <div>
         <h1 className="text-xl font-bold text-ink">أسئلة المراجعة</h1>
         <p className="text-sm text-ink-soft mt-1">

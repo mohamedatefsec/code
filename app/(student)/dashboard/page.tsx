@@ -134,7 +134,8 @@ export default async function StudentDashboardPage() {
 
   const lessonsCount = await db.lesson.count({ where: { status: "published" } });
   const subscription = profile ? await getStudentSubscriptionStatus(profile.id) : null;
-  const whatsappLink = subscription && !subscription.active ? await getContactWhatsappLink() : null;
+  const needsPaymentReminder = subscription ? !subscription.active || subscription.unpaidNotice : false;
+  const whatsappLink = needsPaymentReminder ? await getContactWhatsappLink() : null;
   const recentLessons = await db.lesson.findMany({
     where: { status: "published" },
     orderBy: { createdAt: "desc" },
