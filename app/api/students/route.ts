@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       user: { select: { status: true, loginIdentifier: true } },
       payments: { orderBy: { paidAt: "desc" }, take: 1 },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { fullName: "asc" },
   });
 
   // إجمالي المدفوع وعدد الحصص اللي حضرها كل طالب (present أو late، مش

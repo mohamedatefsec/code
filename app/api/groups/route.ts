@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   const groups = await db.group.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { name: "asc" },
     include: { _count: { select: { students: true } } },
   });
 

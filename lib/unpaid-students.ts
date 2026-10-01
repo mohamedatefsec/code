@@ -31,6 +31,7 @@ export async function getUnpaidStudentsLastMonth(now = new Date()) {
         take: 1,
       },
     },
+    orderBy: { fullName: "asc" },
   });
 
   const unpaid = students
