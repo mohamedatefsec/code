@@ -55,13 +55,6 @@ function fmtDay(day: string) {
 
 const money = (n: number) => n.toLocaleString("ar-EG", { maximumFractionDigits: 2 });
 
-/// تاريخ آخر سداد للطالب خلال الفترة المفلترة - الدفعات (r.payments) جايه
-/// مرتّبة تصاعديًا من lib/payments-report.ts، فآخر عنصر هو الأحدث.
-function lastPaymentDate(payments: Row["payments"]): string | null {
-  if (payments.length === 0) return null;
-  return payments[payments.length - 1].paidAt;
-}
-
 function AttendanceCell({ stats }: { stats: Stats }) {
   if (stats.total === 0) return <span className="text-ink-soft">لا توجد حصص</span>;
   return (
@@ -237,7 +230,6 @@ export default function PaymentsReportPage() {
                     <th className="text-start px-3 py-3 font-medium">الطالب</th>
                     <th className="text-start px-3 py-3 font-medium">المجموعة</th>
                     <th className="text-start px-3 py-3 font-medium">المبلغ المسدّد</th>
-                    <th className="text-start px-3 py-3 font-medium">تاريخ آخر سداد</th>
                     <th className="text-start px-3 py-3 font-medium">الحضور من بداية التسجيل</th>
                     <th className="text-start px-3 py-3 font-medium">بداية التسجيل</th>
                   </tr>
@@ -259,12 +251,6 @@ export default function PaymentsReportPage() {
                         <span className="block text-xs text-ink-soft print:text-black">
                           {r.payments.map((p) => fmtDate(p.paidAt)).join(" · ")}
                         </span>
-                      </td>
-                      <td className="px-3 py-3 text-ink-soft print:text-black whitespace-nowrap">
-                        {(() => {
-                          const d = lastPaymentDate(r.payments);
-                          return d ? fmtDate(d) : "—";
-                        })()}
                       </td>
                       <td className="px-3 py-3 text-ink-soft print:text-black">
                         <AttendanceCell stats={r.sinceRegistration} />

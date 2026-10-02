@@ -88,20 +88,41 @@ function AdminStudentsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* اتجاه الورقة أفقي عشان أعمدة الجدول تتسع (بيسري وقت الطباعة فقط) */}
+      <style>{`@page { size: A4 landscape; margin: 12mm; }`}</style>
+
+      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
         <div>
           <h1 className="text-xl font-bold text-ink">الطلاب</h1>
           <p className="text-sm text-ink-soft mt-1">إدارة حسابات الطلاب.</p>
         </div>
-        <Link
-          href="/admin/students/new"
-          className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
-        >
-          + إضافة طالب
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.print()}
+            disabled={!students || students.length === 0}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-canvas transition disabled:opacity-50"
+          >
+            🖨️ طباعة تقرير الطلاب
+          </button>
+          <Link
+            href="/admin/students/new"
+            className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 shadow-glow transition-all active:scale-[0.98]"
+          >
+            + إضافة طالب
+          </Link>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      {/* رأس مختصر يظهر في الطباعة بس، عشان الورقة تبقى واضحة لوحدها */}
+      <div className="hidden print:block border-b border-black pb-3">
+        <h2 className="text-lg font-bold text-black">تقرير الطلاب - الحضور والاشتراكات</h2>
+        <p className="text-sm text-black mt-1">
+          تاريخ الطباعة: {new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" })}
+          {" · "}عدد الطلاب: {students?.length ?? 0}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-3 print:hidden">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -139,22 +160,23 @@ function AdminStudentsPageInner() {
               <th className="text-start px-4 py-3 font-medium">الكود</th>
               <th className="text-start px-4 py-3 font-medium">المجموعة</th>
               <th className="text-start px-4 py-3 font-medium">الحضور</th>
+              <th className="text-start px-4 py-3 font-medium">غاب</th>
               <th className="text-start px-4 py-3 font-medium">الاشتراك</th>
-              <th className="text-start px-4 py-3 font-medium">الحالة</th>
-              <th className="px-4 py-3"></th>
+              <th className="text-start px-4 py-3 font-medium print:hidden">الحالة</th>
+              <th className="px-4 py-3 print:hidden"></th>
             </tr>
           </thead>
           <tbody>
             {students === null && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink-soft">
                   جارٍ التحميل...
                 </td>
               </tr>
             )}
             {students?.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-ink-soft">
+                <td colSpan={8} className="px-4 py-6 text-center text-ink-soft">
                   لا يوجد طلاب مطابقون.
                 </td>
               </tr>
@@ -166,16 +188,25 @@ function AdminStudentsPageInner() {
                 <td className="px-4 py-3 font-medium text-ink">{s.fullName}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-soft">{s.studentCode}</td>
                 <td className="px-4 py-3 text-ink-soft">{s.group?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-ink-soft whitespace-nowrap">
+                <td className="px-4 py-3 text-ink-soft print:text-black whitespace-nowrap">
                   <span className="stat-figure">
                     {s.attendedSessionsCount} / {s.totalSessionsCount}
                   </span>{" "}
                   حصة
                   {s.attendanceStartDate && (
-                    <span className="block text-xs text-ink-soft/80 mt-0.5">
+                    <span className="block text-xs text-ink-soft/80 print:text-black mt-0.5">
                       من {new Date(s.attendanceStartDate).toLocaleDateString("ar-EG")}
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-3 text-ink-soft print:text-black whitespace-nowrap">
+                  {/* غاب = إجمالي الحصص لحد النهاردة ناقص اللي حضرها فعليًا
+                      (حاضر أو متأخر) - نفس الرقمين المعروضين في عمود
+                      الحضور، محسوبين من السيرفر أصلًا فمفيش استعلام إضافي. */}
+                  <span className="stat-figure font-semibold">
+                    {Math.max(s.totalSessionsCount - s.attendedSessionsCount, 0)}
+                  </span>{" "}
+                  حصة
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -215,14 +246,14 @@ function AdminStudentsPageInner() {
                   </span>
                   <button
                     onClick={() => handleToggleOverride(s.id, s.fullName, s.subscriptionOverride)}
-                    className={`block mt-1 text-[10px] font-medium underline decoration-dotted hover:opacity-80 ${
+                    className={`block mt-1 text-[10px] font-medium underline decoration-dotted hover:opacity-80 print:hidden ${
                       s.subscriptionOverride ? "text-danger" : "text-primary"
                     }`}
                   >
                     {s.subscriptionOverride ? "إلغاء الفتح اليدوي" : "افتح الدروس يدويًا (بدون دفع)"}
                   </button>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 print:hidden">
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       s.user.status === "active"
@@ -233,7 +264,7 @@ function AdminStudentsPageInner() {
                     {s.user.status === "active" ? "نشط" : "معطّل"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-end whitespace-nowrap">
+                <td className="px-4 py-3 text-end whitespace-nowrap print:hidden">
                   <div className="flex items-center gap-3 justify-end text-sm">
                     <Link href={`/admin/students/${s.id}/edit`} className="text-primary hover:underline">
                       تعديل
