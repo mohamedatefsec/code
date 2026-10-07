@@ -72,6 +72,20 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/settings",
+    label: "الإعدادات",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" />
+        <path
+          d="M19.4 13.5c.1-.5.1-1 0-1.5l1.6-1.4-1.5-2.6-2 .6a7.4 7.4 0 0 0-1.3-.8l-.4-2.1H10.2l-.4 2.1c-.5.2-.9.5-1.3.8l-2-.6-1.5 2.6L6.6 12c-.1.5-.1 1 0 1.5L5 14.9l1.5 2.6 2-.6c.4.3.8.6 1.3.8l.4 2.1h3.6l.4-2.1c.5-.2.9-.5 1.3-.8l2 .6 1.5-2.6-1.6-1.4Z"
+          stroke="currentColor"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 /// شعار المنصة: صورة الأدمن (المدرّس) لو موجودة، وإلا أيقونة قبعة تخرّج
