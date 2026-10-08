@@ -301,20 +301,28 @@ export function StudentShell({
       </div>
 
       {/* شريط تنقّل سفلي للموبايل فقط */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-surface border-t border-border">
-        <div className="grid grid-cols-5">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 border-t border-border bg-surface/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+        {/* grid-cols-6 بعدد الأزرار بالظبط عشان كلهم يفضلوا في صف واحد */}
+        <div className="grid grid-cols-6 px-1 pt-1.5 pb-1">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname?.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] transition ${
-                  active ? "text-primary font-medium" : "text-ink-soft"
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 py-1 text-[10px] leading-none transition-colors ${
+                  active ? "text-primary font-semibold" : "text-ink-soft"
                 }`}
               >
-                {item.icon}
-                <span>{item.label}</span>
+                {/* كبسولة ملوّنة خلف أيقونة الصفحة الحالية عشان تتميّز بوضوح */}
+                <span
+                  className={`grid h-7 w-12 place-items-center rounded-full transition-all duration-200 ${
+                    active ? "bg-primary-soft scale-105" : ""
+                  }`}
+                >
+                  {item.icon}
+                </span>
+                <span className="max-w-full truncate">{item.label}</span>
               </Link>
             );
           })}
