@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { requireActiveUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { clientIp } from "@/lib/login-throttle";
+import { isIpBlocked } from "@/lib/ip-security";
 import { StudentShell } from "@/components/StudentShell";
 import { getPlatformName, getPlatformTagline, getPrimaryAdminBrand } from "@/lib/settings";
 
@@ -17,6 +19,9 @@ export default async function StudentLayout({
     // انتهت صلاحيتها) - نوريله سبب واضح بدل ما يتفاجئ من غير تفسير.
     const cookieStore = await cookies();
     const hadStaleSession = Boolean(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+    if (hadStaleSession && (await isIpBlocked(clientIp(await headers())))) {
+      redirect("/login?reason=blocked");
+    }
     redirect(hadStaleSession ? "/login?reason=session-ended" : "/login");
   }
 

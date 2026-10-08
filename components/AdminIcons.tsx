@@ -174,9 +174,24 @@ export function SettingsIcon({ className }: IconProps) {
   );
 }
 
+export function LoginLogsIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className={base(className)}>
+      <path
+        d="M12 3.2 5 6v5.4c0 4.3 2.9 7.6 7 9.4 4.1-1.8 7-5.1 7-9.4V6l-7-2.8Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10.6" r="1.7" stroke="currentColor" />
+      <path d="M12 12.4v3" stroke="currentColor" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export const AdminIcons = {
   dashboard: DashboardIcon,
   students: StudentsIcon,
+  "login-logs": LoginLogsIcon,
   groups: GroupsIcon,
   attendance: AttendanceIcon,
   "payments-report": PaymentsReportIcon,

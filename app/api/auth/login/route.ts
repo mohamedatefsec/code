@@ -13,6 +13,7 @@ import {
   isLoginLocked,
   recordLoginFailure,
 } from "@/lib/login-throttle";
+import { isIpBlocked, recordLoginLog } from "@/lib/ip-security";
 
 // كلمة مرور Hash وهمية (cost 12 زي الحقيقية): بنقارن بيها لما الحساب مش موجود،
 // عشان وقت الرد يكون واحد في الحالتين ومحدش يقدر يعرف "الحساب ده موجود؟" من
@@ -32,7 +33,9 @@ export async function POST(req: NextRequest) {
   const { identifier, password } = parsed.data;
 
   // الحماية من التخمين: عدّاد محاولات فاشلة في قاعدة البيانات (lib/login-throttle.ts)
-  const throttleKeys = buildThrottleKeys(identifier, clientIp(req.headers));
+  const ip = clientIp(req.headers);
+  const userAgent = req.headers.get("user-agent");
+  const throttleKeys = buildThrottleKeys(identifier, ip);
   if (await isLoginLocked(throttleKeys)) {
     return NextResponse.json(
       { error: "محاولات كثيرة جدًا، حاول بعد 10 دقايق." },
@@ -55,12 +58,30 @@ export async function POST(req: NextRequest) {
   const passwordOk = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !passwordOk) {
     await recordLoginFailure(throttleKeys);
+    // بنسجّل المحاولة الفاشلة بس لو الحساب موجود فعلاً (عشان محاولات التخمين
+    // العشوائية على أكواد مش موجودة مايملوش السجل) - الأدمن مهتم بمين بيحاول
+    // يدخل على حساب حقيقي.
+    if (user) {
+      await recordLoginLog({ userId: user.id, identifier, ip, userAgent, result: "failed" });
+    }
     return genericError;
   }
 
   if (user.status !== "active") {
+    await recordLoginLog({ userId: user.id, identifier, ip, userAgent, result: "disabled" });
     return NextResponse.json(
       { error: "هذا الحساب معطّل. يرجى التواصل مع المدرّس." },
+      { status: 403 }
+    );
+  }
+
+  // حظر الـ IP بيسري على حسابات الطلاب فقط (الأدمن مش متأثر عشان مايتقفلش
+  // على نفسه لو اتحظر IP شبكته بالغلط). بنتأكد بعد صحة كلمة المرور عشان
+  // رسالة الحظر تظهر لصاحب الحساب الصحيح بس.
+  if (user.role === "student" && (await isIpBlocked(ip))) {
+    await recordLoginLog({ userId: user.id, identifier, ip, userAgent, result: "blocked" });
+    return NextResponse.json(
+      { error: "تم حظر الدخول من هذه الشبكة/الجهاز. يرجى التواصل مع المدرّس." },
       { status: 403 }
     );
   }
@@ -83,6 +104,8 @@ export async function POST(req: NextRequest) {
       ...(sessionId ? { currentSessionId: sessionId } : {}),
     },
   });
+
+  await recordLoginLog({ userId: user.id, identifier, ip, userAgent, result: "success" });
 
   return NextResponse.json({
     role: user.role,

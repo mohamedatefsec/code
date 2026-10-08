@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const SESSION_COOKIE = "code_ai_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8; // 8 ساعات
@@ -108,6 +108,14 @@ export async function getCurrentSession(): Promise<SessionPayload | null> {
   }
   if (session.role === "student") {
     if (!session.sessionId || user.currentSessionId !== session.sessionId) {
+      return null;
+    }
+    // حظر IP: لو الأدمن حظر الـ IP اللي الطلب جاي منه، جلسة الطالب بتبطل
+    // فورًا (مش بس تسجيل الدخول الجديد). الاستعلام صغير ومفهرس (unique)،
+    // والدالة fail-open: أي خطأ = مش محظور. الحظر للطلاب فقط، مش الأدمن.
+    const { clientIp } = await import("./login-throttle");
+    const { isIpBlocked } = await import("./ip-security");
+    if (await isIpBlocked(clientIp(await headers()))) {
       return null;
     }
   }

@@ -41,6 +41,7 @@ model User {
 
   studentProfile StudentProfile?
   adminProfile   AdminProfile?
+  loginLogs      LoginLog[]
 
   @@map("users")
 }
@@ -672,4 +673,40 @@ model LoginThrottle {
 
   @@index([resetAt])
   @@map("login_throttles")
+}
+
+/// سجل عمليات تسجيل الدخول (ناجحة/فاشلة/محظورة) مع عنوان الـ IP - بيستخدمه
+/// الأدمن لاكتشاف مشاركة حساب الطالب مع طالب تاني (نفس الحساب من IPs
+/// مختلفة، أو أكتر من حساب من نفس الـ IP) ولحظر IP معيّن.
+model LoginLog {
+  id              String   @id @default(cuid())
+  /// null لو الحساب اتمسح بعد التسجيل (onDelete: SetNull) - الكود المكتوب
+  /// وقت الدخول (loginIdentifier) بيفضل محفوظ في كل الأحوال.
+  userId          String?  @map("user_id")
+  loginIdentifier String   @map("login_identifier")
+  ip              String
+  userAgent       String?  @map("user_agent")
+  /// success | failed | blocked | disabled
+  result          String
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([ip])
+  @@index([userId])
+  @@map("login_logs")
+}
+
+/// عناوين IP محظورة من دخول الطلاب (تسجيل دخول جديد + أي جلسة طالب شغّالة
+/// منها). الحظر بيسري على حسابات الطلاب فقط - الأدمن مش متأثر عشان مايتقفلش
+/// على نفسه بالغلط.
+model BlockedIp {
+  id        String   @id @default(cuid())
+  ip        String   @unique
+  note      String?
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("blocked_ips")
 }

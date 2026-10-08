@@ -11,6 +11,7 @@ export type AdminNavItem = {
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/dashboard", label: "لوحة التحكم", description: "نظرة عامة وإحصائيات المنصة", icon: "dashboard" },
   { href: "/admin/students", label: "الطلاب", description: "إدارة حسابات وبيانات الطلاب", icon: "students" },
+  { href: "/admin/login-logs", label: "سجل الدخول", description: "عناوين IP لكل عملية دخول وحظر الدخول بالـ IP", icon: "login-logs" },
   { href: "/admin/groups", label: "المجموعات", description: "تنظيم الطلاب في مجموعات دراسية", icon: "groups" },
   { href: "/admin/attendance", label: "الحضور والغياب", description: "تسجيل ومتابعة حصص الحضور", icon: "attendance" },
   { href: "/admin/payments-report", label: "تقرير الاشتراكات", description: "طباعة تقرير الطلاب اللي سدّدوا مع تفاصيل حضورهم", icon: "payments-report" },

@@ -329,3 +329,17 @@ export const paymentCreateSchema = z.object({
     .optional()
     .nullable(),
 });
+
+// ===== حظر IP =====
+
+export const blockIpSchema = z.object({
+  // أرقام وحروف hex ونقطتين ونقط فقط (IPv4/IPv6) - كلمة "unknown" مرفوضة
+  // تلقائيًا من الـ regex عشان مانحظرش كل اللي IP بتاعهم مش معروف.
+  ip: z
+    .string()
+    .trim()
+    .min(3, "أدخل عنوان IP صحيح")
+    .max(64)
+    .regex(/^[0-9a-fA-F:.]+$/, "عنوان IP غير صالح"),
+  note: z.string().trim().max(200).optional().nullable(),
+});

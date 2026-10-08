@@ -48,11 +48,14 @@ function LoginFormInner({
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionEnded = searchParams.get("reason") === "session-ended";
+  const blocked = searchParams.get("reason") === "blocked";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
-    sessionEnded
+    blocked
+      ? "تم حظر الدخول من هذه الشبكة/الجهاز. يرجى التواصل مع المدرّس."
+      : sessionEnded
       ? "تم إنهاء الجلسة هنا - إما لأن الحساب اتسجّل دخوله من جهاز آخر، أو انتهت صلاحية الجلسة. سجّل دخولك تاني."
       : null
   );
