@@ -15,8 +15,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "إشعار جديد";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: payload.icon || "/icons/icon-192.png?v=2",
+    badge: "/icons/icon-192.png?v=2",
     dir: "rtl",
     lang: "ar",
     data: { url: payload.url || "/dashboard" },

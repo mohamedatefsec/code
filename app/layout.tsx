@@ -33,8 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
       settings?.description ??
       "منصة تعليمية لتدريس البرمجة والذكاء الاصطناعي لطلاب المرحلة الثانوية",
     icons: {
-      icon: "/icons/icon-192.png",
-      apple: "/icons/apple-touch-icon.png",
+      icon: "/icons/icon-192.png?v=2",
+      apple: "/icons/apple-touch-icon.png?v=2",
     },
     // PWA: بيخلّي شكل المنصة لما تتفتح من أيقونة الشاشة الرئيسية شبه
     // تطبيق حقيقي (بدون شريط عنوان المتصفح) على آيفون/آيباد تحديدًا.
