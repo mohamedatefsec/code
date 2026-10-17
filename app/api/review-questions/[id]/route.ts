@@ -34,9 +34,15 @@ export async function GET(
     include: { student: { select: { id: true, fullName: true, studentCode: true } } },
   });
 
+  // الإجابات اللي بانتظار مراجعتك (isCorrect = null) بتيجي الأول، وبعدها
+  // الباقي - والترتيب بالأحدث محفوظ جوه كل مجموعة (الفرز ثابت).
+  const sortedAnswers = [...answers].sort(
+    (a, b) => Number(b.isCorrect === null) - Number(a.isCorrect === null)
+  );
+
   return NextResponse.json({
     question,
-    answers: answers.map((a) => ({
+    answers: sortedAnswers.map((a) => ({
       studentId: a.student.id,
       fullName: a.student.fullName,
       studentCode: a.student.studentCode,

@@ -143,9 +143,12 @@ export default function AdminReviewQuestionsPage() {
                       <span className="text-xs block">{percent}% إجاباتهم صحيحة</span>
                     )}
                     {q.pendingCount > 0 && (
-                      <span className="text-xs block text-warn">
-                        {q.pendingCount} بانتظار مراجعتك
-                      </span>
+                      <Link
+                        href={`/admin/review/${q.id}/edit#answers`}
+                        className="text-xs block text-warn hover:underline"
+                      >
+                        {q.pendingCount} بانتظار مراجعتك ←
+                      </Link>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -168,6 +171,18 @@ export default function AdminReviewQuestionsPage() {
                       >
                         {togglingId === q.id ? "..." : q.status === "published" ? "إرجاع لمسودة" : "نشر"}
                       </button>
+                      {q.type === "essay" && q.answeredCount > 0 && (
+                        <Link
+                          href={`/admin/review/${q.id}/edit#answers`}
+                          className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
+                            q.pendingCount > 0
+                              ? "border-warn/40 bg-warn-soft text-warn hover:opacity-80"
+                              : "border-primary/30 bg-primary-soft text-primary hover:opacity-80"
+                          }`}
+                        >
+                          مراجعة الإجابات ({q.answeredCount})
+                        </Link>
+                      )}
                       <Link href={`/admin/review/${q.id}/edit`} className="text-primary hover:underline">
                         تعديل
                       </Link>

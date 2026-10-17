@@ -114,6 +114,15 @@ export default function EditReviewQuestionPage({
 
   const hasAnswers = answers.length > 0;
   const isEssayQuestion = initialValue?.type === "essay";
+  const pendingCount = answers.filter((a) => a.isCorrect === null).length;
+
+  // لما الأدمن يجي من زرار "مراجعة الإجابات" (الرابط فيه #answers)، ننزّله
+  // على قسم الإجابات بعد ما البيانات تتحمّل (العنصر مش موجود قبل كده).
+  useEffect(() => {
+    if (initialValue && window.location.hash === "#answers") {
+      document.getElementById("answers")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [initialValue]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -122,6 +131,19 @@ export default function EditReviewQuestionPage({
           ← رجوع لأسئلة المراجعة
         </Link>
         <h1 className="text-xl font-bold text-ink mt-2">تعديل سؤال المراجعة</h1>
+        {isEssayQuestion && hasAnswers && (
+          <a
+            href="#answers"
+            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-warn/40 bg-warn-soft/50 px-4 py-2.5 text-sm text-ink hover:bg-warn-soft transition"
+          >
+            <span>
+              {pendingCount > 0
+                ? `فيه ${pendingCount} إجابة بانتظار مراجعتك`
+                : "كل الإجابات اتراجعت - تقدر تشوفها وتعدّلها"}
+            </span>
+            <span className="font-semibold text-primary">انزل لإجابات الطلاب ↓</span>
+          </a>
+        )}
       </div>
 
       {loadError && (
@@ -147,7 +169,7 @@ export default function EditReviewQuestionPage({
       )}
 
       {initialValue && (
-        <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated space-y-4">
+        <div id="answers" className="scroll-mt-20 rounded-xl border border-border bg-surface p-6 shadow-elevated space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="font-semibold text-ink">
               إجابات الطلاب <span className="stat-figure text-primary">({answers.length})</span>
