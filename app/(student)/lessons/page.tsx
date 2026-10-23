@@ -68,15 +68,24 @@ export default async function StudentLessonsPage() {
 
         return (
           <div key={subject.id} className="space-y-5">
-            <SubjectHero subject={subject} name={subject.name} lessonsCount={lessonsInSubject} />
+            <SubjectHero
+              subject={subject}
+              name={subject.name}
+              lessonsCount={lessonsInSubject}
+              unitsCount={subject.units.filter((u) => u.lessons.length > 0).length}
+            />
 
             {subject.units.map((unit) =>
               unit.lessons.length === 0 ? null : (
                 <div key={unit.id} className="space-y-3">
-                  <h3 className="text-sm font-semibold text-ink-soft flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-gradient-brand" />
-                    {unit.title}
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <span className="h-6 w-1 shrink-0 rounded-full bg-gradient-brand" aria-hidden="true" />
+                    <h3 className="text-base font-bold text-ink">{unit.title}</h3>
+                    <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium tabular-nums text-primary">
+                      {unit.lessons.length} {unit.lessons.length === 1 ? "درس" : "دروس"}
+                    </span>
+                    <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                  </div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {unit.lessons.map((lesson, i) => (
                       <LessonCard
@@ -85,7 +94,6 @@ export default async function StudentLessonsPage() {
                         title={lesson.title}
                         description={lesson.description}
                         subject={subject}
-                        order={lesson.order}
                         index={i}
                         createdAt={lesson.createdAt}
                       />

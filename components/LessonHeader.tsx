@@ -1,4 +1,5 @@
-import { subjectTheme } from "./SubjectArt";
+import { SubjectBackdrop } from "./SubjectArt";
+import { splitLessonNumber } from "@/lib/lesson-title";
 
 /// ترويسة صفحة الدرس: بطاقة متدرّجة نظيفة بدل الغلاف القديم (اللي كان فيه
 /// أيقونة </> كبيرة في النص بتتداخل مع العنوان). التنظيم من فوق لتحت:
@@ -18,14 +19,6 @@ type Props = {
   /// وقت القراءة التقريبي بالدقائق (0 أو ناقص = ما يظهرش).
   readMinutes?: number;
 };
-
-/// بيفصل رقم الدرس لو العنوان بادئ برقم زي "3- الاستجابة..." أو "٣. ..."
-/// فيظهر الرقم في شارة مستقلة والعنوان نظيف. لو مفيش رقم بيرجّع العنوان كما هو.
-function splitLessonNumber(title: string): { number: string | null; text: string } {
-  const match = title.match(/^\s*([0-9\u0660-\u0669]{1,3})\s*[-\u2013\u2014.:)\u060C]\s*([\s\S]+)$/);
-  if (!match || !match[2].trim()) return { number: null, text: title.trim() };
-  return { number: match[1], text: match[2].trim() };
-}
 
 function MetaChip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -80,34 +73,12 @@ export function LessonHeader({
   pdfCount = 0,
   readMinutes = 0,
 }: Props) {
-  const theme = subjectTheme(subject);
   const { number, text } = splitLessonNumber(title);
   const hasMeta = videoCount > 0 || pdfCount > 0 || readMinutes > 0;
 
   return (
     <header className="relative isolate overflow-hidden rounded-3xl shadow-glow animate-fade-in-up">
-      {/* الخلفية: تدرّج المادة + نقط خفيفة + بقع ضوء + تعتيم من تحت */}
-      <div className="absolute inset-0 -z-10" style={{ background: theme.gradient }} aria-hidden="true" />
-      <div
-        className="absolute inset-0 -z-10 opacity-40"
-        aria-hidden="true"
-        style={{
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.55) 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-          WebkitMaskImage: "linear-gradient(to bottom, black, transparent 80%)",
-          maskImage: "linear-gradient(to bottom, black, transparent 80%)",
-        }}
-      />
-      <div className="absolute -top-20 -end-16 -z-10 h-56 w-56 rounded-full bg-white/25 blur-3xl" aria-hidden="true" />
-      <div className="absolute -bottom-24 -start-12 -z-10 h-56 w-56 rounded-full bg-black/25 blur-3xl" aria-hidden="true" />
-      <div
-        className="absolute inset-0 -z-10"
-        aria-hidden="true"
-        style={{
-          background:
-            "linear-gradient(to top, rgba(0,0,0,0.38), rgba(0,0,0,0.08) 55%, rgba(0,0,0,0) 100%)",
-        }}
-      />
+      <SubjectBackdrop subject={subject} />
 
       <div className="relative flex flex-col gap-4 p-5 text-white sm:gap-5 sm:p-8">
         {/* المسار: المادة › الوحدة */}

@@ -130,3 +130,44 @@ export function SubjectCoverArt({
     </div>
   );
 }
+
+/// خلفية موحّدة للترويسات والبانرات: تدرّج المادة + نقط خفيفة + بقع ضوء +
+/// تعتيم بسيط من تحت (عشان النص الأبيض يتقرا بوضوح حتى على الألوان الفاتحة).
+/// من غير أي أيقونة مركزية ولا نص كود. لازم الأب يكون `relative isolate`
+/// عشان الطبقات (z سالب) تفضل جواه. variant بيغيّر مكان البقع شوية.
+export function SubjectBackdrop({ subject, variant = 0 }: { subject: SubjectLike; variant?: number }) {
+  const theme = subjectTheme(subject);
+  const shift = (variant % 3) * 14;
+  return (
+    <>
+      <div className="absolute inset-0 -z-10" style={{ background: theme.gradient }} aria-hidden="true" />
+      <div
+        className="absolute inset-0 -z-10 opacity-40"
+        aria-hidden="true"
+        style={{
+          backgroundImage: "radial-gradient(rgba(255,255,255,0.55) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+          WebkitMaskImage: "linear-gradient(to bottom, black, transparent 80%)",
+          maskImage: "linear-gradient(to bottom, black, transparent 80%)",
+        }}
+      />
+      <div
+        className="absolute -z-10 h-56 w-56 rounded-full bg-white/25 blur-3xl"
+        aria-hidden="true"
+        style={{ top: -80 + shift * 0.4, insetInlineEnd: -64 - shift }}
+      />
+      <div
+        className="absolute -z-10 h-56 w-56 rounded-full bg-black/25 blur-3xl"
+        aria-hidden="true"
+        style={{ bottom: -96, insetInlineStart: -48 + shift }}
+      />
+      <div
+        className="absolute inset-0 -z-10"
+        aria-hidden="true"
+        style={{
+          background: "linear-gradient(to top, rgba(0,0,0,0.38), rgba(0,0,0,0.08) 55%, rgba(0,0,0,0) 100%)",
+        }}
+      />
+    </>
+  );
+}
