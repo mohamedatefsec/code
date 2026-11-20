@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { toEmbedUrl } from "@/lib/media";
+import { toEmbedUrl, toVideoEmbedUrl } from "@/lib/media";
 import { PdfViewer } from "@/components/PdfViewer";
 import { requireActiveUser } from "@/lib/auth";
 import { awardBadge } from "@/lib/badges";
@@ -65,7 +65,13 @@ export default async function StudentLessonDetailPage({
 
   const paragraphs = (lesson.content ?? "").split(/\n{2,}/).filter(Boolean);
   const fresh = isNewLesson(lesson.createdAt);
-  const videoCount = lesson.media.filter((m) => m.type === "video").length;
+  // فيديو يوتيوب/فيميو اتحفظ بالغلط كـ "رابط" بيتعرض برضه كفيديو جوه المنصة
+  // (بدل ما يفتح برّه)، والروابط التانية بتفضل في قايمة الروابط زي ما هي.
+  const isVideo = (m: { type: string; url: string }) =>
+    m.type === "video" || (m.type === "link" && toVideoEmbedUrl(m.url) !== null);
+  const videos = lesson.media.filter(isVideo);
+  const links = lesson.media.filter((m) => m.type === "link" && !isVideo(m));
+  const videoCount = videos.length;
   const pdfCount = lesson.media.filter((m) => m.type === "pdf").length;
   // وقت القراءة التقريبي (حوالي 180 كلمة/دقيقة بالعربي) - بيظهر بس لو النص
   // طويل كفاية، عشان ما نكتبش "دقيقة" على فقرة من سطرين.
@@ -91,9 +97,7 @@ export default async function StudentLessonDetailPage({
         readMinutes={readMinutes}
       />
 
-      {lesson.media
-        .filter((m) => m.type === "video")
-        .map((m) => {
+      {videos.map((m) => {
           const embedUrl = toEmbedUrl(m.url);
           return (
             <div key={m.id} className="rounded-xl overflow-hidden border border-border aspect-video bg-ink">
@@ -153,10 +157,10 @@ export default async function StudentLessonDetailPage({
         </div>
       )}
 
-      {lesson.media.filter((m) => m.type === "link").length > 0 && (
+      {links.filter((m) => safeHttpUrl(m.url)).length > 0 && (
         <div className="rounded-xl border border-border bg-surface p-4 space-y-2 shadow-elevated">
-          {lesson.media
-            .filter((m) => m.type === "link" && safeHttpUrl(m.url))
+          {links
+            .filter((m) => safeHttpUrl(m.url))
             .map((m) => (
               <a
                 key={m.id}

@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent, ChangeEvent, use } from "react";
 import Link from "next/link";
 import { unitLabel, lessonLabel } from "@/lib/unit-label";
+import { toEmbedUrl, toVideoEmbedUrl } from "@/lib/media";
 import { upload } from "@vercel/blob/client";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
@@ -220,9 +221,20 @@ export default function AdminLessonEditPage({
               key={m.id}
               className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5 text-sm"
             >
-              <div>
+              <div className="min-w-0">
                 <span className="font-medium text-ink">{MEDIA_LABELS[m.type]}</span>
-                <span className="text-ink-soft ms-2">{m.title || m.url}</span>
+                <span className="text-ink-soft ms-2 break-all">{m.title || m.url}</span>
+                {/* الطالب هيشوف الفيديو جوه المنصة ولا هيفتح برّه؟ */}
+                {(m.type === "video" || (m.type === "link" && toVideoEmbedUrl(m.url))) &&
+                  (toEmbedUrl(m.url) ? (
+                    <span className="mt-1 flex w-fit items-center gap-1 rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
+                      ✓ بيتعرض جوه المنصة
+                    </span>
+                  ) : (
+                    <span className="mt-1 flex w-fit items-center gap-1 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-medium text-warn">
+                      ⚠ الرابط ده مش مفهوم، فهيفتح برّه المنصة. احذفه وضيفه تاني بالرابط من زرار &quot;مشاركة&quot; في يوتيوب.
+                    </span>
+                  ))}
               </div>
               <button onClick={() => handleDeleteMedia(m.id)} className="text-danger hover:underline">
                 حذف
@@ -255,6 +267,22 @@ export default function AdminLessonEditPage({
               placeholder="https://youtube.com/watch?v=..."
               className="w-full rounded-lg border border-border px-3 py-2 text-sm transition-shadow focus:border-primary focus-visible:outline-none focus:ring-4 focus:ring-primary/15"
             />
+            {/* فحص فوري للرابط وانت بتكتبه */}
+            {mediaUrl.trim() && mediaType === "video" && (
+              <p className={`mt-1.5 text-xs ${toEmbedUrl(mediaUrl) ? "text-accent" : "text-warn"}`}>
+                {toEmbedUrl(mediaUrl)
+                  ? "✓ رابط فيديو سليم، هيتعرض جوه المنصة."
+                  : "⚠ الرابط ده مش رابط فيديو معروف (يوتيوب، فيميو، جوجل درايف)، فهيفتح برّه المنصة."}
+              </p>
+            )}
+            {mediaUrl.trim() && mediaType === "link" && toVideoEmbedUrl(mediaUrl) && (
+              <p className="mt-1.5 text-xs text-accent">
+                ده رابط فيديو، فهيتعرض للطالب كفيديو جوه المنصة.{" "}
+                <button type="button" onClick={() => setMediaType("video")} className="underline font-semibold">
+                  غيّر النوع لـ &quot;فيديو&quot;
+                </button>
+              </p>
+            )}
           </div>
           {mediaType === "pdf" && (
             <div>
