@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Notification = {
   id: string;
@@ -9,6 +10,7 @@ type Notification = {
   body: string;
   createdAt: string;
   isRead: boolean;
+  linkUrl?: string | null;
 };
 
 function timeAgo(iso: string) {
@@ -22,6 +24,7 @@ function timeAgo(iso: string) {
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[] | null>(null);
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -78,7 +81,13 @@ export function NotificationBell() {
               notifications.slice(0, 6).map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => !n.isRead && markRead(n.id)}
+                  onClick={() => {
+                    if (!n.isRead) void markRead(n.id);
+                    if (n.linkUrl) {
+                      setOpen(false);
+                      router.push(n.linkUrl);
+                    }
+                  }}
                   className={`w-full text-start px-4 py-3 border-b border-border/60 last:border-0 transition ${
                     n.isRead ? "text-ink-soft" : "bg-primary-soft/50"
                   } hover:bg-canvas`}

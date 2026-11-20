@@ -34,10 +34,17 @@ self.addEventListener("notificationclick", (event) => {
       const allClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
       // لو فيه تاب مفتوح بالفعل من نفس المنصة، نركّز عليه بدل ما نفتح تاب
       // جديد كل مرة.
+      // (ولو التاب مش قابل للتنقّل من هنا لأي سبب، بنفتح الرابط في تاب جديد
+      // بدل ما الضغطة تضيع من غير ما توديه للدرس/الاختبار.)
       for (const client of allClients) {
-        if ("focus" in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+        if ("focus" in client && "navigate" in client) {
+          try {
+            await client.focus();
+            await client.navigate(targetUrl);
+            return;
+          } catch {
+            break;
+          }
         }
       }
       if (clients.openWindow) {

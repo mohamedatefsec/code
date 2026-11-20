@@ -76,13 +76,16 @@ export async function PATCH(
   const justPublished = before?.status !== "published" && quiz.status === "published";
   if (justPublished) {
     const title = `📝 اختبار جديد: ${quiz.title}`;
-    const body = `تم نشر اختبار جديد في مادة ${quiz.subject.name}. افتح صفحة الاختبارات للدخول عليه الآن.`;
+    const body = `تم نشر اختبار جديد في مادة ${quiz.subject.name}. اضغط على الإشعار للوصول للاختبار.`;
+    // بيفتح صفحة الاختبارات وينزل لحد الاختبار ده ويميّزه، والطالب بيدوس
+    // "ابدأ الاختبار" بنفسه - عشان العدّاد مايشتغلش بالغلط من مجرد ضغطة على إشعار.
+    const linkUrl = `/quizzes?quiz=${quiz.id}`;
 
     try {
       if (quiz.targets.length === 0) {
         // من غير استهداف = متاح لكل الطلاب
         await db.notification.create({
-          data: { title, body, targetType: "all", createdBy: session.userId },
+          data: { title, body, linkUrl, targetType: "all", createdBy: session.userId },
         });
       } else {
         // صف إشعار منفصل لكل هدف (مجموعة/طالب) - نفس قيود موديل
@@ -91,11 +94,11 @@ export async function PATCH(
           quiz.targets.map((t) =>
             t.targetType === "group" && t.groupId
               ? db.notification.create({
-                  data: { title, body, targetType: "group", targetGroupId: t.groupId, createdBy: session.userId },
+                  data: { title, body, linkUrl, targetType: "group", targetGroupId: t.groupId, createdBy: session.userId },
                 })
               : t.targetType === "student" && t.studentId
               ? db.notification.create({
-                  data: { title, body, targetType: "student", targetStudentId: t.studentId, createdBy: session.userId },
+                  data: { title, body, linkUrl, targetType: "student", targetStudentId: t.studentId, createdBy: session.userId },
                 })
               : Promise.resolve()
           )
@@ -107,7 +110,7 @@ export async function PATCH(
 
     try {
       if (quiz.targets.length === 0) {
-        await sendPushToAllStudents({ title, body: quiz.subject.name, url: "/quizzes" });
+        await sendPushToAllStudents({ title, body: quiz.subject.name, url: linkUrl });
       } else {
         const studentIds = await resolveAudienceStudentIdsMulti(
           quiz.targets
@@ -118,7 +121,7 @@ export async function PATCH(
                 : { targetType: "student" as const, targetStudentId: t.studentId! }
             )
         );
-        await sendPushToStudents(studentIds, { title, body: quiz.subject.name, url: "/quizzes" });
+        await sendPushToStudents(studentIds, { title, body: quiz.subject.name, url: linkUrl });
       }
     } catch {
       // فشل إرسال Push لا يجب أن يفشّل عملية النشر نفسها

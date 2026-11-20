@@ -30,3 +30,12 @@ export function safeHttpUrl(raw: string | null | undefined): string | null {
     return null;
   }
 }
+
+/// بيقبل بس مسار داخلي في نفس المنصة (يبدأ بـ "/" ومش "//" ولا فيه "\\")،
+/// عشان رابط الإشعار مايقدرش يودّي الطالب لموقع خارجي أبدًا.
+export function safeInternalPath(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const v = value.trim();
+  if (!v.startsWith("/") || v.startsWith("//") || v.includes("\\")) return null;
+  return v;
+}

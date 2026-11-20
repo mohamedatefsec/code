@@ -83,12 +83,31 @@ export function QuizzesList() {
   const [quizzes, setQuizzes] = useState<AvailableQuiz[] | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /// الاختبار اللي الطالب جاي له من إشعار (/quizzes?quiz=<id>) - بنميّزه وننزل له
+  const [focusId, setFocusId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/quizzes/available")
       .then((r) => r.json())
       .then((d) => setQuizzes(d.quizzes));
   }, []);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("quiz");
+    if (id) Promise.resolve().then(() => setFocusId(id));
+  }, []);
+
+  useEffect(() => {
+    if (!focusId || !quizzes) return;
+    const el = document.getElementById(`quiz-${focusId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // التمييز بيفضل 6 ثواني وبعدين بيختفي بهدوء
+    const t = setTimeout(() => setFocusId(null), 6000);
+    return () => clearTimeout(t);
+  }, [focusId, quizzes]);
+
+  const focusedMissing = Boolean(focusId && quizzes && !quizzes.some((q) => q.id === focusId));
 
   async function handleStart(quiz: AvailableQuiz) {
     if (quiz.inProgressAttemptId) {
@@ -128,20 +147,35 @@ export function QuizzesList() {
         </div>
       )}
 
+      {/* جاي من إشعار لاختبار مش متاح ليه دلوقتي (اتقفل أو اتشال أو مش لمجموعته) */}
+      {focusedMissing && (
+        <div className="rounded-lg border border-warn/40 bg-warn-soft px-4 py-2.5 text-sm text-warn animate-fade-in-up">
+          الاختبار اللي في الإشعار مش متاح ليك دلوقتي — ممكن يكون اتقفل أو خلص وقته. دي الاختبارات المتاحة حاليًا.
+        </div>
+      )}
+
       {quizzes?.length === 0 && <EmptyQuizzes />}
 
       <div className="space-y-3">
         {quizzes?.map((q, i) => {
           const accent = i % 2 === 0 ? "primary" : "accent";
           const inProgress = Boolean(q.inProgressAttemptId);
+          const focused = focusId === q.id;
           return (
             <div
               key={q.id}
-              className={`group relative rounded-xl border bg-surface p-5 flex items-center justify-between flex-wrap gap-3 shadow-elevated card-hover animate-fade-in-up ${
-                inProgress ? "border-primary/40" : "border-border"
-              } ${!q.eligible && !inProgress ? "opacity-70" : ""}`}
+              id={`quiz-${q.id}`}
+              className={`group relative rounded-xl border bg-surface p-5 flex items-center justify-between flex-wrap gap-3 shadow-elevated card-hover animate-fade-in-up scroll-mt-24 transition-shadow duration-500 ${
+                inProgress || focused ? "border-primary/40" : "border-border"
+              } ${focused ? "ring-4 ring-primary/30 shadow-glow" : ""} ${!q.eligible && !inProgress ? "opacity-70" : ""}`}
               style={{ animationDelay: `${Math.min(i, 8) * 0.06}s` }}
             >
+              {focused && !inProgress && (
+                <span className="absolute -top-2.5 start-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-3 py-0.5 text-[11px] font-semibold text-white shadow-glow">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse-glow" aria-hidden="true" />
+                  الاختبار الجديد
+                </span>
+              )}
               {inProgress && (
                 <span
                   className="absolute -top-2 start-4 inline-flex items-center gap-1.5 rounded-full bg-surface border border-primary/30 px-2.5 py-0.5 text-[11px] font-medium text-primary shadow-sm"

@@ -65,11 +65,14 @@ export async function PATCH(
   // "بارزًا وواضحًا" لهم فورًا، مش مجرد ظهور صامت في قائمة الدروس.
   const justPublished = before?.status !== "published" && lesson.status === "published";
   if (justPublished) {
+    // الضغط على الإشعار (داخل المنصة أو على الموبايل) بيفتح الدرس نفسه مباشرة
+    const lessonUrl = `/lessons/${lesson.id}`;
     try {
       await db.notification.create({
         data: {
           title: `📘 درس جديد: ${lesson.title}`,
-          body: `تم نشر درس جديد في مادة ${lesson.unit.subject.name} - ${lesson.unit.title}. افتح صفحة الدروس للاطّلاع عليه الآن.`,
+          body: `تم نشر درس جديد في مادة ${lesson.unit.subject.name} - ${lesson.unit.title}. اضغط على الإشعار لفتح الدرس.`,
+          linkUrl: lessonUrl,
           targetType: "all",
           createdBy: session.userId,
         },
@@ -84,7 +87,7 @@ export async function PATCH(
       await sendPushToAllStudents({
         title: `📘 درس جديد: ${lesson.title}`,
         body: `${lesson.unit.subject.name} - ${lesson.unit.title}`,
-        url: "/lessons",
+        url: lessonUrl,
       });
     } catch {
       // فشل إرسال Push لا يجب أن يفشّل عملية النشر نفسها

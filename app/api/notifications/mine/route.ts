@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentSession } from "@/lib/auth";
+import { safeInternalPath } from "@/lib/safe-url";
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -35,6 +36,7 @@ export async function GET() {
     title: n.title,
     body: n.body,
     imageUrl: n.imageUrl,
+    linkUrl: safeInternalPath(n.linkUrl),
     createdAt: n.createdAt,
     isRead: n.reads.length > 0,
   }));

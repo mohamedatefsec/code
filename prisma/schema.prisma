@@ -543,6 +543,10 @@ model Notification {
   /// صورة اختيارية مرفقة بالإشعار (رابط Vercel Blob) - بتتعرض كمعاينة
   /// صغيرة في قائمة الإشعارات وتتكبّر لو الطالب دوس عليها.
   imageUrl       String?                @map("image_url")
+  /// رابط داخلي اختياري يفتح لما الطالب يضغط على الإشعار (زي /lessons/<id>
+  /// لدرس جديد أو /quizzes?quiz=<id> لاختبار جديد). الإشعارات القديمة واليدوية
+  /// من غير رابط بتفضل زي ما هي: الضغط عليها بيعلّمها مقروءة بس.
+  linkUrl        String?                @map("link_url")
   targetType     NotificationTargetType @map("target_type")
   targetGroupId  String?                @map("target_group_id")
   targetStudentId String?               @map("target_student_id")
