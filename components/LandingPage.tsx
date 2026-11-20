@@ -253,9 +253,9 @@ export default async function LandingPage() {
               }
               caption={
                 teacherName ? (
-                  <span className="rounded-full bg-surface border border-border shadow-elevated px-5 py-2 text-center">
-                    <span className="block font-display font-bold text-ink">{teacherName}</span>
-                    <span className="block text-xs text-ink-soft">معلّم البرمجة والذكاء الاصطناعي</span>
+                  <span className="block rounded-2xl bg-surface/90 backdrop-blur border border-border shadow-elevated px-6 py-2.5 text-center">
+                    <span className="block font-display font-bold text-lg text-ink">{teacherName}</span>
+                    <span className="block text-sm text-ink-soft">معلّم البرمجة والذكاء الاصطناعي</span>
                   </span>
                 ) : null
               }

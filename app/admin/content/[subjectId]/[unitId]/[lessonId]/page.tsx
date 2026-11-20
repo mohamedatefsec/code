@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent, ChangeEvent, use } from "react";
 import Link from "next/link";
+import { unitLabel, lessonLabel } from "@/lib/unit-label";
 import { upload } from "@vercel/blob/client";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
@@ -117,6 +118,21 @@ export default function AdminLessonEditPage({
     }
   }
 
+  // مكان الدرس: "الوحدة الثانية ‹ الدرس الثالث" - عشان الأدمن يعرف هو فين
+  const [position, setPosition] = useState<{ unit: number; lesson: number } | null>(null);
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/units?subjectId=${subjectId}`).then((r) => r.json()),
+      fetch(`/api/lessons?unitId=${unitId}`).then((r) => r.json()),
+    ])
+      .then(([u, l]: [{ units?: { id: string }[] }, { lessons?: { id: string }[] }]) => {
+        const unitIndex = u.units?.findIndex((x) => x.id === unitId) ?? -1;
+        const lessonIndex = l.lessons?.findIndex((x) => x.id === lessonId) ?? -1;
+        if (unitIndex >= 0 && lessonIndex >= 0) setPosition({ unit: unitIndex, lesson: lessonIndex });
+      })
+      .catch(() => {});
+  }, [subjectId, unitId, lessonId]);
+
   if (!lesson) {
     return <p className="text-sm text-ink-soft">جارٍ التحميل...</p>;
   }
@@ -127,6 +143,15 @@ export default function AdminLessonEditPage({
         <Link href={`/admin/content/${subjectId}/${unitId}`} className="text-sm text-ink-soft hover:text-ink">
           ← رجوع للدروس
         </Link>
+        {position && (
+          <div className="mt-3">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
+              {unitLabel(position.unit)}
+              <span aria-hidden="true">‹</span>
+              {lessonLabel(position.lesson)}
+            </p>
+          </div>
+        )}
         <h1 className="text-xl font-bold text-ink mt-2">{lesson.title}</h1>
       </div>
 

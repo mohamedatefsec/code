@@ -18,3 +18,23 @@ const ORDINALS = [
 export function unitLabel(index: number) {
   return `الوحدة ${ORDINALS[index] ?? index + 1}`;
 }
+
+const LESSON_ORDINALS = [
+  "الأول",
+  "الثاني",
+  "الثالث",
+  "الرابع",
+  "الخامس",
+  "السادس",
+  "السابع",
+  "الثامن",
+  "التاسع",
+  "العاشر",
+  "الحادي عشر",
+  "الثاني عشر",
+];
+
+/// "الدرس الأول"، "الدرس الثاني"... وبعد الـ 12 بالرقم ("الدرس 13")
+export function lessonLabel(index: number) {
+  return `الدرس ${LESSON_ORDINALS[index] ?? index + 1}`;
+}
