@@ -113,17 +113,24 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen">
+      {/* خلفية هادئة للمنطقة كلها: هالة ألوان الهوية + نقاط دوائر خفيفة */}
+      <div className="pointer-events-none fixed inset-0 -z-10 print:hidden" aria-hidden="true">
+        <div className="aurora opacity-60" />
+        <div className="absolute inset-0 bg-circuit-dots opacity-30 [mask-image:linear-gradient(to_bottom,#000,transparent_45%)]" />
+      </div>
+
       {/* الشريط الجانبي الثابت - يظهر على الشاشات المتوسطة فأكبر فقط.
           print:hidden عشان يختفي تلقائيًا في أي صفحة أدمن بتتطبع (مش
           مقصورة على صفحة طباعة الاختبار بس). */}
       <aside
-        className="hidden md:flex w-64 shrink-0 flex-col p-5 border-e print:hidden"
+        className="hidden md:flex w-64 shrink-0 flex-col p-5 border-e print:hidden sticky top-0 h-screen overflow-y-auto isolate"
         style={{
           background: "var(--color-sidebar)",
           borderColor: "var(--color-sidebar-border)",
           color: "var(--color-sidebar-text)",
         }}
       >
+        <div className="absolute -top-24 -start-24 w-64 h-64 rounded-full blur-3xl opacity-25 -z-10" style={{ background: "var(--color-primary)" }} aria-hidden="true" />
         <SidebarBrand platformName={platformName} adminName={adminName} avatarUrl={avatarUrl} />
         <AdminNavLinks pathname={pathname} animated />
       </aside>

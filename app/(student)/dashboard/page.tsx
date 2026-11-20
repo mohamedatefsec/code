@@ -5,7 +5,6 @@ import { NotificationsWidget } from "@/components/NotificationsWidget";
 import { StatGrid } from "@/components/StatGrid";
 import { SubjectGlyph } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
-import { CodeTypewriterLine } from "@/components/CodeTypewriter";
 import { computeStreak } from "@/lib/streak";
 import { StreakCard } from "@/components/StreakCard";
 import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
@@ -14,6 +13,7 @@ import { ReviewPromptCard } from "@/components/ReviewPromptCard";
 import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
+import { CodyRobot } from "@/components/brand/CodyRobot";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -84,40 +84,6 @@ function LessonsCardMotif() {
       <g className="animate-float-slow" style={{ animationDelay: "0.8s" }}>
         <rect x="18" y="8" width="30" height="30" rx="9" fill="rgba(255,255,255,0.1)" />
         <text x="24" y="28" fontFamily="var(--font-mono)" fontSize="12" fill="#fff" fillOpacity="0.45">{"</>"}</text>
-      </g>
-    </svg>
-  );
-}
-
-/// رسم زخرفي للبانر الترحيبي - يمزج بين رمزَي المنصة (أقواس الكود `</>`
-/// وشبكة الذكاء الاصطناعي) في تركيبة واحدة عائمة، بدل رسمة عامة لا علاقة
-/// لها بمحتوى المنصة الفعلي (برمجة + ذكاء اصطناعي).
-function HeroIllustration() {
-  return (
-    <svg viewBox="0 0 220 180" className="w-44 h-36 sm:w-56 sm:h-44" aria-hidden="true">
-      <g className="animate-float-slow">
-        <rect x="30" y="40" width="120" height="80" rx="14" fill="rgba(255,255,255,0.14)" />
-        <rect x="30" y="40" width="120" height="20" rx="10" fill="rgba(255,255,255,0.22)" />
-        <circle cx="40" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
-        <circle cx="48" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
-        <circle cx="56" cy="50" r="2.5" fill="#fff" fillOpacity="0.6" />
-        <text x="42" y="80" fontFamily="var(--font-mono)" fontSize="13" fill="#fff" fillOpacity="0.55">{"</>"}</text>
-        <CodeTypewriterLine x={42} y={100} />
-      </g>
-      <g className="animate-float-card">
-        <circle cx="175" cy="35" r="16" fill="rgba(255,255,255,0.18)" />
-        <circle cx="170" cy="30" r="2.6" fill="#fff" fillOpacity="0.8" />
-        <circle cx="182" cy="28" r="2.6" fill="#fff" fillOpacity="0.8" />
-        <circle cx="178" cy="42" r="2.6" fill="#fff" fillOpacity="0.8" />
-        <path d="M170 30 178 42M182 28 178 42M170 30 182 28" stroke="#fff" strokeOpacity="0.5" strokeWidth="1.2" />
-      </g>
-      <g className="animate-float-slow" style={{ animationDelay: "1.2s" }}>
-        <circle cx="35" cy="145" r="13" fill="rgba(255,255,255,0.16)" />
-        <path d="M29 145h12M35 139v12" stroke="#fff" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
-      </g>
-      <g className="animate-float-card" style={{ animationDelay: "0.6s" }}>
-        <rect x="150" y="110" width="46" height="46" rx="12" fill="rgba(255,255,255,0.14)" />
-        <path d="M164 133h18M173 124v18" stroke="#fff" strokeOpacity="0.6" strokeWidth="1.6" strokeLinecap="round" />
       </g>
     </svg>
   );
@@ -270,12 +236,13 @@ export default async function StudentDashboardPage() {
       >
         <div className="absolute -top-10 -end-10 w-52 h-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
         <div className="absolute -bottom-16 -start-10 w-56 h-56 rounded-full bg-black/10 blur-2xl" aria-hidden="true" />
+        <div className="absolute inset-0 bg-circuit-dots opacity-25 [mask-image:linear-gradient(to_left,#000,transparent_60%)]" aria-hidden="true" />
         <div className="relative flex items-center justify-between gap-6">
           <div className="max-w-md">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
               مرحبًا بك يا {firstName} 👋
             </h1>
-            <p className="text-sm text-white/80 mt-1.5">
+            <p className="text-base text-white/85 mt-2 leading-7">
               {profile?.group ? `مجموعة: ${profile.group.name}` : "لم تُضف لأي مجموعة بعد."} — جاهز لمواصلة رحلتك التعليمية؟
             </p>
             <Link
@@ -288,8 +255,9 @@ export default async function StudentDashboardPage() {
               </svg>
             </Link>
           </div>
-          <div className="hidden sm:block shrink-0">
-            <HeroIllustration />
+          {/* "كودي" بيرحّب بالطالب */}
+          <div className="hidden sm:block shrink-0 -my-4">
+            <CodyRobot className="w-36 h-40 lg:w-44 lg:h-48" onDark idPrefix="cody-dash" />
           </div>
         </div>
       </div>

@@ -207,8 +207,14 @@ export function StudentShell({
   return (
     <ScreenshotGuard studentName={studentName}>
       <div className="min-h-screen flex">
+      {/* خلفية هادئة للمنطقة كلها: هالة ألوان الهوية + نقاط دوائر خفيفة */}
+      <div className="pointer-events-none fixed inset-0 -z-10 print:hidden" aria-hidden="true">
+        <div className="aurora opacity-60" />
+        <div className="absolute inset-0 bg-circuit-dots opacity-30 [mask-image:linear-gradient(to_bottom,#000,transparent_45%)]" />
+      </div>
+
         {/* الشريط الجانبي الثابت - على اليمين في واجهة RTL */}
-        <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-s border-border bg-surface p-5">
+        <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-s border-border bg-surface/80 backdrop-blur-xl p-5 sticky top-0 h-screen overflow-y-auto">
           <SidebarBrand platformName={platformName} tagline={tagline} adminAvatarUrl={adminAvatarUrl} adminName={adminName} />
           <div className="mt-4 flex-1">
           <NavLinks pathname={pathname} animated />
@@ -279,7 +285,7 @@ export function StudentShell({
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* هيدر علوي للموبايل فقط - زر فتح القائمة */}
-        <header className="md:hidden flex items-center justify-between border-b border-border bg-surface px-4 py-3 sticky top-0 z-20">
+        <header className="md:hidden flex items-center justify-between border-b border-border glass-surface px-4 py-3 sticky top-0 z-20">
           <button
             onClick={() => setNavOpen(true)}
             aria-label="فتح قائمة التنقل"

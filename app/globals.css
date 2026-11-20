@@ -13,21 +13,25 @@
      primary   : إنديجو-بنفسجي — "البرمجة"
      accent    : تركواز — "الذكاء الاصطناعي"
   */
-  --color-ink: #0b1220;
-  --color-ink-soft: #5b6480;
-  --color-canvas: #f3f5fb;
+  --color-ink: #0e1330;
+  --color-ink-soft: #565f82;
+  --color-canvas: #f5f6ff;
   --color-surface: #ffffff;
-  --color-surface-2: #f8f9fd;
-  --color-border: #e4e7f2;
+  --color-surface-2: #f8f8ff;
+  --color-border: #e3e5f5;
 
-  --color-primary: #4f46e5;
-  --color-primary-dim: #4338ca;
-  --color-primary-soft: #eef0fd;
-  --color-primary-glow: rgba(79, 70, 229, 0.25);
+  --color-primary: #5b4cf5;
+  --color-primary-dim: #4636d8;
+  --color-primary-soft: #efedff;
+  --color-primary-glow: rgba(91, 76, 245, 0.28);
 
-  --color-accent: #0d9488;
-  --color-accent-soft: #e6f6f4;
-  --color-accent-glow: rgba(13, 148, 136, 0.22);
+  --color-accent: #0f9f92;
+  --color-accent-soft: #e3f7f4;
+  --color-accent-glow: rgba(18, 181, 166, 0.24);
+
+  /* شرارة: لون ثالث دافئ للإنجازات والتنبيهات اللطيفة */
+  --color-spark: #f59e0b;
+  --color-spark-soft: #fff4dc;
 
   --color-warn: #b45309;
   --color-warn-soft: #fef3e2;
@@ -35,23 +39,23 @@
   --color-danger-soft: #fef2f2;
   --color-success: #16a34a;
 
-  --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #0d9488 100%);
+  --gradient-brand: linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, #a855f7) 52%, var(--color-accent) 100%);
   --shadow-elevated: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -12px rgba(15, 23, 42, 0.12);
   --shadow-glow: 0 0 0 1px rgba(79, 70, 229, 0.08), 0 8px 24px -8px rgba(79, 70, 229, 0.35);
 
   /* الشريط الجانبي داكن ثابت في الوضعين (هوية بصرية "محرر أكواد") */
-  --color-sidebar: #0a0e1a;
-  --color-sidebar-border: #1b2236;
+  --color-sidebar: #0c1029;
+  --color-sidebar-border: #1d2347;
   --color-sidebar-text: #aab2cc;
 }
 
 .dark {
-  --color-ink: #eef1fb;
-  --color-ink-soft: #97a0c3;
-  --color-canvas: #0a0e1a;
-  --color-surface: #111625;
-  --color-surface-2: #171d30;
-  --color-border: #262d45;
+  --color-ink: #eef0ff;
+  --color-ink-soft: #9aa2c8;
+  --color-canvas: #080b1f;
+  --color-surface: #10142e;
+  --color-surface-2: #161b3a;
+  --color-border: #252b52;
 
   --color-primary: #818cf8;
   --color-primary-dim: #6366f1;
@@ -67,13 +71,18 @@
   --color-danger: #f87171;
   --color-danger-soft: #2b1414;
   --color-success: #4ade80;
+  --color-spark: #fbbf24;
+  --color-spark-soft: #2d2208;
 
-  --gradient-brand: linear-gradient(135deg, #818cf8 0%, #a78bfa 55%, #2dd4bf 100%);
+  /* في الداكن: خلفيات التدرّج أعمق عشان النص الأبيض فوقها يفضل مقروء،
+     والنص الملوّن بالتدرّج (text-gradient-brand) بياخد نسخة أفتح منفصلة */
+  --gradient-brand: linear-gradient(135deg, var(--color-primary-dim) 0%, color-mix(in srgb, var(--color-primary-dim) 60%, #7e22ce) 52%, color-mix(in srgb, var(--color-accent) 72%, #000) 100%);
+  --gradient-brand-text: linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, #c084fc) 52%, var(--color-accent) 100%);
   --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -12px rgba(0, 0, 0, 0.55);
   --shadow-glow: 0 0 0 1px rgba(129, 140, 248, 0.15), 0 8px 28px -8px rgba(129, 140, 248, 0.45);
 
-  --color-sidebar: #05070f;
-  --color-sidebar-border: #171d30;
+  --color-sidebar: #060818;
+  --color-sidebar-border: #181d3d;
   --color-sidebar-text: #9099bb;
 }
 
@@ -94,10 +103,12 @@
   --color-danger: var(--color-danger);
   --color-danger-soft: var(--color-danger-soft);
   --color-success: var(--color-success);
+  --color-spark: var(--color-spark);
+  --color-spark-soft: var(--color-spark-soft);
   --color-sidebar: var(--color-sidebar);
   --color-sidebar-border: var(--color-sidebar-border);
   --color-sidebar-text: var(--color-sidebar-text);
-  --font-sans: var(--font-cairo);
+  --font-sans: var(--font-plex), var(--font-cairo), system-ui, sans-serif;
   --font-mono: var(--font-mono);
 }
 
@@ -114,6 +125,8 @@ html.dark {
 
 body {
   background: var(--color-canvas);
+  font-feature-settings: "kern";
+  text-rendering: optimizeLegibility;
   color: var(--color-ink);
   transition: background-color 0.25s ease, color 0.25s ease;
 }
@@ -143,6 +156,12 @@ select:disabled {
   letter-spacing: -0.02em;
 }
 
+/* العناوين بخط Readex Pro الهندسي - شخصية "تقنية" واضحة بدون ما تضحّي بالقراءة */
+h1, h2, h3, .font-display {
+  font-family: var(--font-readex), var(--font-plex), var(--font-cairo), sans-serif;
+  letter-spacing: -0.01em;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -151,7 +170,7 @@ select:disabled {
 /* ===== أدوات بصرية مشتركة ===== */
 
 .text-gradient-brand {
-  background: var(--gradient-brand);
+  background: var(--gradient-brand-text, var(--gradient-brand));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -295,6 +314,188 @@ select:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== هوية 2026: الحركة والخلفيات ===== */
+
+/* شبكة نقاط خفيفة تشبه لوحة الدوائر - خلفية هادئة لمساحات العرض الكبيرة */
+.bg-circuit-dots {
+  background-image: radial-gradient(color-mix(in srgb, var(--color-primary) 22%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* هالة ألوان ناعمة خلف الأقسام الرئيسية (مش زخرفة على كل بطاقة) */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.24;
+  animation: auroraDrift 18s ease-in-out infinite alternate;
+}
+.aurora::before {
+  background: var(--color-primary);
+  top: -22vmax;
+  inset-inline-start: -12vmax;
+}
+.aurora::after {
+  background: var(--color-accent);
+  bottom: -26vmax;
+  inset-inline-end: -14vmax;
+  animation-delay: -9s;
+}
+.dark .aurora::before,
+.dark .aurora::after {
+  opacity: 0.22;
+}
+
+@keyframes auroraDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(6vmax, 4vmax) scale(1.12); }
+}
+
+/* مدارات "النواة الذكية" في الهيرو */
+@keyframes orbitSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes orbitSpinReverse {
+  to { transform: rotate(-360deg); }
+}
+.orbit-spin {
+  animation: orbitSpin 28s linear infinite;
+  transform-origin: center;
+}
+.orbit-spin-slow {
+  animation: orbitSpinReverse 44s linear infinite;
+  transform-origin: center;
+}
+/* العنصر اللي ماشي على المدار يفضل معتدل (مش بيلف حوالين نفسه) */
+.orbit-spin .orbit-upright {
+  animation: orbitSpinReverse 28s linear infinite;
+}
+.orbit-spin-slow .orbit-upright {
+  animation: orbitSpin 44s linear infinite;
+}
+
+/* نبضة بتمشي على خطوط الشبكة العصبية */
+@keyframes signalFlow {
+  from { stroke-dashoffset: 120; }
+  to { stroke-dashoffset: 0; }
+}
+.signal-flow {
+  stroke-dasharray: 10 110;
+  animation: signalFlow 2.8s linear infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.35); opacity: 1; }
+}
+.node-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nodePulse 2.6s ease-in-out infinite;
+}
+
+/* رسم خط المسار مرة واحدة لما يظهر */
+@keyframes drawPath {
+  from { stroke-dashoffset: var(--path-len, 1000); }
+  to { stroke-dashoffset: 0; }
+}
+
+/* الروبوت "كودي": رمشة + هوائي نابض + تلويحة */
+@keyframes robotBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+.robot-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: robotBlink 4.5s ease-in-out infinite;
+}
+@keyframes robotWave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  70% { transform: rotate(-22deg); }
+  80% { transform: rotate(8deg); }
+  90% { transform: rotate(-16deg); }
+}
+.robot-wave {
+  transform-box: fill-box;
+  transform-origin: 85% 90%;
+  animation: robotWave 3.6s ease-in-out infinite;
+}
+@keyframes robotBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.robot-bob {
+  animation: robotBob 4s ease-in-out infinite;
+}
+@keyframes shadowBreath {
+  0%, 100% { transform: scaleX(1); opacity: 0.28; }
+  50% { transform: scaleX(0.82); opacity: 0.16; }
+}
+.robot-shadow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: shadowBreath 4s ease-in-out infinite;
+}
+
+/* لمعة تمر مرة كل فترة على زرار الدعوة الأساسي */
+@keyframes shineSweep {
+  0%, 70% { transform: translateX(120%) skewX(-18deg); }
+  100% { transform: translateX(-220%) skewX(-18deg); }
+}
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: shineSweep 4.5s ease-in-out infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* حدود متدرّجة (للبطاقة المميزة فقط) */
+.border-gradient {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    var(--gradient-brand) border-box;
+}
+
+/* شريط تقنيات متحرك بلا نهاية */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+.marquee-track {
+  animation: marquee 38s linear infinite;
+}
+.marquee-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* ظهور ناعم للمحتوى عند التنقل بين الصفحات (شفافية فقط - بدون transform
+   عشان النوافذ المنبثقة position:fixed جوه الصفحات متتأثرش) */
+.page-enter {
+  animation: fadeIn 0.35s ease both;
 }
 
 /* رادع الطباعة لواجهة الطالب: يمنع طباعة محتوى منطقة الطالب فقط

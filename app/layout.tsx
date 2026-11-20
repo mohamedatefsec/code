@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo, JetBrains_Mono } from "next/font/google";
+import { Cairo, JetBrains_Mono, Readex_Pro, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { db } from "@/lib/db";
 import { ensureReadableOnDark } from "@/lib/color";
@@ -8,6 +8,20 @@ const cairo = Cairo({
   variable: "--font-cairo",
   subsets: ["arabic", "latin"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+// خطوط هوية 2026: Readex Pro للعناوين (هندسي بطابع تقني)، وIBM Plex Sans Arabic
+// للنصوص (واضح جدًا في الأحجام الصغيرة). Cairo يفضل احتياطي.
+const readex = Readex_Pro({
+  variable: "--font-readex",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const plex = IBM_Plex_Sans_Arabic({
+  variable: "--font-plex",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -51,7 +65,7 @@ export async function generateViewport(): Promise<Viewport> {
   const themeColor =
     settings?.primaryColor && /^#[0-9a-fA-F]{6}$/.test(settings.primaryColor)
       ? settings.primaryColor
-      : "#4f46e5";
+      : "#5b4cf5";
   return {
     themeColor,
     width: "device-width",
@@ -88,7 +102,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       }
       .dark {
         ${primaryDark ? `--color-primary: ${primaryDark};
-        --color-primary-dim: color-mix(in srgb, ${primaryDark} 85%, white);
+        --color-primary-dim: color-mix(in srgb, ${primaryDark} 78%, black);
         --color-primary-soft: color-mix(in srgb, ${primaryDark} 20%, black);
         --color-primary-glow: color-mix(in srgb, ${primaryDark} 28%, transparent);` : ""}
         ${accentDark ? `--color-accent: ${accentDark};
@@ -101,7 +115,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ar"
       dir="rtl"
-      className={`${cairo.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${cairo.variable} ${readex.variable} ${plex.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

@@ -21,7 +21,7 @@ export function StatGrid({ stats }: { stats: Stat[] }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
           whileHover={{ y: -3 }}
-          className="rounded-xl border border-border bg-surface p-5 card-hover relative overflow-hidden shadow-elevated"
+          className="rounded-2xl border border-border bg-surface p-5 card-hover relative overflow-hidden shadow-elevated"
         >
           <div
             className="absolute -top-6 -end-6 w-20 h-20 rounded-full opacity-[0.07] blur-xl"
@@ -50,6 +50,18 @@ export function StatGrid({ stats }: { stats: Stat[] }) {
               stat.value
             )}
           </p>
+          {/* شريط صغير يوضّح النسبة بصريًا (للقيم المئوية فقط): كل ما يتملي أكتر كل ما النسبة أعلى */}
+          {stat.suffix === "%" && typeof stat.value === "number" && (
+            <div className="relative mt-3 h-1.5 rounded-full bg-surface-2 overflow-hidden" aria-hidden="true">
+              <motion.div
+                className="h-full rounded-full origin-right"
+                style={{ background: stat.accent === "accent" ? "var(--color-accent)" : "var(--color-primary)" }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: Math.min(Math.max(stat.value, 0), 100) / 100 }}
+                transition={{ duration: 1.1, delay: 0.2 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
+          )}
         </motion.div>
       ))}
     </div>
