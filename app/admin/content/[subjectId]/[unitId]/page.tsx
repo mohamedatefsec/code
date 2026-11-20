@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent, use } from "react";
 import Link from "next/link";
+import { unitLabel } from "@/lib/unit-label";
 
 type Lesson = {
   id: string;
@@ -20,6 +21,18 @@ export default function AdminLessonsPage({
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  /// الوحدة الحالية ومكانها في ترتيب المادة - عشان العنوان يقول "دروس الوحدة الثالثة"
+  const [unitInfo, setUnitInfo] = useState<{ title: string; index: number } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/units?subjectId=${subjectId}`)
+      .then((r) => r.json())
+      .then((d: { units?: { id: string; title: string }[] }) => {
+        const index = d.units?.findIndex((u) => u.id === unitId) ?? -1;
+        if (d.units && index >= 0) setUnitInfo({ title: d.units[index].title, index });
+      })
+      .catch(() => {});
+  }, [subjectId, unitId]);
 
   function reload() {
     fetch(`/api/lessons?unitId=${unitId}`)
@@ -74,7 +87,19 @@ export default function AdminLessonsPage({
         <Link href={`/admin/content/${subjectId}`} className="text-sm text-ink-soft hover:text-ink">
           ← رجوع للوحدات
         </Link>
-        <h1 className="text-xl font-bold text-ink mt-2">الدروس</h1>
+        {unitInfo ? (
+          <div className="mt-2 flex items-center gap-3">
+            <span className="grid place-items-center w-11 h-11 shrink-0 rounded-xl bg-gradient-brand text-white text-lg font-bold shadow-glow">
+              {unitInfo.index + 1}
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-ink">دروس {unitLabel(unitInfo.index)}</h1>
+              <p className="text-sm text-ink-soft mt-0.5 truncate">{unitInfo.title}</p>
+            </div>
+          </div>
+        ) : (
+          <h1 className="text-xl font-bold text-ink mt-2">الدروس</h1>
+        )}
       </div>
 
       <form
