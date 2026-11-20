@@ -472,6 +472,31 @@ h1, h2, h3, .font-display {
   pointer-events: none;
 }
 
+/* لمعة بتعدّي على الشارات المكسوبة كل شوية */
+.badge-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: badgeShine 5s ease-in-out infinite;
+}
+@keyframes badgeShine {
+  0%, 75% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+/* شعلة السلسلة: بتتنفّس، وبتكبر مع طول السلسلة */
+@keyframes flameFlicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.12) rotate(3deg); }
+}
+.flame {
+  display: inline-block;
+  transform-origin: 50% 90%;
+  animation: flameFlicker 1.6s ease-in-out infinite;
+}
+
 /* حدود متدرّجة (للبطاقة المميزة فقط) */
 .border-gradient {
   border: 1px solid transparent;

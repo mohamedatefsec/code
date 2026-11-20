@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfettiBurst } from "@/components/brand/ConfettiBurst";
 
 /// زرار "خلّصت الدرس" في آخر صفحة الدرس. بيتحوّل لعلامة ✓ خضرا بعد الضغط،
 /// ومعاها رابط للدرس اللي بعده (لو موجود). الطالب يقدر يرجع فيها.
@@ -18,6 +19,7 @@ export function LessonCompleteButton({
   const [completed, setCompleted] = useState(initialCompleted);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(0);
 
   async function toggle(next: boolean) {
     setSaving(true);
@@ -29,6 +31,7 @@ export function LessonCompleteButton({
       body: JSON.stringify({ completed: next }),
     }).catch(() => null);
     setSaving(false);
+    if (res && res.ok && next) setCelebrate(Date.now());
     if (!res || !res.ok) {
       setCompleted(!next);
       const data = await res?.json().catch(() => null);
@@ -38,6 +41,7 @@ export function LessonCompleteButton({
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-elevated">
+      <ConfettiBurst fireKey={celebrate} />
       <AnimatePresence mode="wait" initial={false}>
         {completed ? (
           <motion.div

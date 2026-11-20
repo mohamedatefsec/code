@@ -13,7 +13,7 @@ import { PushPermissionPrompt } from "./PushPermissionPrompt";
 const NAV_ITEMS = [
   {
     href: "/dashboard",
-    label: "الرئيسية",
+    label: "رحلتي",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-5 h-5">
         <path d="M3 10.5 12 3l9 7.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
@@ -316,19 +316,30 @@ export function StudentShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-0 flex-col items-center justify-center gap-1 py-1 text-[10px] leading-none transition-colors ${
-                  active ? "text-primary font-semibold" : "text-ink-soft"
+                aria-current={active ? "page" : undefined}
+                className={`relative flex min-w-0 flex-col items-center justify-center gap-1 py-1 text-[10px] leading-none transition-colors ${
+                  active ? "text-white font-semibold" : "text-ink-soft"
                 }`}
               >
-                {/* كبسولة ملوّنة خلف أيقونة الصفحة الحالية عشان تتميّز بوضوح */}
-                <span
-                  className={`grid h-7 w-12 place-items-center rounded-full transition-all duration-200 ${
-                    active ? "bg-primary-soft scale-105" : ""
-                  }`}
-                >
-                  {item.icon}
+                {/* كبسولة ملوّنة بتتزحلق من الزرار القديم للجديد لما الطالب يتنقّل */}
+                <span className="relative grid h-8 w-12 place-items-center">
+                  {active && (
+                    <motion.span
+                      layoutId="student-bottom-nav"
+                      className="absolute inset-0 rounded-full shadow-glow"
+                      style={{ background: "var(--gradient-brand)" }}
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                    />
+                  )}
+                  <motion.span
+                    className="relative z-10"
+                    animate={active ? { y: [0, -3, 0] } : { y: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {item.icon}
+                  </motion.span>
                 </span>
-                <span className="max-w-full truncate">{item.label}</span>
+                <span className={`max-w-full truncate ${active ? "text-primary" : ""}`}>{item.label}</span>
               </Link>
             );
           })}

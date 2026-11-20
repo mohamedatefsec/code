@@ -1,4 +1,4 @@
-import { after } from "next/server";
+import { after, connection } from "next/server";
 import { db } from "@/lib/db";
 import { notifyLessonPublished, notifyQuizPublished } from "@/lib/publish-notify";
 
@@ -16,6 +16,8 @@ const CHECK_EVERY_MS = 30_000;
 let lastCheck = 0;
 
 export async function publishDueContent(): Promise<void> {
+  // بيستنى طلب حقيقي من زائر: عمره ما يشتغل وقت بناء المنصة على Vercel
+  await connection();
   const nowMs = Date.now();
   if (nowMs - lastCheck < CHECK_EVERY_MS) return;
   lastCheck = nowMs;

@@ -11,9 +11,9 @@ export type Stat = {
   icon?: React.ReactNode;
 };
 
-export function StatGrid({ stats }: { stats: Stat[] }) {
+export function StatGrid({ stats, compact = false }: { stats: Stat[]; compact?: boolean }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={`grid grid-cols-2 gap-4 ${compact ? "" : "lg:grid-cols-4"}`}>
       {stats.map((stat, i) => (
         <motion.div
           key={stat.label}

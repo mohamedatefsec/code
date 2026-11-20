@@ -3,7 +3,18 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { ProgressRing } from "@/components/ProgressRing";
+import { CodyRobot } from "@/components/brand/CodyRobot";
+import { ConfettiBurst } from "@/components/brand/ConfettiBurst";
+
+/// رسالة "كودي" حسب الدرجة - تشجيع في كل الحالات
+function reaction(pct: number, pending: boolean) {
+  if (pending) return { title: "⏳ نتيجتك لسه بتكمل", text: "فيه سؤال مقالي المعلّم هيصححه، والدرجة هتتحدّث بعدها." };
+  if (pct >= 90) return { title: "🏆 أداء بطل!", text: "فاهم الحتة دي كويس جدًا. كمّل كده." };
+  if (pct >= 70) return { title: "👏 شغل حلو جدًا", text: "قربت من القمة. بص على الأسئلة اللي غلطت فيها تحت." };
+  if (pct >= 50) return { title: "💪 كويس، وتقدر أحسن", text: "راجع الدروس اللي تحت وهتلاقي الفرق في الاختبار الجاي." };
+  return { title: "متزعلش، دي خطوة في الطريق", text: "كل غلطة بتعلّمك حاجة. راجع الدروس اللي تحت وجرّب تاني." };
+}
 
 type ResultOption = { id: string; text: string; isCorrect: boolean; order: number };
 type ResultAnswer = {
@@ -65,35 +76,54 @@ export default function ResultDetailPage({
         </h1>
       </motion.div>
 
-      <div className="rounded-xl border border-border bg-surface p-6 flex items-center justify-around text-center shadow-elevated relative overflow-hidden">
-        {result.percentage >= 90 && !result.needsManualGrading && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 0.12, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0"
-            style={{ background: "var(--gradient-brand)" }}
-          />
-        )}
-        <div className="relative">
-          <p className="stat-figure text-3xl font-semibold text-primary">
-            <AnimatedNumber value={result.percentage} suffix="%" />
-          </p>
-          <p className="text-xs text-ink-soft mt-1">{result.needsManualGrading ? "النسبة (جزئية)" : "النسبة"}</p>
-        </div>
-        <div className="relative">
-          <p className="stat-figure text-3xl font-semibold text-ink">
-            {result.score}/{result.maxScore}
-          </p>
-          <p className="text-xs text-ink-soft mt-1">الدرجة</p>
-        </div>
-        <div className="relative">
-          <p className="stat-figure text-3xl font-semibold text-ink">
-            {Math.floor(result.timeSpentSeconds / 60)}د
-          </p>
-          <p className="text-xs text-ink-soft mt-1">الوقت المستغرق</p>
-        </div>
-      </div>
+      {(() => {
+        const pending = result.needsManualGrading;
+        const r = reaction(result.percentage, pending);
+        const great = result.percentage >= 90 && !pending;
+        return (
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-elevated">
+            {great && <ConfettiBurst fireKey={1} />}
+            {great && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 0.1, scale: 1 }}
+                transition={{ duration: 0.8 }}
+                className="absolute inset-0"
+                style={{ background: "var(--gradient-brand)" }}
+              />
+            )}
+            <div className="relative flex flex-wrap items-center gap-5 sm:gap-7">
+              <ProgressRing percent={result.percentage} size={120} stroke={11} label={pending ? "نسبة جزئية" : "نسبتك"} />
+              <div className="flex-1 min-w-[12rem]">
+                <motion.div
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.9, duration: 0.4 }}
+                  className="flex items-start gap-3"
+                >
+                  <CodyRobot className="w-12 h-14 shrink-0" wave={great} idPrefix="cody-result" />
+                  <div>
+                    <p className="font-display font-bold text-lg text-ink">{r.title}</p>
+                    <p className="text-sm text-ink-soft mt-0.5 leading-6">{r.text}</p>
+                  </div>
+                </motion.div>
+                <div className="mt-4 flex gap-3">
+                  <div className="rounded-xl bg-surface-2 border border-border px-4 py-2 text-center">
+                    <p className="stat-figure text-xl font-bold text-ink">
+                      {result.score} من {result.maxScore}
+                    </p>
+                    <p className="text-[11px] text-ink-soft">الدرجة</p>
+                  </div>
+                  <div className="rounded-xl bg-surface-2 border border-border px-4 py-2 text-center">
+                    <p className="stat-figure text-xl font-bold text-ink">{Math.max(1, Math.round(result.timeSpentSeconds / 60))} د</p>
+                    <p className="text-[11px] text-ink-soft">الوقت</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {result.needsManualGrading && (
         <div className="rounded-lg bg-primary-soft px-4 py-3 text-sm text-primary">

@@ -7,7 +7,6 @@ import { StatGrid } from "@/components/StatGrid";
 import { SubjectGlyph } from "@/components/SubjectArt";
 import { isNewLesson } from "@/lib/lesson-badge";
 import { computeStreak } from "@/lib/streak";
-import { StreakCard } from "@/components/StreakCard";
 import { LeaderboardCard, type LeaderboardEntry } from "@/components/LeaderboardCard";
 import { BadgeCelebration } from "@/components/BadgeCelebration";
 import { ReviewPromptCard } from "@/components/ReviewPromptCard";
@@ -15,7 +14,12 @@ import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { CodyRobot } from "@/components/brand/CodyRobot";
-import { getResumeLesson, getCompletedCount } from "@/lib/lesson-progress";
+import { getResumeLesson, getCompletedCount, getStudentProgressMap } from "@/lib/lesson-progress";
+import { buildJourney, buildMissions, badgeHint } from "@/lib/student-journey";
+import { JourneyMap } from "@/components/JourneyMap";
+import { MissionCard } from "@/components/MissionCard";
+import { BadgeShelf } from "@/components/BadgeShelf";
+import { ProgressRing } from "@/components/ProgressRing";
 import { splitLessonNumber } from "@/lib/lesson-title";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
@@ -63,33 +67,23 @@ function LessonIcon() {
     </svg>
   );
 }
-function BookmarkIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} className="w-4.5 h-4.5">
-      <path d="M6 4h12v17l-6-3.8L6 21V4Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+/// تحية حسب الساعة في القاهرة
+function greeting(now: Date) {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", hourCycle: "h23" }).format(now)
   );
+  if (hour >= 5 && hour < 12) return "صباح الخير";
+  if (hour >= 12 && hour < 17) return "نهارك سعيد";
+  return "مساء الخير";
 }
 
-/// زخرفة صغيرة لبطاقة "أحدث الدروس" - نفس مفردات الشعار البصري للمنصة
-/// (شبكة الذكاء الاصطناعي + أقواس الكود) بس بحجم أصغر ومكانها في ركن
-/// البطاقة، مش بانر كامل مستقل زي بانر الترحيب.
-function LessonsCardMotif() {
-  return (
-    <svg viewBox="0 0 140 100" className="absolute -top-2 end-0 w-28 h-20 sm:w-36 sm:h-24 opacity-90" aria-hidden="true">
-      <g className="animate-float-card">
-        <circle cx="100" cy="28" r="14" fill="rgba(255,255,255,0.14)" />
-        <circle cx="96" cy="23" r="2.2" fill="#fff" fillOpacity="0.65" />
-        <circle cx="107" cy="21" r="2.2" fill="#fff" fillOpacity="0.65" />
-        <circle cx="103" cy="34" r="2.2" fill="#fff" fillOpacity="0.65" />
-        <path d="M96 23 103 34M107 21 103 34M96 23 107 21" stroke="#fff" strokeOpacity="0.4" strokeWidth="1" />
-      </g>
-      <g className="animate-float-slow" style={{ animationDelay: "0.8s" }}>
-        <rect x="18" y="8" width="30" height="30" rx="9" fill="rgba(255,255,255,0.1)" />
-        <text x="24" y="28" fontFamily="var(--font-mono)" fontSize="12" fill="#fff" fillOpacity="0.45">{"</>"}</text>
-      </g>
-    </svg>
-  );
+/// جملة السلسلة: بتشجّع الطالب حسب طولها
+function streakLine(streak: number) {
+  if (streak === 0) return "ابدأ سلسلتك النهارده";
+  if (streak === 1) return "يوم واحد — كمّل بكرة";
+  if (streak === 2) return "يومين ورا بعض";
+  if (streak < 7) return `${streak} أيام ورا بعض 💪`;
+  return `${streak} ${streak <= 10 ? "أيام" : "يوم"} ورا بعض — أسطورة 🏆`;
 }
 
 export default async function StudentDashboardPage() {
@@ -234,240 +228,202 @@ export default async function StudentDashboardPage() {
   const completedCount = profile ? await getCompletedCount(profile.id) : 0;
   const overallPercent = lessonsCount > 0 ? Math.round((completedCount / lessonsCount) * 100) : 0;
 
+  // ===== "رحلتي": خريطة الوحدات + مهمة النهارده + أهداف الشارات =====
+  const journeySubjects = await db.subject.findMany({
+    orderBy: { order: "asc" },
+    select: {
+      name: true,
+      units: {
+        where: { status: "published" },
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          title: true,
+          lessons: { where: { status: "published" }, orderBy: { order: "asc" }, select: { id: true, title: true } },
+        },
+      },
+    },
+  });
+  const progressMap = profile ? await getStudentProgressMap(profile.id) : new Map();
+  const journey = buildJourney(journeySubjects, progressMap, resume?.lesson.id ?? null);
+  const currentJourneyLesson = journey.units
+    .flatMap((u) => u.lessons.map((l) => ({ ...l, unitTitle: u.title })))
+    .find((l) => l.state === "current");
+
+  const missions = profile
+    ? await buildMissions({
+        studentId: profile.id,
+        groupId: profile.groupId,
+        currentLesson:
+          subscriptionOk && currentJourneyLesson
+            ? {
+                id: currentJourneyLesson.id,
+                title: currentJourneyLesson.title,
+                unitTitle: currentJourneyLesson.unitTitle,
+                opened: progressMap.get(currentJourneyLesson.id) === "opened",
+              }
+            : null,
+        reviewPending,
+      })
+    : [];
+
+  const shelfBadges = allBadges.map((b) => ({
+    id: b.id,
+    name: b.name,
+    icon: b.icon,
+    description: b.description,
+    earned: earnedBadgeIds.has(b.id),
+    hint: badgeHint(b.criteriaKey, {
+      submittedQuizzes: submittedAttempts.length,
+      attendancePct: attendancePercentage,
+      attendanceSessions: attendanceRecords.length,
+    }),
+  }));
+  // المكسوبة الأول، وبعدها الأقرب للفتح
+  shelfBadges.sort((a, b) => Number(b.earned) - Number(a.earned));
+
+  const flameSize = streak >= 7 ? "text-3xl" : streak >= 3 ? "text-2xl" : "text-xl";
+
   return (
     <div className="space-y-6">
       {profile && <BadgeCelebration studentId={profile.id} earnedBadges={earnedBadgesForCelebration} />}
       {subscription && !subscription.active && (
         <SubscriptionBanner paidUntil={subscription.paidUntil} whatsappLink={whatsappLink} />
       )}
-      {/* البانر الترحيبي */}
-      <div
-        className="relative overflow-hidden rounded-2xl px-6 sm:px-8 py-7 sm:py-9 shadow-glow animate-fade-in-up"
+
+      {/* ===== التحية + السلسلة + التقدّم الكلي ===== */}
+      <section
+        className="relative overflow-hidden rounded-3xl px-5 sm:px-8 py-6 sm:py-7 shadow-glow animate-fade-in-up"
         style={{ background: "var(--gradient-brand)" }}
       >
         <div className="absolute -top-10 -end-10 w-52 h-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-        <div className="absolute -bottom-16 -start-10 w-56 h-56 rounded-full bg-black/10 blur-2xl" aria-hidden="true" />
         <div className="absolute inset-0 bg-circuit-dots opacity-25 [mask-image:linear-gradient(to_left,#000,transparent_60%)]" aria-hidden="true" />
-        <div className="relative flex items-center justify-between gap-6">
-          <div className="max-w-md">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
-              مرحبًا بك يا {firstName} 👋
+        <div className="relative flex items-center gap-5 sm:gap-7">
+          <div className="hidden sm:block shrink-0 -my-6">
+            <CodyRobot className="w-28 h-32 lg:w-32 lg:h-36" onDark idPrefix="cody-dash" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-white/80">{greeting(new Date())}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mt-0.5">
+              {firstName}، جاهز تكمّل رحلتك؟
             </h1>
-            <p className="text-base text-white/85 mt-2 leading-7">
-              {profile?.group ? `مجموعة: ${profile.group.name}` : "لم تُضف لأي مجموعة بعد."} — جاهز لمواصلة رحلتك التعليمية؟
-            </p>
-            <Link
-              href={resume ? `/lessons/${resume.lesson.id}` : "/lessons"}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-white text-primary px-5 py-2.5 text-sm font-semibold shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-transform"
-            >
-              متابعة التعلم
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
-                <path d="M15 6 9 12l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          </div>
-          {/* "كودي" بيرحّب بالطالب */}
-          <div className="hidden sm:block shrink-0 -my-4">
-            <CodyRobot className="w-36 h-40 lg:w-44 lg:h-48" onDark idPrefix="cody-dash" />
-          </div>
-        </div>
-      </div>
-
-      {/* كمّل من حيث وقفت + التقدّم الكلي */}
-      {lessonsCount > 0 && (
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-elevated animate-fade-in-up flex flex-col md:flex-row md:items-center gap-5">
-          {resume ? (
-            <Link
-              href={`/lessons/${resume.lesson.id}`}
-              className="group flex items-center gap-4 flex-1 min-w-0 rounded-xl p-1 -m-1"
-            >
-              <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-gradient-brand text-white shadow-glow">
-                <svg viewBox="0 0 24 24" className="w-7 h-7" fill="currentColor" aria-hidden="true">
-                  <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
-                </svg>
-              </span>
-              <span className="min-w-0">
-                <span className="block text-xs font-semibold text-primary">كمّل من حيث وقفت</span>
-                <span className="block font-bold text-ink truncate group-hover:text-primary transition-colors">
-                  {splitLessonNumber(resume.lesson.title).text}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur px-3 py-1.5 font-semibold text-white"
+                title="عدد الأيام المتتالية اللي ليك فيها نشاط (حضور أو اختبار)"
+              >
+                <span className={`flame ${flameSize} leading-none ${streak === 0 ? "grayscale opacity-60" : ""}`} aria-hidden="true">
+                  🔥
                 </span>
-                <span className="block text-sm text-ink-soft truncate">{resume.lesson.unit.title}</span>
+                {streakLine(streak)}
               </span>
-            </Link>
-          ) : (
-            <div className="flex-1">
-              <p className="font-bold text-ink">
-                {completedCount === 0 ? "ابدأ أول درس النهارده" : "مفيش درس مفتوح مستنيك"}
-              </p>
-              <p className="text-sm text-ink-soft mt-0.5">
-                {completedCount === 0
-                  ? "افتح صفحة الدروس واختار الدرس الأول."
-                  : "كل الدروس اللي فتحتها خلّصتها. اختار الدرس الجاي من صفحة الدروس."}
+              <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-white/90">
+                {profile?.group ? `مجموعة ${profile.group.name}` : "لسه مش في مجموعة"}
+              </span>
+            </div>
+          </div>
+          {lessonsCount > 0 && (
+            <div className="shrink-0 text-center">
+              <ProgressRing percent={overallPercent} size={92} onDark label="من المنهج" />
+              <p className="mt-1.5 text-[11px] text-white/80 hidden sm:block">
+                خلّصت {completedCount} من {lessonsCount}
               </p>
             </div>
           )}
-          <div className="md:w-64 shrink-0">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="text-ink-soft">تقدّمك في المنهج</span>
-              <span className="font-bold text-ink tabular-nums">{overallPercent}%</span>
-            </div>
-            <div className="mt-2 h-2.5 rounded-full bg-surface-2 border border-border overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-brand" style={{ width: `${overallPercent}%` }} />
-            </div>
-            <p className="text-xs text-ink-soft mt-1.5">
-              خلّصت {completedCount} من {lessonsCount} {lessonsCount === 1 ? "درس" : "دروس"}
-            </p>
-          </div>
         </div>
-      )}
+      </section>
 
-      <StatGrid
-        stats={[
-          {
-            label: "نسبة الحضور",
-            value: attendancePercentage !== null ? attendancePercentage : "—",
-            suffix: "%",
-            accent: "accent",
-            icon: <AttendanceIcon />,
-          },
-          {
-            label: "متوسط الدرجات",
-            value: averagePercentage !== null ? averagePercentage : "—",
-            suffix: "%",
-            icon: <GradeIcon />,
-          },
-          {
-            label: "الاختبارات",
-            value: publishedQuizzesCount,
-            accent: "accent",
-            icon: <QuizIcon />,
-          },
-          { label: "الدروس", value: lessonsCount, icon: <LessonIcon /> },
-        ]}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start">
+        {/* ===== العمود الأساسي: المهمة + الخريطة + الشارات ===== */}
+        <div className="space-y-6 min-w-0">
+          {missions.length > 0 && <MissionCard missions={missions} />}
+          <JourneyMap units={journey.units} initialUnitId={journey.currentUnitId} />
+          <BadgeShelf badges={shelfBadges} />
+        </div>
 
-      {reviewTotal > 0 && <ReviewPromptCard total={reviewTotal} pending={reviewPending} />}
+        {/* ===== العمود الجانبي: الأرقام + الإشعارات + المراجعة + الصدارة + الجديد ===== */}
+        <aside className="space-y-6 min-w-0">
+          <StatGrid
+            compact
+            stats={[
+              {
+                label: "نسبة الحضور",
+                value: attendancePercentage !== null ? attendancePercentage : "—",
+                suffix: "%",
+                accent: "accent",
+                icon: <AttendanceIcon />,
+              },
+              {
+                label: "متوسط درجاتك",
+                value: averagePercentage !== null ? averagePercentage : "—",
+                suffix: "%",
+                icon: <GradeIcon />,
+              },
+              {
+                label: "اختبارات منشورة",
+                value: publishedQuizzesCount,
+                accent: "accent",
+                icon: <QuizIcon />,
+              },
+              { label: "دروس خلّصتها", value: completedCount, icon: <LessonIcon /> },
+            ]}
+          />
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <StreakCard streak={streak} />
-        <LeaderboardCard entries={leaderboard} groupName={profile?.group?.name ?? null} />
-      </div>
+          <NotificationsWidget />
 
-      <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
-        <div
-          className="relative overflow-hidden md:col-span-2 rounded-xl bg-gradient-brand p-4 sm:p-6 shadow-glow animate-fade-in-up"
-          style={{ animationDelay: "0.15s" }}
-        >
-          <LessonsCardMotif />
-          <div className="relative flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="flex items-center gap-2 font-semibold text-white">
-              <span className="grid place-items-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/15 backdrop-blur-sm">
-                <BookmarkIcon />
-              </span>
-              أحدث الدروس
-            </h2>
-            <Link
-              href="/lessons"
-              className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary hover:opacity-90 transition"
-            >
-              عرض الكل
-              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} className="w-3 h-3">
-                <path d="m15 6-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          </div>
-          {recentLessons.length === 0 ? (
-            <p className="relative text-sm text-white/80">لا توجد دروس منشورة بعد. راجع لاحقًا.</p>
-          ) : (
-            <div className="relative space-y-2">
-              {recentLessons.map((l, i) => {
-                const fresh = isNewLesson(l.createdAt);
-                return (
-                  <Link
-                    key={l.id}
-                    href={`/lessons/${l.id}`}
-                    className="group flex items-center gap-3 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 transition-colors text-sm animate-fade-in-up"
-                    style={{ animationDelay: `${0.2 + i * 0.05}s` }}
-                  >
-                    <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white transition-transform group-hover:scale-105">
-                      <SubjectGlyph subject={l.unit.subject} className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-medium text-white truncate">{splitLessonNumber(l.title).text}</span>
-                        {fresh && (
-                          <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                            جديد
+          {reviewTotal > 0 && <ReviewPromptCard total={reviewTotal} pending={reviewPending} />}
+
+          <LeaderboardCard entries={leaderboard} groupName={profile?.group?.name ?? null} />
+
+          {/* جديد على المنصة */}
+          <section className="rounded-2xl border border-border bg-surface p-5 shadow-elevated">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-ink">جديد على المنصة</h2>
+              <Link href="/lessons" className="text-xs font-semibold text-primary hover:underline">
+                كل الدروس
+              </Link>
+            </div>
+            {recentLessons.length === 0 ? (
+              <p className="text-sm text-ink-soft">لسه مفيش دروس منشورة.</p>
+            ) : (
+              <ul className="space-y-2">
+                {recentLessons.map((l) => {
+                  const fresh = isNewLesson(l.createdAt);
+                  return (
+                    <li key={l.id}>
+                      <Link
+                        href={`/lessons/${l.id}`}
+                        className="group flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 hover:border-primary/40 transition-colors"
+                      >
+                        <span className="grid place-items-center w-9 h-9 shrink-0 rounded-lg bg-primary-soft text-primary">
+                          <SubjectGlyph subject={l.unit.subject} className="w-5 h-5" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-center gap-1.5">
+                            <span className="font-semibold text-sm text-ink truncate group-hover:text-primary">
+                              {splitLessonNumber(l.title).text}
+                            </span>
+                            {fresh && (
+                              <span className="shrink-0 rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                جديد
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-xs text-ink-soft truncate">{l.unit.title}</span>
+                        </span>
+                        {progressMap.get(l.id) === "done" && (
+                          <span className="shrink-0 text-accent text-xs font-bold" title="خلّصته">
+                            ✓
                           </span>
                         )}
-                      </span>
-                    </span>
-                    <span className="text-white/70 shrink-0 hidden sm:inline">{l.unit.title}</span>
-                    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} className="w-3.5 h-3.5 text-white/60 shrink-0 transition-transform group-hover:-translate-x-0.5">
-                      <path d="m15 6-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="md:col-span-1">
-          <NotificationsWidget />
-        </div>
-      </div>
-
-      <div
-        className="rounded-xl border border-border bg-surface p-6 shadow-elevated animate-fade-in-up"
-        style={{ animationDelay: "0.25s" }}
-      >
-        <h2 className="font-semibold text-ink mb-4">الشارات</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-          {allBadges.map((b, i) => {
-            const earned = earnedBadgeIds.has(b.id);
-            return (
-              <div
-                key={b.id}
-                title={b.description}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center animate-scale-in transition-transform hover:scale-105 ${
-                  earned
-                    ? "border-primary/30 bg-primary-soft shadow-glow"
-                    : "border-border opacity-40 grayscale"
-                }`}
-                style={{ animationDelay: `${0.3 + i * 0.05}s` }}
-              >
-                <span className="text-2xl">{b.icon}</span>
-                <span className="text-xs text-ink-soft">{b.name}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* بانر تحفيزي سفلي */}
-      <div
-        className="relative overflow-hidden rounded-xl border border-border bg-surface p-6 sm:p-7 shadow-elevated flex items-center justify-between gap-6 flex-wrap"
-      >
-        <div
-          className="absolute -top-8 -start-8 w-40 h-40 rounded-full opacity-[0.08] blur-2xl"
-          style={{ background: "var(--gradient-brand)" }}
-          aria-hidden="true"
-        />
-        <div className="relative">
-          <h3 className="font-semibold text-ink">استمر في التعلم كل يوم</h3>
-          <p className="text-sm text-ink-soft mt-1">
-            {streak > 0
-              ? `سلسلتك الحالية ${streak} ${streak === 1 ? "يوم" : "أيام"} متتالية — كل خطوة صغيرة تقرّبك من هدفك الأكبر.`
-              : "ابدأ سلسلتك النهاردة — كل خطوة صغيرة تقرّبك من هدفك الأكبر."}
-          </p>
-        </div>
-        <Link
-          href="/lessons"
-          className="relative shrink-0 inline-flex items-center gap-2 rounded-full bg-gradient-brand text-white px-5 py-2.5 text-sm font-semibold shadow-glow hover:scale-[1.03] active:scale-[0.98] transition-transform"
-        >
-          اكتشف المزيد
-        </Link>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   );
