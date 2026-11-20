@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdminSession } from "@/lib/auth";
 import { quizUpdateSchema } from "@/lib/validation";
-import { sendPushToStudents, sendPushToAllStudents } from "@/lib/push";
-import { resolveAudienceStudentIdsMulti } from "@/lib/notification-audience";
+import { notifyQuizPublished } from "@/lib/publish-notify";
 
 export async function GET(
   _req: NextRequest,
@@ -65,67 +64,31 @@ export async function PATCH(
   // ومعاها بيانات المادة والاستهداف لبناء الإشعار.
   const before = await db.quiz.findUnique({ where: { id }, select: { status: true } });
 
+  // الجدولة: مانسمحش نجدول اختبار من غير أسئلة (عشان ميعدّيش الميعاد من غير نشر)
+  const { publishAt, ...rest } = parsed.data;
+  if (publishAt) {
+    const questionsCount = await db.quizQuestion.count({ where: { quizId: id } });
+    if (questionsCount === 0) {
+      return NextResponse.json(
+        { error: "ضيف أسئلة للاختبار الأول قبل ما تجدول نشره." },
+        { status: 400 }
+      );
+    }
+  }
+  const data: Record<string, unknown> = { ...rest };
+  if (publishAt !== undefined) data.publishAt = publishAt ? new Date(publishAt) : null;
+  if (rest.status && rest.status !== "draft") data.publishAt = null;
+
   const quiz = await db.quiz.update({
     where: { id },
-    data: parsed.data,
+    data,
     include: { subject: true, targets: true },
   });
 
-  // عند أول نشر لاختبار، نبعت إشعار داخلي + Push فوري، بنفس منطق نشر
-  // الدروس - يوصل الطالب حتى لو المنصة مقفولة.
+  // عند أول نشر لاختبار، نبعت إشعار داخلي + Push فوري (للمستهدفين بس لو فيه استهداف)
   const justPublished = before?.status !== "published" && quiz.status === "published";
   if (justPublished) {
-    const title = `📝 اختبار جديد: ${quiz.title}`;
-    const body = `تم نشر اختبار جديد في مادة ${quiz.subject.name}. اضغط على الإشعار للوصول للاختبار.`;
-    // بيفتح صفحة الاختبارات وينزل لحد الاختبار ده ويميّزه، والطالب بيدوس
-    // "ابدأ الاختبار" بنفسه - عشان العدّاد مايشتغلش بالغلط من مجرد ضغطة على إشعار.
-    const linkUrl = `/quizzes?quiz=${quiz.id}`;
-
-    try {
-      if (quiz.targets.length === 0) {
-        // من غير استهداف = متاح لكل الطلاب
-        await db.notification.create({
-          data: { title, body, linkUrl, targetType: "all", createdBy: session.userId },
-        });
-      } else {
-        // صف إشعار منفصل لكل هدف (مجموعة/طالب) - نفس قيود موديل
-        // Notification الحالي (هدف واحد بالصف).
-        await Promise.all(
-          quiz.targets.map((t) =>
-            t.targetType === "group" && t.groupId
-              ? db.notification.create({
-                  data: { title, body, linkUrl, targetType: "group", targetGroupId: t.groupId, createdBy: session.userId },
-                })
-              : t.targetType === "student" && t.studentId
-              ? db.notification.create({
-                  data: { title, body, linkUrl, targetType: "student", targetStudentId: t.studentId, createdBy: session.userId },
-                })
-              : Promise.resolve()
-          )
-        );
-      }
-    } catch {
-      // فشل إرسال الإشعار الداخلي لا يجب أن يفشّل عملية النشر نفسها
-    }
-
-    try {
-      if (quiz.targets.length === 0) {
-        await sendPushToAllStudents({ title, body: quiz.subject.name, url: linkUrl });
-      } else {
-        const studentIds = await resolveAudienceStudentIdsMulti(
-          quiz.targets
-            .filter((t) => (t.targetType === "group" && t.groupId) || (t.targetType === "student" && t.studentId))
-            .map((t) =>
-              t.targetType === "group"
-                ? { targetType: "group" as const, targetGroupId: t.groupId! }
-                : { targetType: "student" as const, targetStudentId: t.studentId! }
-            )
-        );
-        await sendPushToStudents(studentIds, { title, body: quiz.subject.name, url: linkUrl });
-      }
-    } catch {
-      // فشل إرسال Push لا يجب أن يفشّل عملية النشر نفسها
-    }
+    await notifyQuizPublished(quiz.id, session.userId);
   }
 
   return NextResponse.json({ quiz });

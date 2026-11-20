@@ -18,6 +18,9 @@ type Props = {
   pdfCount?: number;
   /// وقت القراءة التقريبي بالدقائق (0 أو ناقص = ما يظهرش).
   readMinutes?: number;
+  /// رقم الدرس حسب ترتيبه في الوحدة (بيبدأ من 1). لو موجود هو اللي بيظهر،
+  /// وأي رقم مكتوب في أول العنوان بيتشال من العرض.
+  position?: number;
 };
 
 function MetaChip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
@@ -72,8 +75,11 @@ export function LessonHeader({
   videoCount = 0,
   pdfCount = 0,
   readMinutes = 0,
+  position,
 }: Props) {
-  const { number, text } = splitLessonNumber(title);
+  const split = splitLessonNumber(title);
+  const text = split.text;
+  const number = position ? String(position) : split.number;
   const hasMeta = videoCount > 0 || pdfCount > 0 || readMinutes > 0;
 
   return (

@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SchedulePublishField } from "@/components/SchedulePublishField";
 
 type Subject = { id: string; name: string };
 type Quiz = {
@@ -14,6 +15,7 @@ type Quiz = {
   startAt: string | null;
   endAt: string | null;
   status: "draft" | "published" | "closed";
+  publishAt?: string | null;
 };
 
 // يحوّل تاريخ ISO لصيغة input[type=datetime-local]، ويرجّع فاضي لو مفيش تاريخ
@@ -39,6 +41,7 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
   const [maxAttempts, setMaxAttempts] = useState(1);
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
+  const [publishAt, setPublishAt] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -69,6 +72,7 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
         setMaxAttempts(q.maxAttempts);
         setStartAt(toLocalInputValue(q.startAt));
         setEndAt(toLocalInputValue(q.endAt));
+        setPublishAt(q.publishAt ?? null);
       })
       .catch((err: Error) => {
         if (!cancelled) setLoadError(err.message || "تعذّر تحميل بيانات الاختبار.");
@@ -96,6 +100,8 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
         maxAttempts,
         startAt: startAt ? new Date(startAt).toISOString() : null,
         endAt: endAt ? new Date(endAt).toISOString() : null,
+        // الجدولة بتتبعت بس لو الاختبار لسه مسودة
+        ...(quiz?.status === "draft" ? { publishAt } : {}),
       }),
     });
     setSaving(false);
@@ -214,6 +220,16 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
         <p className="text-xs text-ink-soft -mt-2">
           لو سيبت وقت البداية/النهاية فاضي، الاختبار يفضل متاح طول الوقت (حسب حالة النشر).
         </p>
+
+        {quiz.status === "draft" && (
+          <div className="space-y-1.5">
+            <SchedulePublishField value={publishAt} onChange={setPublishAt} what="الاختبار" />
+            <p className="text-xs text-ink-soft">
+              الفرق: النشر التلقائي بيخلّي الاختبار يظهر للطلاب ويبعتلهم إشعار في الميعاد ده. أما وقت البداية والنهاية فوق
+              فبيحدد إمتى الطالب يقدر يدخل الاختبار بعد ما يتنشر.
+            </p>
+          </div>
+        )}
 
         {error && <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">{error}</div>}
 

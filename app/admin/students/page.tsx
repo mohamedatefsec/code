@@ -269,6 +269,9 @@ function AdminStudentsPageInner() {
                     <Link href={`/admin/students/${s.id}/edit`} className="text-primary hover:underline">
                       تعديل
                     </Link>
+                    <Link href={`/print/students/${s.id}`} className="text-primary hover:underline">
+                      تقرير ولي الأمر
+                    </Link>
                     <button onClick={() => handleToggleStatus(s.id)} className="text-ink-soft hover:underline">
                       {s.user.status === "active" ? "تعطيل" : "تفعيل"}
                     </button>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireActiveUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { AdminShell } from "@/components/AdminShell";
 import { getPlatformName } from "@/lib/settings";
 
@@ -11,6 +12,9 @@ export default async function AdminLayout({
 }) {
   const user = await requireActiveUser("admin");
   if (!user) redirect("/login");
+
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
 
   const [profile, platformName] = await Promise.all([
     db.adminProfile.findUnique({ where: { userId: user.id } }),

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { unitLabel, lessonLabel } from "@/lib/unit-label";
 import { toEmbedUrl, toVideoEmbedUrl } from "@/lib/media";
 import { AdminLessonProgress } from "@/components/AdminLessonProgress";
+import { SchedulePublishField } from "@/components/SchedulePublishField";
 import { upload } from "@vercel/blob/client";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
@@ -14,6 +15,8 @@ type Lesson = {
   description: string | null;
   content: string | null;
   status: "draft" | "published";
+  /// ميعاد النشر التلقائي (لو مسودة ومجدولة)
+  publishAt?: string | null;
   media: Media[];
 };
 
@@ -69,10 +72,18 @@ export default function AdminLessonEditPage({
         description: lesson.description,
         content: lesson.content,
         status: lesson.status,
+        // الجدولة ليها معنى بس لو الدرس مسودة
+        publishAt: lesson.status === "draft" ? (lesson.publishAt ?? null) : null,
       }),
     });
     setSaving(false);
-    setMessage(res.ok ? "تم حفظ الدرس بنجاح." : "تعذّر الحفظ.");
+    setMessage(
+      res.ok
+        ? lesson.status === "draft" && lesson.publishAt
+          ? "تم الحفظ، والدرس مجدول للنشر التلقائي."
+          : "تم حفظ الدرس بنجاح."
+        : "تعذّر الحفظ."
+    );
   }
 
   async function handleAddMedia(e: FormEvent) {
@@ -198,6 +209,10 @@ export default function AdminLessonEditPage({
             <option value="published">منشور</option>
           </select>
         </div>
+
+        {lesson.status === "draft" && (
+          <SchedulePublishField value={lesson.publishAt ?? null} onChange={(v) => update("publishAt", v)} what="الدرس" />
+        )}
 
         {message && <p className="text-sm text-accent">{message}</p>}
 

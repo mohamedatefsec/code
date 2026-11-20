@@ -1,8 +1,12 @@
 import { db } from "@/lib/db";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { StatGrid } from "@/components/StatGrid";
 import { DashboardHub } from "@/components/DashboardHub";
 
 export default async function AdminDashboardPage() {
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
+
   const [
     totalStudents,
     activeStudents,

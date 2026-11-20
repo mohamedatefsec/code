@@ -62,6 +62,8 @@ export const lessonCreateSchema = z.object({
   content: z.string().max(20000).optional().nullable(),
   order: z.number().int().optional(),
   status: z.enum(["draft", "published"]).optional(),
+  /// ميعاد النشر التلقائي (ISO) أو null لإلغاء الجدولة
+  publishAt: z.string().datetime().optional().nullable(),
 });
 
 export const lessonUpdateSchema = lessonCreateSchema.omit({ unitId: true }).partial();
@@ -228,6 +230,8 @@ export const quizUpdateSchema = quizCreateSchema
   .extend({
     maxAttempts: z.number().int().min(1).max(20).optional(),
     status: z.enum(["draft", "published", "closed"]).optional(),
+    /// ميعاد النشر التلقائي (ISO) أو null لإلغاء الجدولة
+    publishAt: z.string().datetime().optional().nullable(),
   });
 
 export const quizQuestionsUpdateSchema = z.object({

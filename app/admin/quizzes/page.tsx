@@ -7,6 +7,7 @@ type Quiz = {
   id: string;
   title: string;
   status: "draft" | "published" | "closed";
+  publishAt?: string | null;
   durationMinutes: number;
   subject: { name: string };
   _count: { questions: number; attempts: number };
@@ -99,6 +100,18 @@ export default function AdminQuizzesPage() {
                   >
                     {STATUS_LABELS[q.status]}
                   </span>
+                  {q.status === "draft" && q.publishAt && (
+                    <span className="block mt-1 text-xs text-primary">
+                      ⏰ هيتنشر{" "}
+                      {new Date(q.publishAt).toLocaleString("ar-EG", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-end">
                   <div className="flex items-center justify-end gap-3">

@@ -183,6 +183,9 @@ model Lesson {
   content     String?
   order       Int           @default(0)
   status      ContentStatus @default(draft)
+  /// نشر مجدول: لو الدرس مسودة والميعاد ده جه، بيتنشر لوحده ويتبعت إشعاره
+  /// (lib/scheduled-publish.ts). بيرجع null بعد النشر.
+  publishAt   DateTime?     @map("publish_at")
   createdAt   DateTime      @default(now()) @map("created_at")
 
   unit  Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
@@ -321,6 +324,8 @@ model Quiz {
   endAt           DateTime?  @map("end_at")
   maxAttempts     Int        @default(1) @map("max_attempts")
   status          QuizStatus @default(draft)
+  /// نشر مجدول للاختبار (نفس فكرة الدروس) - بيرجع null بعد النشر
+  publishAt       DateTime?  @map("publish_at")
   createdBy       String     @map("created_by")
   createdAt       DateTime   @default(now()) @map("created_at")
 

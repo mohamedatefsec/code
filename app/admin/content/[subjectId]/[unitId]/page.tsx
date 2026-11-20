@@ -10,6 +10,7 @@ type Lesson = {
   title: string;
   status: "draft" | "published";
   order: number;
+  publishAt?: string | null;
 };
 
 const iconBtn =
@@ -166,6 +167,9 @@ export default function AdminLessonsPage({
         ) : (
           <h1 className="text-xl font-bold text-ink mt-2">الدروس</h1>
         )}
+        <p className="text-sm text-ink-soft mt-2">
+          رقم كل درس عند الطلاب بيتحدد من ترتيبه هنا تلقائيًا، فمش محتاج تكتب رقم في العنوان. استخدم الأسهم لتغيير الترتيب.
+        </p>
       </div>
 
       <form
@@ -198,13 +202,9 @@ export default function AdminLessonsPage({
         {lessons === null && <p className="text-sm text-ink-soft">جارٍ التحميل...</p>}
         {lessons?.length === 0 && <p className="text-sm text-ink-soft">لا توجد دروس بعد.</p>}
         {lessons?.map((l, index) => {
-          // الطالب بيشوف رقم الدرس من العنوان نفسه (لو مكتوب زي "3- ...")،
-          // فلو الرقم ده مختلف عن مكان الدرس في الترتيب بننبّه الأدمن.
-          const typedNumber = splitLessonNumber(l.title).number;
-          const typedAsInt = typedNumber
-            ? Number(typedNumber.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)))
-            : null;
-          const numberMismatch = typedAsInt !== null && typedAsInt !== index + 1;
+          // الرقم اللي الطالب بيشوفه = مكان الدرس في الترتيب. لو فيه رقم مكتوب
+          // في أول العنوان بنعرض العنوان من غيره (زي ما الطالب بيشوفه بالظبط).
+          const { number: typedNumber, text: cleanTitle } = splitLessonNumber(l.title);
 
           if (editingId === l.id) {
             return (
@@ -262,9 +262,21 @@ export default function AdminLessonsPage({
                 >
                   {l.title}
                 </Link>
-                {numberMismatch && (
-                  <p className="mt-1.5 inline-flex rounded-lg bg-warn-soft px-2.5 py-1 text-xs text-warn">
-                    الرقم المكتوب في العنوان ({typedNumber}) مختلف عن ترتيب الدرس ({index + 1}) — الطالب بيشوف الرقم اللي في العنوان.
+                {l.status === "draft" && l.publishAt && (
+                  <p className="mt-1.5 inline-flex rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium text-primary">
+                    ⏰ هيتنشر تلقائيًا{" "}
+                    {new Date(l.publishAt).toLocaleString("ar-EG", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
+                {typedNumber && (
+                  <p className="mt-1 text-xs text-ink-soft">
+                    الطالب بيشوفه: «{cleanTitle}» برقم {index + 1}
                   </p>
                 )}
               </div>

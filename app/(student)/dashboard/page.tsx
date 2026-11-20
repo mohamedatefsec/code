@@ -1,4 +1,5 @@
 import { requireActiveUser } from "@/lib/auth";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { NotificationsWidget } from "@/components/NotificationsWidget";
@@ -100,6 +101,8 @@ export default async function StudentDashboardPage() {
       })
     : null;
 
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
   const lessonsCount = await db.lesson.count({ where: { status: "published" } });
   const subscription = profile ? await getStudentSubscriptionStatus(profile.id) : null;
   const needsPaymentReminder = subscription ? !subscription.active || subscription.unpaidNotice : false;
@@ -391,7 +394,7 @@ export default async function StudentDashboardPage() {
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="font-medium text-white truncate">{l.title}</span>
+                        <span className="font-medium text-white truncate">{splitLessonNumber(l.title).text}</span>
                         {fresh && (
                           <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-primary">
                             جديد

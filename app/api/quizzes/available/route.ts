@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { getCurrentSession } from "@/lib/auth";
 import { getQuizEligibility } from "@/lib/quiz-eligibility";
 
 export async function GET() {
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
+
   const session = await getCurrentSession();
   if (!session || session.role !== "student") {
     return NextResponse.json({ error: "غير مصرّح." }, { status: 403 });

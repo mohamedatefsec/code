@@ -500,6 +500,20 @@ h1, h2, h3, .font-display {
 
 /* رادع الطباعة لواجهة الطالب: يمنع طباعة محتوى منطقة الطالب فقط
    (لا يؤثر على لوحة الأدمن) عبر إخفائها بالكامل عند أمر الطباعة. */
+/* الطباعة دايمًا بألوان الوضع الفاتح (حتى لو الأدمن فاتح الوضع الداكن)،
+   عشان الكلام يطلع غامق على الورق الأبيض */
+@media print {
+  .dark {
+    --color-ink: #0e1330;
+    --color-ink-soft: #565f82;
+    --color-canvas: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-2: #f8f8ff;
+    --color-border: #e3e5f5;
+    color-scheme: light;
+  }
+}
+
 @media print {
   .student-guard-root {
     display: none !important;

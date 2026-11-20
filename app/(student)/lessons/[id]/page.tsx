@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { toEmbedUrl, toVideoEmbedUrl } from "@/lib/media";
 import { PdfViewer } from "@/components/PdfViewer";
 import { requireActiveUser } from "@/lib/auth";
@@ -42,6 +43,9 @@ export default async function StudentLessonDetailPage({
     showUnpaidNotice = subscription.unpaidNotice;
   }
 
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
+
   const lesson = await db.lesson.findUnique({
     where: { id },
     include: {
@@ -76,9 +80,11 @@ export default async function StudentLessonDetailPage({
   const subjectLessons = await db.lesson.findMany({
     where: { status: "published", unit: { status: "published", subjectId: lesson.unit.subjectId } },
     orderBy: [{ unit: { order: "asc" } }, { order: "asc" }],
-    select: { id: true, title: true },
+    select: { id: true, title: true, unitId: true },
   });
   const currentIndex = subjectLessons.findIndex((l) => l.id === lesson.id);
+  // رقم الدرس جوه وحدته (1، 2، 3...) حسب الترتيب اللي الأدمن حاطه
+  const positionInUnit = subjectLessons.filter((l) => l.unitId === lesson.unitId).findIndex((l) => l.id === lesson.id) + 1;
   const nextLesson = currentIndex >= 0 ? (subjectLessons[currentIndex + 1] ?? null) : null;
 
   const paragraphs = (lesson.content ?? "").split(/\n{2,}/).filter(Boolean);
@@ -113,6 +119,7 @@ export default async function StudentLessonDetailPage({
         videoCount={videoCount}
         pdfCount={pdfCount}
         readMinutes={readMinutes}
+        position={positionInUnit > 0 ? positionInUnit : undefined}
       />
 
       {videos.map((m) => {

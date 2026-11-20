@@ -27,8 +27,10 @@ export function LessonCard({
 }) {
   const fresh = isNewLesson(createdAt);
   const theme = subjectTheme(subject);
-  const { number, text } = splitLessonNumber(title);
-  const badgeNumber = number ?? String(index + 1);
+  // الرقم دايمًا حسب ترتيب الدرس جوه الوحدة (بيتغيّر لوحده لما الأدمن يرتّب
+  // الدروس)، وأي رقم مكتوب في أول العنوان بيتشال من العرض.
+  const { text } = splitLessonNumber(title);
+  const badgeNumber = String(index + 1);
 
   return (
     <Link

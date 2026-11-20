@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { publishDueContent } from "@/lib/scheduled-publish";
 import { SubjectHero } from "@/components/SubjectHero";
 import { LessonCard } from "@/components/LessonCard";
 import { requireActiveUser } from "@/lib/auth";
@@ -29,6 +30,9 @@ export default async function StudentLessonsPage() {
     }
     showUnpaidNotice = subscription.unpaidNotice;
   }
+
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
 
   const subjects = await db.subject.findMany({
     orderBy: { order: "asc" },

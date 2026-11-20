@@ -6,6 +6,7 @@ import { clientIp } from "@/lib/login-throttle";
 import { isIpBlocked } from "@/lib/ip-security";
 import { StudentShell } from "@/components/StudentShell";
 import { getPlatformName, getPlatformTagline, getPrimaryAdminBrand } from "@/lib/settings";
+import { publishDueContent } from "@/lib/scheduled-publish";
 
 export default async function StudentLayout({
   children,
@@ -24,6 +25,9 @@ export default async function StudentLayout({
     }
     redirect(hadStaleSession ? "/login?reason=session-ended" : "/login");
   }
+
+  // نشر أي درس/اختبار مجدول جه ميعاده (سريع، ومحمي من التكرار)
+  await publishDueContent();
 
   const [profile, platformName, tagline, adminBrand] = await Promise.all([
     db.studentProfile.findUnique({ where: { userId: user.id } }),
