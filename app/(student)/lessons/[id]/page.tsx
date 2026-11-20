@@ -12,6 +12,8 @@ import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { PaywallLock } from "@/components/PaywallLock";
 import { UnpaidNotice } from "@/components/UnpaidNotice";
+import { LessonCompleteButton } from "@/components/LessonCompleteButton";
+import { recordLessonOpen, getLessonCompleted } from "@/lib/lesson-progress";
 
 export default async function StudentLessonDetailPage({
   params,
@@ -62,6 +64,22 @@ export default async function StudentLessonDetailPage({
       // تجاهل بهدوء
     }
   }
+
+  // تسجيل فتح الدرس + حالة "خلّصته" (آمنة: لو فشلت الدرس بيتعرض عادي)
+  let completed = false;
+  if (profile) {
+    await recordLessonOpen(profile.id, lesson.id);
+    completed = await getLessonCompleted(profile.id, lesson.id);
+  }
+
+  // الدرس اللي بعده في نفس المادة (نفس الوحدة، وإلا أول درس في الوحدة اللي بعدها)
+  const subjectLessons = await db.lesson.findMany({
+    where: { status: "published", unit: { status: "published", subjectId: lesson.unit.subjectId } },
+    orderBy: [{ unit: { order: "asc" } }, { order: "asc" }],
+    select: { id: true, title: true },
+  });
+  const currentIndex = subjectLessons.findIndex((l) => l.id === lesson.id);
+  const nextLesson = currentIndex >= 0 ? (subjectLessons[currentIndex + 1] ?? null) : null;
 
   const paragraphs = (lesson.content ?? "").split(/\n{2,}/).filter(Boolean);
   const fresh = isNewLesson(lesson.createdAt);
@@ -173,6 +191,9 @@ export default async function StudentLessonDetailPage({
               </a>
             ))}
         </div>
+      )}
+      {profile && (
+        <LessonCompleteButton lessonId={lesson.id} initialCompleted={completed} nextLesson={nextLesson} />
       )}
     </div>
   );

@@ -17,8 +17,10 @@ type ResultAnswer = {
   textAnswer: string | null;
   options: ResultOption[];
 };
+type ReviewLesson = { id: string; title: string; unitTitle: string; wrongCount: number };
 type Result = {
   quizTitle: string;
+  reviewLessons?: ReviewLesson[];
   score: number;
   maxScore: number;
   percentage: number;
@@ -97,6 +99,36 @@ export default function ResultDetailPage({
         <div className="rounded-lg bg-primary-soft px-4 py-3 text-sm text-primary">
           ⏳ فيه سؤال مقالي بانتظار تصحيح المدرّس — الدرجة والنسبة أعلاه لسه
           مش نهائية وهتتحدّث بعد التصحيح.
+        </div>
+      )}
+
+      {/* الدروس اللي محتاج يراجعها حسب الأسئلة اللي غلط فيها */}
+      {result.reviewLessons && result.reviewLessons.length > 0 && (
+        <div className="rounded-xl border border-spark/40 bg-spark-soft p-5 space-y-3">
+          <div>
+            <p className="font-bold text-ink">📚 دروس محتاج تراجعها</p>
+            <p className="text-sm text-ink-soft mt-0.5">
+              دي الدروس اللي جت منها الأسئلة اللي غلطت فيها. راجعها قبل المحاولة الجاية أو الاختبار الجاي.
+            </p>
+          </div>
+          <ul className="space-y-2">
+            {result.reviewLessons.map((l) => (
+              <li key={l.id}>
+                <Link
+                  href={`/lessons/${l.id}`}
+                  className="group flex items-center justify-between gap-3 rounded-lg bg-surface border border-border px-4 py-3 hover:border-primary/40 transition-colors"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-ink group-hover:text-primary truncate">{l.title}</span>
+                    <span className="block text-xs text-ink-soft truncate">{l.unitTitle}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-danger/10 text-danger px-2.5 py-0.5 text-xs font-semibold">
+                    {l.wrongCount === 1 ? "غلطت في سؤال" : l.wrongCount === 2 ? "غلطت في سؤالين" : `غلطت في ${l.wrongCount} أسئلة`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent, ChangeEvent, use } from "react";
 import Link from "next/link";
 import { unitLabel, lessonLabel } from "@/lib/unit-label";
 import { toEmbedUrl, toVideoEmbedUrl } from "@/lib/media";
+import { AdminLessonProgress } from "@/components/AdminLessonProgress";
 import { upload } from "@vercel/blob/client";
 
 type Media = { id: string; type: "video" | "pdf" | "image" | "link"; url: string; title: string | null };
@@ -320,6 +321,8 @@ export default function AdminLessonEditPage({
         </form>
         {mediaError && <p className="text-sm text-danger">{mediaError}</p>}
       </div>
+
+      <AdminLessonProgress lessonId={lessonId} />
     </div>
   );
 }

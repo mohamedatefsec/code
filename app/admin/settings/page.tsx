@@ -179,6 +179,27 @@ export default function AdminSettingsPage() {
         </Link>
       </div>
 
+      {/* نسخة احتياطية */}
+      <div className="rounded-xl border border-primary/30 bg-primary-soft/60 p-5 flex flex-wrap items-center gap-4">
+        <span className="grid place-items-center w-12 h-12 shrink-0 rounded-xl bg-surface text-2xl" aria-hidden="true">
+          💾
+        </span>
+        <div className="flex-1 min-w-[14rem]">
+          <h2 className="font-semibold text-ink">نسخة احتياطية من كل البيانات</h2>
+          <p className="text-sm text-ink-soft mt-0.5 leading-6">
+            ملف Excel فيه الطلاب والمجموعات والحضور ونتايج الاختبارات والمدفوعات والمحتوى وتقدّم الدروس. احفظه عندك كل
+            فترة (مثلًا مرة في الأسبوع) عشان لو حصل مسح بالغلط تلاقي بياناتك.
+          </p>
+        </div>
+        <a
+          href="/api/admin/backup"
+          download
+          className="rounded-lg bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-glow hover:opacity-90 transition"
+        >
+          ⬇ تنزيل النسخة الاحتياطية
+        </a>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* الهوية العامة */}
         <div className="space-y-5 rounded-xl border border-border bg-surface p-6 shadow-elevated">

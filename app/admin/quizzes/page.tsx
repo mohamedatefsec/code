@@ -108,6 +108,9 @@ export default function AdminQuizzesPage() {
                     <Link href={`/admin/quizzes/${q.id}/monitor`} className="text-primary hover:underline text-sm">
                       متابعة لحظية
                     </Link>
+                    <Link href={`/admin/quizzes/${q.id}/analysis`} className="text-primary hover:underline text-sm">
+                      📊 تحليل الأسئلة
+                    </Link>
                     <Link
                       href={`/print/quizzes/${q.id}`}
                       target="_blank"

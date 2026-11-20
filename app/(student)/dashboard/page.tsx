@@ -14,6 +14,8 @@ import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { CodyRobot } from "@/components/brand/CodyRobot";
+import { getResumeLesson, getCompletedCount } from "@/lib/lesson-progress";
+import { splitLessonNumber } from "@/lib/lesson-title";
 
 /// أيقونات صغيرة لبطاقات الإحصائيات - كل واحدة تعبّر بصريًا عن معناها
 /// (حضور / درجات / اختبارات / دروس) بنفس أسلوب الخطوط المستخدم في بقية الموقع.
@@ -223,6 +225,12 @@ export default async function StudentDashboardPage() {
 
   const firstName = profile?.fullName?.split(" ")[0] ?? "طالبنا";
 
+  // "كمّل من حيث وقفت": آخر درس فتحه وما خلّصهوش + إجمالي اللي خلّصه
+  const subscriptionOk = !subscription || subscription.active;
+  const resume = profile && subscriptionOk ? await getResumeLesson(profile.id) : null;
+  const completedCount = profile ? await getCompletedCount(profile.id) : 0;
+  const overallPercent = lessonsCount > 0 ? Math.round((completedCount / lessonsCount) * 100) : 0;
+
   return (
     <div className="space-y-6">
       {profile && <BadgeCelebration studentId={profile.id} earnedBadges={earnedBadgesForCelebration} />}
@@ -246,7 +254,7 @@ export default async function StudentDashboardPage() {
               {profile?.group ? `مجموعة: ${profile.group.name}` : "لم تُضف لأي مجموعة بعد."} — جاهز لمواصلة رحلتك التعليمية؟
             </p>
             <Link
-              href="/lessons"
+              href={resume ? `/lessons/${resume.lesson.id}` : "/lessons"}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-white text-primary px-5 py-2.5 text-sm font-semibold shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-transform"
             >
               متابعة التعلم
@@ -261,6 +269,54 @@ export default async function StudentDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* كمّل من حيث وقفت + التقدّم الكلي */}
+      {lessonsCount > 0 && (
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-elevated animate-fade-in-up flex flex-col md:flex-row md:items-center gap-5">
+          {resume ? (
+            <Link
+              href={`/lessons/${resume.lesson.id}`}
+              className="group flex items-center gap-4 flex-1 min-w-0 rounded-xl p-1 -m-1"
+            >
+              <span className="grid place-items-center w-14 h-14 shrink-0 rounded-2xl bg-gradient-brand text-white shadow-glow">
+                <svg viewBox="0 0 24 24" className="w-7 h-7" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-primary">كمّل من حيث وقفت</span>
+                <span className="block font-bold text-ink truncate group-hover:text-primary transition-colors">
+                  {splitLessonNumber(resume.lesson.title).text}
+                </span>
+                <span className="block text-sm text-ink-soft truncate">{resume.lesson.unit.title}</span>
+              </span>
+            </Link>
+          ) : (
+            <div className="flex-1">
+              <p className="font-bold text-ink">
+                {completedCount === 0 ? "ابدأ أول درس النهارده" : "مفيش درس مفتوح مستنيك"}
+              </p>
+              <p className="text-sm text-ink-soft mt-0.5">
+                {completedCount === 0
+                  ? "افتح صفحة الدروس واختار الدرس الأول."
+                  : "كل الدروس اللي فتحتها خلّصتها. اختار الدرس الجاي من صفحة الدروس."}
+              </p>
+            </div>
+          )}
+          <div className="md:w-64 shrink-0">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-ink-soft">تقدّمك في المنهج</span>
+              <span className="font-bold text-ink tabular-nums">{overallPercent}%</span>
+            </div>
+            <div className="mt-2 h-2.5 rounded-full bg-surface-2 border border-border overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-brand" style={{ width: `${overallPercent}%` }} />
+            </div>
+            <p className="text-xs text-ink-soft mt-1.5">
+              خلّصت {completedCount} من {lessonsCount} {lessonsCount === 1 ? "درس" : "دروس"}
+            </p>
+          </div>
+        </div>
+      )}
 
       <StatGrid
         stats={[

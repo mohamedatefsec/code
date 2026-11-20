@@ -6,6 +6,7 @@ import { getStudentSubscriptionStatus } from "@/lib/subscription";
 import { getContactWhatsappLink } from "@/lib/settings";
 import { PaywallLock } from "@/components/PaywallLock";
 import { UnpaidNotice } from "@/components/UnpaidNotice";
+import { getStudentProgressMap } from "@/lib/lesson-progress";
 
 export default async function StudentLessonsPage() {
   const user = await requireActiveUser("student");
@@ -46,6 +47,8 @@ export default async function StudentLessonsPage() {
     },
   });
 
+  const progress = profile ? await getStudentProgressMap(profile.id) : new Map<string, "done" | "opened">();
+
   const hasAnyContent = subjects.some((s) => s.units.some((u) => u.lessons.length > 0));
 
   return (
@@ -75,8 +78,11 @@ export default async function StudentLessonsPage() {
               unitsCount={subject.units.filter((u) => u.lessons.length > 0).length}
             />
 
-            {subject.units.map((unit) =>
-              unit.lessons.length === 0 ? null : (
+            {subject.units.map((unit) => {
+              if (unit.lessons.length === 0) return null;
+              const doneInUnit = unit.lessons.filter((l) => progress.get(l.id) === "done").length;
+              const unitPercent = Math.round((doneInUnit / unit.lessons.length) * 100);
+              return (
                 <div key={unit.id} className="space-y-3">
                   <div className="flex items-center gap-3">
                     <span className="h-6 w-1 shrink-0 rounded-full bg-gradient-brand" aria-hidden="true" />
@@ -85,6 +91,29 @@ export default async function StudentLessonsPage() {
                       {unit.lessons.length} {unit.lessons.length === 1 ? "درس" : "دروس"}
                     </span>
                     <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                  </div>
+                  {/* تقدّم الطالب في الوحدة: الشريط بيتملي على قد الدروس اللي خلّصها */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-2 flex-1 max-w-xs rounded-full bg-surface-2 border border-border overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={unitPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`تقدّمك في ${unit.title}`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-gradient-brand transition-all"
+                        style={{ width: `${unitPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-ink-soft tabular-nums">
+                      {doneInUnit === unit.lessons.length
+                        ? "🎉 خلّصت الوحدة كلها"
+                        : doneInUnit === 0
+                          ? "لسه ما خلّصتش دروس في الوحدة دي"
+                          : `خلّصت ${doneInUnit} من ${unit.lessons.length} دروس`}
+                    </span>
                   </div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {unit.lessons.map((lesson, i) => (
@@ -96,12 +125,13 @@ export default async function StudentLessonsPage() {
                         subject={subject}
                         index={i}
                         createdAt={lesson.createdAt}
+                        progress={progress.get(lesson.id) ?? null}
                       />
                     ))}
                   </div>
                 </div>
-              )
-            )}
+              );
+            })}
           </div>
         );
       })}

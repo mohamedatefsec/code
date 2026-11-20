@@ -38,8 +38,29 @@ export async function GET(
     return NextResponse.json({ error: "لم يتم تسليم هذه المحاولة بعد." }, { status: 409 });
   }
 
+  // "دروس محتاج تراجعها": الدروس المرتبطة بالأسئلة اللي الطالب غلط فيها
+  // (مرتّبة من الأكتر غلطًا). بتظهر بس للأسئلة المربوطة بدرس في بنك الأسئلة.
+  const wrongByLesson = new Map<string, number>();
+  for (const a of attempt.answers) {
+    if (a.isCorrect === false && a.question.lessonId) {
+      wrongByLesson.set(a.question.lessonId, (wrongByLesson.get(a.question.lessonId) ?? 0) + 1);
+    }
+  }
+  const reviewLessons =
+    wrongByLesson.size === 0
+      ? []
+      : (
+          await db.lesson.findMany({
+            where: { id: { in: [...wrongByLesson.keys()] }, status: "published", unit: { status: "published" } },
+            select: { id: true, title: true, unit: { select: { title: true } } },
+          })
+        )
+          .map((l) => ({ id: l.id, title: l.title, unitTitle: l.unit.title, wrongCount: wrongByLesson.get(l.id) ?? 0 }))
+          .sort((x, y) => y.wrongCount - x.wrongCount);
+
   return NextResponse.json({
     result: {
+      reviewLessons,
       quizTitle: attempt.quiz.title,
       score: attempt.score,
       maxScore: attempt.maxScore,

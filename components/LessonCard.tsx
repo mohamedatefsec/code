@@ -14,6 +14,7 @@ export function LessonCard({
   subject,
   index = 0,
   createdAt,
+  progress = null,
 }: {
   id: string;
   title: string;
@@ -21,6 +22,8 @@ export function LessonCard({
   subject: SubjectLike;
   index?: number;
   createdAt: Date | string;
+  /// "done" = الطالب خلّص الدرس، "opened" = فتحه بس، null = لسه ما فتحوش
+  progress?: "done" | "opened" | null;
 }) {
   const fresh = isNewLesson(createdAt);
   const theme = subjectTheme(subject);
@@ -30,7 +33,9 @@ export function LessonCard({
   return (
     <Link
       href={`/lessons/${id}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface p-4 pt-5 shadow-elevated card-hover animate-fade-in-up"
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-surface p-4 pt-5 shadow-elevated card-hover animate-fade-in-up ${
+        progress === "done" ? "border-accent/40" : "border-border"
+      }`}
       style={{ animationDelay: `${Math.min(index, 8) * 0.05}s` }}
     >
       {/* خط تدرّج رفيع فوق البطاقة بلون المادة */}
@@ -45,7 +50,17 @@ export function LessonCard({
           {badgeNumber}
         </div>
         <div className="min-w-0 flex-1">
-          {fresh && (
+          {progress === "done" && (
+            <span className="mb-1 me-1 inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent">
+              ✓ خلّصته
+            </span>
+          )}
+          {progress === "opened" && (
+            <span className="mb-1 me-1 inline-flex items-center gap-1 rounded-full bg-spark-soft px-2 py-0.5 text-[11px] font-bold text-spark">
+              بدأته
+            </span>
+          )}
+          {fresh && progress !== "done" && (
             <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary animate-pulse-glow">
               ✨ جديد
             </span>
@@ -58,7 +73,7 @@ export function LessonCard({
 
       <div className="mt-auto flex items-center justify-end pt-4 text-xs font-semibold text-primary">
         <span className="inline-flex items-center gap-1 transition-all duration-300 group-hover:gap-2">
-          ابدأ الدرس
+          {progress === "done" ? "راجع الدرس" : progress === "opened" ? "كمّل الدرس" : "ابدأ الدرس"}
           <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} className="h-3.5 w-3.5" aria-hidden="true">
             <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

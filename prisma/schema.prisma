@@ -78,6 +78,7 @@ model StudentProfile {
   payments Payment[]
   pushSubscriptions PushSubscription[]
   reviewAnswers ReviewAnswer[]
+  lessonProgress LessonProgress[]
 
   @@index([groupId])
   @@map("student_profiles")
@@ -188,9 +189,30 @@ model Lesson {
   media LessonMedia[]
   questions Question[]
   quizzes Quiz[]
+  progress LessonProgress[]
 
   @@index([unitId, status])
   @@map("lessons")
+}
+
+/// تقدّم الطالب في درس واحد: بيتسجّل أول ما يفتح الدرس، وبيتحدّث كل مرة
+/// يرجعله، و completedAt بيتملي لما الطالب يدوس "خلّصت الدرس" (ويتشال لو
+/// رجع فيها). الأدمن بيشوف منه مين فتح كل درس ومين خلّصه.
+model LessonProgress {
+  id            String    @id @default(cuid())
+  studentId     String    @map("student_id")
+  lessonId      String    @map("lesson_id")
+  firstOpenedAt DateTime  @default(now()) @map("first_opened_at")
+  lastOpenedAt  DateTime  @default(now()) @map("last_opened_at")
+  openCount     Int       @default(1) @map("open_count")
+  completedAt   DateTime? @map("completed_at")
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@index([lessonId])
+  @@map("lesson_progress")
 }
 
 model LessonMedia {
